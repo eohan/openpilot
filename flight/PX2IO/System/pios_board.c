@@ -20,6 +20,8 @@
 #include <pios_servo_priv.h>
 #include <pios_spektrum_priv.h>
 #include <pios_usart_priv.h>
+#include <pios_rtc_priv.h>
+#include <pios_rcvr_priv.h>
 
 /*
  * Clocking
@@ -38,8 +40,6 @@ const struct pios_clock_cfg px2io_clock_config = {
 /*
  * AUX USART
  */
-void PIOS_USART_aux_irq_handler(void);
-void USART1_IRQHandler() __attribute__ ((alias ("PIOS_USART_aux_irq_handler")));
 const struct pios_usart_cfg pios_usart_aux_cfg = {
   .regs = USART1,
   .init = {
@@ -52,7 +52,7 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
     .USART_Mode                = USART_Mode_Rx | USART_Mode_Tx,
   },
   .irq = {
-    .handler = PIOS_USART_aux_irq_handler,
+    .handler = NULL,
     .init    = {
       .NVIC_IRQChannel                   = USART1_IRQn,
       .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
@@ -78,12 +78,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
     },
   },
 };
-
-static uint32_t pios_usart_aux_id;
-void PIOS_USART_aux_irq_handler(void)
-{
-	PIOS_USART_IRQ_Handler(pios_usart_aux_id);
-}
 
 #if PIOS_INCLUDE_SPEKTRUM
 # error Need Spektrum config
@@ -174,37 +168,9 @@ const struct pios_servo_cfg pios_servo_cfg = {
 };
 
 
-#ifdef PIOS_INCLUDE_PPM
 /*
  * PPM Input
  */
-void TIM6_IRQHandler();
-void TIM6_IRQHandler() __attribute__ ((alias ("PIOS_TIM6_irq_handler")));
-const struct pios_ppmsv_cfg pios_ppmsv_cfg = {
-	.tim_base_init = {
-		.TIM_Prescaler = (PIOS_MASTER_CLOCK / 1000000) - 1,	/* For 1 uS accuracy */
-		.TIM_ClockDivision = TIM_CKD_DIV1,
-		.TIM_CounterMode = TIM_CounterMode_Up,
-		.TIM_Period = ((1000000 / 25) - 1), /* 25 Hz */
-		.TIM_RepetitionCounter = 0x0000,
-	},
-	.irq = {
-		.handler = TIM6_IRQHandler,
-		.init    = {
-			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
-			.NVIC_IRQChannelSubPriority        = 0,
-			.NVIC_IRQChannelCmd                = ENABLE,
-		},
-	},
-	.timer = TIM6,
-	.ccr = TIM_IT_Update,
-};
-
-void PIOS_TIM6_irq_handler()
-{
-	PIOS_PPMSV_irq_handler();
-}
-
 void TIM1_CC_IRQHandler();
 void TIM1_CC_IRQHandler() __attribute__ ((alias ("PIOS_TIM1_CC_irq_handler")));
 const struct pios_ppm_cfg pios_ppm_cfg = {
@@ -216,16 +182,16 @@ const struct pios_ppm_cfg pios_ppm_cfg = {
 		.TIM_RepetitionCounter = 0x0000,
 	},
 	.tim_ic_init = {
+			.TIM_Channel = TIM_Channel_2,
 			.TIM_ICPolarity = TIM_ICPolarity_Rising,
 			.TIM_ICSelection = TIM_ICSelection_DirectTI,
 			.TIM_ICPrescaler = TIM_ICPSC_DIV1,
 			.TIM_ICFilter = 0x0,
-			.TIM_Channel = TIM_Channel_2,
 	},
 	.gpio_init = {
+			.GPIO_Pin = GPIO_Pin_9,
 			.GPIO_Mode = GPIO_Mode_IPD,
 			.GPIO_Speed = GPIO_Speed_2MHz,
-			.GPIO_Pin = GPIO_Pin_9,
 	},
 	.remap = 0,
 	.irq = {
@@ -234,7 +200,6 @@ const struct pios_ppm_cfg pios_ppm_cfg = {
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
 			.NVIC_IRQChannelSubPriority        = 0,
 			.NVIC_IRQChannelCmd                = ENABLE,
-			.NVIC_IRQChannel = TIM1_CC_IRQn,
 		},
 	},
 	.timer = TIM1,
@@ -246,37 +211,87 @@ void PIOS_TIM1_CC_irq_handler()
 {
 	PIOS_PPM_irq_handler();
 }
+
+#if defined(PIOS_INCLUDE_RTC)
+/*
+ * Realtime Clock (RTC)
+ */
+#include <pios_rtc_priv.h>
+
+void PIOS_RTC_IRQ_Handler (void);
+void RTC_IRQHandler() __attribute__ ((alias ("PIOS_RTC_IRQ_Handler")));
+static const struct pios_rtc_cfg pios_rtc_main_cfg = {
+	.clksrc = RCC_RTCCLKSource_HSE_Div128,
+	.prescaler = 100,
+	.irq = {
+		.handler = NULL,
+		.init = {
+			.NVIC_IRQChannel                   = RTC_IRQn,
+			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
+			.NVIC_IRQChannelSubPriority        = 0,
+			.NVIC_IRQChannelCmd                = ENABLE,
+		  },
+	},
+};
+
+void PIOS_RTC_IRQ_Handler (void)
+{
+	PIOS_RTC_irq_handler ();
+}
+
 #endif
+
 
 uint32_t pios_com_aux_id;
 #if defined(PIOS_INCLUDE_SPEKTRUM)
 uint32_t pios_com_spektrum_id;
 #endif
 
+uint32_t pios_rcvr_channel_to_id_map[PIOS_RCVR_MAX_DEVS];
+uint32_t pios_rcvr_max_channel;
+
 /**
  * PIOS_Board_Init()
  */
 void PIOS_Board_Init(void) {
 
-	/* Debug services */
-	PIOS_DEBUG_Init();
-
 	/* Delay system */
 	PIOS_DELAY_Init();	
+
+	/* Initialize UAVObject libraries */
+//	EventDispatcherInitialize();
+//	UAVObjInitialize();
+//	UAVObjectsInitializeAll();
+
+#if defined(PIOS_INCLUDE_RTC)
+	/* Initialize the real-time clock and its associated tick */
+	PIOS_RTC_Init(&pios_rtc_main_cfg);
+#else
+#warning Need RTC for PPM
+#endif
 	
+#if defined(PIOS_INCLUDE_SBUS)
+	// XXX need to do this
+	PIOS_SBUS_Init(&pios_sbus_cfg);
+
+	uint32_t pios_usart_sbus_id;
+	if (PIOS_USART_Init(&pios_usart_sbus_id, &pios_usart_sbus_main_cfg)) {
+		PIOS_Assert(0);
+	}
+#endif	/* PIOS_INCLUDE_SBUS */
 #if defined(PIOS_INCLUDE_SPEKTRUM)
 	/* SPEKTRUM init must come before comms */
-	PIOS_SPEKTRUM_Init();
+	PIOS_SPEKTRUM_Init(&pios_spektrum_cfg, false);
+
+	uint32_t pios_usart_spektrum_id;
 
 	if (PIOS_USART_Init(&pios_usart_spektrum_id, &pios_usart_spektrum_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
-	if (PIOS_COM_Init(&pios_com_spektrum_id, &pios_usart_com_driver, pios_usart_spektrum_id)) {
 		PIOS_DEBUG_Assert(0);
 	}
 #endif
 
 #if defined(PIOS_COM_AUX)
+	uint32_t pios_usart_aux_id;
 	if (PIOS_USART_Init(&pios_usart_aux_id, &pios_usart_aux_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
@@ -287,10 +302,20 @@ void PIOS_Board_Init(void) {
 	PIOS_COM_SendFormattedString(PIOS_COM_AUX, "PX2IO starting...\r\n");
 
 	PIOS_Servo_Init();
+//	PIOS_ADC_INIT();
 	PIOS_GPIO_Init();
 
 #if defined(PIOS_INCLUDE_PPM)
 	PIOS_PPM_Init();
+	for (uint8_t i = 0; i < PIOS_PPM_NUM_INPUTS && i < PIOS_RCVR_MAX_DEVS; i++) {
+		if (!PIOS_RCVR_Init(&pios_rcvr_channel_to_id_map[pios_rcvr_max_channel],
+				    &pios_ppm_rcvr_driver,
+				    i)) {
+			pios_rcvr_max_channel++;
+		} else {
+			PIOS_Assert(0);
+		}
+	}
 #endif
 
 	PIOS_WDG_Init();

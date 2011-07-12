@@ -128,6 +128,12 @@ extern uint32_t pios_com_spektrum_id;
 
 // XXX spektrum UART is also S.Bus UART
 
+//------------------------
+// PIOS_RCVR
+// See also pios_board.c
+//------------------------
+#define PIOS_RCVR_MAX_DEVS                      12
+
 //-------------------------
 // Receiver PPM input
 //-------------------------

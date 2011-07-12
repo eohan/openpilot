@@ -105,6 +105,7 @@ SRC += $(PIOSSTM32F10X)/pios_wdg.c
 
 ## PIOS Hardware (Common)
 SRC += $(PIOSCOMMON)/pios_com.c
+SRC += $(PIOSCOMMON)/pios_rcvr.c
 SRC += $(PIOSCOMMON)/printf-stdarg.c
 
 ## Misc flight libraries
