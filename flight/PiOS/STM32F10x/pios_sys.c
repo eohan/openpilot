@@ -265,7 +265,7 @@ PIOS_SYS_ClockInit(const struct pios_clock_cfg *cfg)
 
 	/* start the PLL and wait for it */
 	RCC_PLLCmd(ENABLE);
-	while (!RCC_GetITStatus(RCC_IT_PLLRDY)) {
+	while (!RCC_GetFlagStatus(RCC_FLAG_PLLRDY)) {
 	}
 
 	/* switch the system clock to the PLL */

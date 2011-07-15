@@ -29,8 +29,8 @@
 const struct pios_clock_cfg px2io_clock_config = {
 		.source				= RCC_PLLSource_HSI_Div2,	/* XXX temporary until we sort out the clock on IO */
 		.refclock_frequency = 8 * 1000 * 1000,
-		.refclock_prescale	= 2,
-		.pll_multiply		= 6,
+		.refclock_prescale	= RCC_PREDIV1_Div2,
+		.pll_multiply		= RCC_PLLMul_6,
 		.hclk_prescale		= RCC_SYSCLK_Div1,
 		.pclk1_prescale		= RCC_HCLK_Div1,
 		.pclk2_prescale		= RCC_HCLK_Div1,
