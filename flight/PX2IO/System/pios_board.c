@@ -318,7 +318,7 @@ void PIOS_Board_Init(void) {
 	}
 #endif
 
-	PIOS_WDG_Init();
+	//PIOS_WDG_Init();
 }
 
 /**
