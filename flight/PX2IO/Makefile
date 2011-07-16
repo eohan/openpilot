@@ -27,13 +27,13 @@ include $(TOP)/make/firmware-defs.mk
 include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 
 # Target file name (without extension).
-TARGET			= $(BOARD_NAME)
+TARGET				= $(BOARD_NAME)
 
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
-OUTDIR			= $(TOP)/build/px2io
+OUTDIR				= $(TOP)/build/px2io
 
 # Set to YES to compile for debugging
-DEBUG			?= YES
+DEBUG				?= YES
 
 # Set to YES to use the Servo output pins for debugging via scope or logic analyser
 # XXX not currently supported
@@ -46,35 +46,35 @@ ENABLE_AUX_UART		?= YES
 USE_BOOTLOADER		?= NO
 
 USE_SPEKTRUM		?= NO	# not currently supported
-USE_SBUS		?= NO	# not currently supported
+USE_SBUS			?= NO	# not currently supported
 
 # Set to YES when using Code Sourcery toolchain
 CODE_SOURCERY		?= YES
 
 # Remove command is different for Code Sourcery on Windows
 ifeq ($(CODE_SOURCERY), YES)
-REMOVE_CMD		= cs-rm
+REMOVE_CMD			= cs-rm
 else
-REMOVE_CMD		= rm
+REMOVE_CMD			= rm
 endif
 
-FLASH_TOOL		= OPENOCD
+FLASH_TOOL			= OPENOCD
 
 # Paths
 OPSYSTEM		= ./System
 OPSYSTEMINC		= $(OPSYSTEM)/inc
 FLIGHTLIB		= ../Libraries
-FLIGHTLIBINC		= $(FLIGHTLIB)/inc
+FLIGHTLIBINC	= $(FLIGHTLIB)/inc
 PIOS			= ../PiOS
 PIOSINC			= $(PIOS)/inc
-PIOSSTM32F10X		= $(PIOS)/STM32F10x
+PIOSSTM32F10X	= $(PIOS)/STM32F10x
 PIOSCOMMON		= $(PIOS)/Common
 PIOSBOARDS		= $(PIOS)/Boards
 APPLIBDIR		= $(PIOSSTM32F10X)/Libraries
 STMLIBDIR		= $(APPLIBDIR)
 STMSPDDIR		= $(STMLIBDIR)/STM32F10x_StdPeriph_Driver
-STMSPDSRCDIR		= $(STMSPDDIR)/src
-STMSPDINCDIR		= $(STMSPDDIR)/inc
+STMSPDSRCDIR	= $(STMSPDDIR)/src
+STMSPDINCDIR	= $(STMSPDDIR)/inc
 CMSISDIR		= $(STMLIBDIR)/CMSIS/Core/CM3
 RTOSDIR			= $(APPLIBDIR)/FreeRTOS
 RTOSSRCDIR		= $(RTOSDIR)/Source
@@ -94,7 +94,7 @@ SRC += $(PIOSSTM32F10X)/pios_led.c
 SRC += $(PIOSSTM32F10X)/pios_delay.c
 SRC += $(PIOSSTM32F10X)/pios_usart.c
 SRC += $(PIOSSTM32F10X)/pios_irq.c
-#SRC += $(PIOSSTM32F10X)/pios_adc.c
+#SRC += $(PIOSSTM32F10X)/pios_adc.c  XXX we either need this or a replacement like the F2xx module
 SRC += $(PIOSSTM32F10X)/pios_servo.c
 SRC += $(PIOSSTM32F10X)/pios_ppm.c
 SRC += $(PIOSSTM32F10X)/pios_spektrum.c
@@ -117,10 +117,7 @@ SRC += $(CMSISDIR)/core_cm3.c
 ## Used parts of the STM-Library
 SRC += $(STMSPDSRCDIR)/stm32f10x_adc.c
 SRC += $(STMSPDSRCDIR)/stm32f10x_bkp.c
-#SRC += $(STMSPDSRCDIR)/stm32f10x_crc.c
-#SRC += $(STMSPDSRCDIR)/stm32f10x_dac.c
 SRC += $(STMSPDSRCDIR)/stm32f10x_dma.c
-#SRC += $(STMSPDSRCDIR)/stm32f10x_exti.c
 SRC += $(STMSPDSRCDIR)/stm32f10x_flash.c
 SRC += $(STMSPDSRCDIR)/stm32f10x_gpio.c
 SRC += $(STMSPDSRCDIR)/stm32f10x_i2c.c
