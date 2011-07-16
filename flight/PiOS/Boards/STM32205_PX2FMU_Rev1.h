@@ -223,7 +223,7 @@ extern uint32_t pios_com_aux_id;
 // PIOS_RCVR
 // See also pios_board.c
 //------------------------
-#define PIOS_RCVR_MAX_DEVS                      12
+#define PIOS_RCVR_MAX_DEVS				8			// number of distinct input channels
 
 //-------------------------
 // Receiver PPM input
