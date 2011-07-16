@@ -24,8 +24,8 @@
 #define configCPU_CLOCK_HZ					(24UL * 1000 * 1000)		// should be PIOS_MASTER_CLOCK
 #define configTICK_RATE_HZ					((portTickType)250)
 #define configMAX_PRIORITIES				((unsigned portBASE_TYPE)5)
-#define configMINIMAL_STACK_SIZE			((unsigned short )256)
-#define configTOTAL_HEAP_SIZE				((size_t)(1 * 1024))
+#define configMINIMAL_STACK_SIZE			((unsigned short)256)
+#define configTOTAL_HEAP_SIZE				((size_t)(2 * 1024))
 #define configMAX_TASK_NAME_LEN				(8)
 
 #define configUSE_PREEMPTION				1
