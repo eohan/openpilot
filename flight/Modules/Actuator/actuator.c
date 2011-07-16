@@ -482,7 +482,7 @@ static void setFailsafe()
 	}
 
 	// Update output object's parts that we changed
-	ActuatorCommandChannelGet(Channel);
+	ActuatorCommandChannelSet(Channel);
 }
 
 
@@ -511,6 +511,7 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 	
+	// XXX WTF PX2
 	settings.ChannelType[mixer_channel] = ACTUATORSETTINGS_CHANNELTYPE_MK;
 
 	switch(settings.ChannelType[mixer_channel]) {
@@ -557,14 +558,14 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 				}
 			}
 			// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#ifndef STM32F2XX
+#if defined(PIOS_INCLUDE_SERVO)
 			PIOS_Servo_Set(	settings.ChannelAddr[mixer_channel],
 							buzzOn?settings.ChannelMax[mixer_channel]:settings.ChannelMin[mixer_channel]);
 #endif
 			return true;
 		}
 		// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#ifndef STM32F2XX
+#if defined(PIOS_INCLUDE_SERVO)
 		case ACTUATORSETTINGS_CHANNELTYPE_PWM:
 			PIOS_Servo_Set(settings.ChannelAddr[mixer_channel], value);
 			return true;
