@@ -18,12 +18,20 @@
 
 
 /* Task Priorities */
+#define PROTOCOL_TASK_PRIORITY	(tskIDLE_PRIORITY + 2)
+#define FAILSAFE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)
 
 /* Global Variables */
 
 /* Local Variables */
+static xTaskHandle protocolTaskHandle;
+static xTaskHandle failsafeTaskHandle;
+#define PROTOCOL_TASK_STACK		(128 / 4)
+#define FAILSAFE_TASK_STACK		(128 / 4)
 
 /* Function Prototypes */
+static void protocolTask(void *parameters);
+static void failsafeTask(void *parameters);
 
 /* Prototype of PIOS_Board_Init() function */
 extern void PIOS_Board_Init(void);
@@ -39,7 +47,26 @@ int main()
 	/* Do board init */
 	PIOS_Board_Init();
 
-	/* XXX create useful threads here */
+	//static uint16_t speeds[] = {50, 50, 50, 50, 50, 50, 50, 50};
+	//PIOS_Servo_SetHz(speeds, 8);
+
+	//PIOS_Servo_Set(1, 1500);
+	//PIOS_Servo_Set(2, 1500);
+	//PIOS_Servo_Set(3, 1500);
+	//PIOS_Servo_Set(4, 1500);
+	//PIOS_Servo_Set(5, 1500);
+	//PIOS_Servo_Set(6, 1500);
+	//PIOS_Servo_Set(7, 1500);
+	//PIOS_Servo_Set(0, 1500);
+
+	/* start tasks */
+	xTaskCreate(protocolTask, (const signed char *)"protocol", PROTOCOL_TASK_STACK, NULL, PROTOCOL_TASK_PRIORITY, &protocolTaskHandle);
+	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, protocolTaskHandle);
+	//PIOS_WDG_RegisterFlag(PIOS_WDG_PROTOCOL);
+
+	xTaskCreate(failsafeTask, (const signed char *)"failsafe", FAILSAFE_TASK_STACK, NULL, FAILSAFE_TASK_PRIORITY, &failsafeTaskHandle);
+	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, failsafeTaskHandle);
+	//PIOS_WDG_RegisterFlag(PIOS_WDG_FAILSAFE);
 
 	/* Start the FreeRTOS scheduler */
 	vTaskStartScheduler();
@@ -47,7 +74,7 @@ int main()
 	/* either we failed to start the scheduler, or it has returned unexpectedly */
 	/* XXX might actually want to reboot here and hope the failure was transient? */
 	PIOS_LED_Off(LED1);
-	PIOS_LED_Off(LED2);
+	PIOS_LED_On(LED2);
 	for(;;) {
 		PIOS_LED_Toggle(LED1);
 		PIOS_LED_Toggle(LED2);
@@ -55,6 +82,20 @@ int main()
 	}
 
 	return 0;
+}
+
+static void
+protocolTask(void *parameters)
+{
+	PIOS_LED_Toggle(LED1);
+	vTaskDelay(500 / portTICK_RATE_MS);
+}
+
+static void
+failsafeTask(void *parameters)
+{
+	PIOS_LED_Toggle(LED2);
+	vTaskDelay(100 / portTICK_RATE_MS);
 }
 
 /**
