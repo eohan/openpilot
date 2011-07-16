@@ -265,7 +265,8 @@ void PIOS_Board_Init(void) {
 
 #if defined(PIOS_INCLUDE_RTC)
 	/* Initialize the real-time clock and its associated tick */
-	PIOS_RTC_Init(&pios_rtc_main_cfg);
+	//XXX
+	//PIOS_RTC_Init(&pios_rtc_main_cfg);
 #else
 #warning Need RTC for PPM
 #endif
