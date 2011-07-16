@@ -1,7 +1,7 @@
 #####
 # Project: OpenPilot
 #
-# Makefile for OpenPilot UAVObject code
+# Makefile for PX2IO UAVObjects
 #
 # The OpenPilot Team, http://www.openpilot.org, Copyright (C) 2011.
 # 
@@ -20,37 +20,18 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #####
 
-# These are the UAVObjects supposed to be build as part of the OpenPilot target
-# (all architectures)
+# These are the UAVObjects supposed to be build as part of the PX2IO target
 
 UAVOBJSRCFILENAMES =
 UAVOBJSRCFILENAMES += actuatorcommand
-UAVOBJSRCFILENAMES += actuatordesired
-UAVOBJSRCFILENAMES += actuatorsettings
 UAVOBJSRCFILENAMES += flightbatterysettings
-UAVOBJSRCFILENAMES += firmwareiapobj
 UAVOBJSRCFILENAMES += flightbatterystate
-UAVOBJSRCFILENAMES += flightplancontrol
-UAVOBJSRCFILENAMES += flighttelemetrystats
-UAVOBJSRCFILENAMES += gcstelemetrystats
-UAVOBJSRCFILENAMES += guidancesettings
-UAVOBJSRCFILENAMES += i2cstats
 UAVOBJSRCFILENAMES += manualcontrolcommand
 UAVOBJSRCFILENAMES += manualcontrolsettings
-UAVOBJSRCFILENAMES += mixersettings
-UAVOBJSRCFILENAMES += mixerstatus
-UAVOBJSRCFILENAMES += nedaccel
-UAVOBJSRCFILENAMES += objectpersistence
-UAVOBJSRCFILENAMES += ratedesired
-UAVOBJSRCFILENAMES += stabilizationdesired
-UAVOBJSRCFILENAMES += stabilizationsettings
 UAVOBJSRCFILENAMES += systemalarms
-UAVOBJSRCFILENAMES += systemsettings
 UAVOBJSRCFILENAMES += systemstats
 UAVOBJSRCFILENAMES += taskinfo
-UAVOBJSRCFILENAMES += telemetrysettings
 UAVOBJSRCFILENAMES += watchdogstatus
-UAVOBJSRCFILENAMES += flightstatus
 
 UAVOBJSRC = $(foreach UAVOBJSRCFILE,$(UAVOBJSRCFILENAMES),$(UAVOBJSYNTHDIR)/$(UAVOBJSRCFILE).c )
 UAVOBJDEFINE = $(foreach UAVOBJSRCFILE,$(UAVOBJSRCFILENAMES),-DUAVOBJ_INIT_$(UAVOBJSRCFILE) )
