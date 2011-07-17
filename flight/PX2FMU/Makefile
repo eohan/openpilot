@@ -31,7 +31,7 @@ include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 TARGET = px2fmu
 
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
-OUTDIR = $(TOP)/build/$(TARGET)
+OUTDIR := $(TOP)/build/$(TARGET)
 
 # Debugging (YES/NO) ?
 DEBUG ?= YES
@@ -45,8 +45,6 @@ USE_BOOTLOADER ?= NO
 
 # Use the mavlink instead of the UAVTalk protocol
 USE_MAVLINK ?= NO
-
-USE_I2C ?= YES
 
 # Set to YES when using Code Sourcery toolchain on Windows
 CODE_SOURCERY ?= NO
@@ -64,7 +62,7 @@ FLASH_TOOL = OPENOCD
 #MODULES =  Actuator Telemetry GPS ManualControl Altitude AHRSComms Stabilization Guidance FirmwareIAP FlightPlan
 
 #MODULES = MAVLink PX2Attitude Altitude Stabilization GPS FlightPlan ManualControl Guidance
-MODULES = Telemetry PX2Attitude Actuator Stabilization ManualControl
+MODULES = Telemetry PX2Attitude Actuator Stabilization ManualControl GPS Altitude Guidance
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
@@ -102,8 +100,6 @@ RTOSDIR = $(APPLIBDIR)/FreeRTOS
 RTOSSRCDIR = $(RTOSDIR)/Source
 RTOSINCDIR = $(RTOSSRCDIR)/include
 DOXYGENDIR = ../Doc/Doxygen
-PX2FMUBOOTLOADER = ../Bootloaders/PX2_FMU/
-PX2FMUBOOTLOADERINC = $(PX2FMUBOOTLOADER)/inc
 PYMITE = $(FLIGHTLIB)/PyMite
 PYMITELIB = $(PYMITE)/lib
 PYMITEPLAT = $(PYMITE)/platform/openpilot
@@ -120,8 +116,6 @@ UAVOBJSYNTHDIR = $(OUTDIR)/../uavobject-synthetics/flight
 # List C source files here. (C dependencies are automatically generated.)
 # use file-extension c for "c-only"-files
 
-MODNAMES = $(notdir ${MODULES} ${PYMODULES})
-
 ifndef TESTAPP
 
 ## PyMite files and modules
@@ -136,7 +130,6 @@ SRC += $(PYSRC)
 
 ## MODULES
 SRC += ${foreach MOD, ${MODULES}, ${wildcard ${OPMODULEDIR}/${MOD}/*.c}}
-SRC += ${OUTDIR}/InitMods.c
 ## OPENPILOT CORE:
 SRC += ${OPMODULEDIR}/System/systemmod.c
 SRC += $(OPSYSTEM)/openpilot.c
@@ -179,23 +172,22 @@ SRC += $(PIOSSTM32F2XX)/pios_ppm.c
 SRC += $(PIOSSTM32F2XX)/pios_debug.c
 SRC += $(PIOSSTM32F2XX)/pios_gpio.c
 SRC += $(PIOSSTM32F2XX)/pios_exti.c
-
 SRC += $(PIOSSTM32F2XX)/pios_wdg.c
 
 ## PIOS Hardware (Common)
-SRC += $(PIOSCOMMON)/pios_sdcard.c
-SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_bmp085.c
+SRC += $(PIOSCOMMON)/pios_com.c
+SRC += $(PIOSCOMMON)/pios_crc.c
 SRC += $(PIOSCOMMON)/pios_eeprom.c
 SRC += $(PIOSCOMMON)/pios_flashfs_objlist.c
-SRC += $(PIOSCOMMON)/pios_lis331.c
-SRC += $(PIOSCOMMON)/pios_l3g4200.c
 SRC += $(PIOSCOMMON)/pios_hmc5883.c
 SRC += $(PIOSCOMMON)/pios_i2c_esc.c
 SRC += $(PIOSCOMMON)/pios_iap.c
+SRC += $(PIOSCOMMON)/pios_l3g4200.c
+SRC += $(PIOSCOMMON)/pios_lis331.c
 SRC += $(PIOSCOMMON)/pios_rcvr.c
+SRC += $(PIOSCOMMON)/pios_sdcard.c
 SRC += $(PIOSCOMMON)/printf-stdarg.c
-SRC += $(PIOSCOMMON)/pios_crc.c
 
 ## Libraries for flight calculations
 SRC += $(FLIGHTLIB)/fifo_buffer.c
@@ -209,22 +201,22 @@ SRC += $(CMSISDIR)/system_stm32f2xx.c
 
 ## Used parts of the STM-Library
 # XXX  should just link with a .a
+SRC += $(STMSPDSRCDIR)/stm32f2xx_adc.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_crc.c
+SRC += $(STMSPDSRCDIR)/stm32f2xx_dbgmcu.c
+SRC += $(STMSPDSRCDIR)/stm32f2xx_dma.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_exti.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_flash.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_gpio.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_pwr.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_dma.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_adc.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_i2c.c
+SRC += $(STMSPDSRCDIR)/stm32f2xx_iwdg.c
+SRC += $(STMSPDSRCDIR)/stm32f2xx_pwr.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_rcc.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_rtc.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_iwdg.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_spi.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_syscfg.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_tim.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_usart.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_dbgmcu.c
 SRC += $(STMSPDSRCDIR)/misc.c
 
 ## RTOS
@@ -280,9 +272,9 @@ EXTRAINCDIRS  += $(OPUAVOBJINC)
 EXTRAINCDIRS  += $(UAVOBJSYNTHDIR)
 EXTRAINCDIRS  += $(PIOS)
 EXTRAINCDIRS  += $(PIOSINC)
-EXTRAINCDIRS  += $(PIOSSTM32F2XXINC)
 EXTRAINCDIRS  += $(FLIGHTLIBINC)
 EXTRAINCDIRS  += $(PIOSSTM32F2XX)
+EXTRAINCDIRS  += $(PIOSSTM32F2XXINC)
 EXTRAINCDIRS  += $(PIOSCOMMON)
 EXTRAINCDIRS  += $(PIOSBOARDS)
 EXTRAINCDIRS  += $(STMSPDINCDIR)
@@ -351,16 +343,11 @@ endif
 ifeq ($(ENABLE_AUX_UART), YES)
 CDEFS += -DPIOS_ENABLE_AUX_UART
 endif
+
+# XXX this should go away
 ifeq ($(USE_BOOTLOADER), YES)
 CDEFS += -DUSE_BOOTLOADER
 endif
-
-#ifeq ($(DEBUG),YES)
-CDEFS += -DPIOS_DEBUG
-#endif
-
-# XXX this should be coming from pios_config.h
-CDEFS += -DPIOS_INCLUDE_I2C_ESC
 
 # Place project-specific -D and/or -U options for
 # Assembler with preprocessor here.
@@ -440,8 +427,6 @@ else
 LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_application_no_bootloader.ld -L$(LINKERSCRIPTPATH)
 endif
 
-# ---------------------------------------------------------------------------
-
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f
 PYTHON  = python
@@ -477,17 +462,9 @@ endif
 endif
 
 # Generate intermediate code
-gencode: ${OUTDIR}/InitMods.c ${OUTDIR}/pmlib_img.c ${OUTDIR}/pmlib_nat.c ${OUTDIR}/pmlibusr_img.c ${OUTDIR}/pmlibusr_nat.c ${OUTDIR}/pmfeatures.h 
+gencode: ${OUTDIR}/pmlib_img.c ${OUTDIR}/pmlib_nat.c ${OUTDIR}/pmlibusr_img.c ${OUTDIR}/pmlibusr_nat.c ${OUTDIR}/pmfeatures.h 
 
 $(PYSRC): gencode
-# Generate code for module initialization
-${OUTDIR}/InitMods.c: Makefile
-	@echo $(MSG_MODINIT) $(call toprel, $@)
-	@echo ${quote}// Autogenerated file${quote} > ${OUTDIR}/InitMods.c
-	@echo ${quote}${foreach MOD, ${MODNAMES}, extern unsigned int ${MOD}Initialize(void);}${quote}  >> ${OUTDIR}/InitMods.c
-	@echo ${quote}void InitModules() {${quote} >> ${OUTDIR}/InitMods.c
-	@echo ${quote}${foreach MOD, ${MODNAMES}, ${MOD}Initialize();}${quote}  >> ${OUTDIR}/InitMods.c
-	@echo ${quote}}${quote} >> ${OUTDIR}/InitMods.c
 
 # Generate code for PyMite
 ${OUTDIR}/pmlib_img.c ${OUTDIR}/pmlib_nat.c ${OUTDIR}/pmlibusr_img.c ${OUTDIR}/pmlibusr_nat.c ${OUTDIR}/pmfeatures.h: $(wildcard ${PYMITELIB}/*.py) $(wildcard ${PYMITEPLAT}/*.py) $(wildcard ${FLIGHTPLANLIB}/*.py) $(wildcard ${FLIGHTPLANS}/*.py) 
@@ -536,8 +513,8 @@ lss:  $(OUTDIR)/$(TARGET).lss
 sym:  $(OUTDIR)/$(TARGET).sym
 hex:  $(OUTDIR)/$(TARGET).hex
 bin:  $(OUTDIR)/$(TARGET).bin
-bino:  $(OUTDIR)/$(TARGET).bin.o
-opfw:  $(OUTDIR)/$(TARGET).opfw
+bino: $(OUTDIR)/$(TARGET).bin.o
+opfw: $(OUTDIR)/$(TARGET).opfw
 
 # Display sizes of sections.
 $(eval $(call SIZE_TEMPLATE, $(OUTDIR)/$(TARGET).elf))
@@ -567,6 +544,7 @@ clean_list :
 	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).bin
 	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).sym
 	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).lss
+	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).bin.o
 	$(V1) $(REMOVE) $(wildcard $(OUTDIR)/*.c)
 	$(V1) $(REMOVE) $(wildcard $(OUTDIR)/*.h)
 	$(V1) $(REMOVE) $(ALLOBJ)

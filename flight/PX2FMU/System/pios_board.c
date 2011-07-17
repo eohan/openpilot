@@ -40,10 +40,6 @@
 #include <pios_rcvr_priv.h>
 
 
-#ifdef PIOS_DEBUG
-#include "dcc_stdio.h"
-#endif
-
 /* XXX this should be more comprehensively abstracted */
 void PIOS_SPI_main_irq_handler(void);
 void DMA2_Stream0_IRQ_Handler(void) __attribute__((alias("PIOS_SPI_main_irq_handler")));

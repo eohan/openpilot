@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  *
- * @file       link_STM32F2xx_bootloader.ld   
+ * @file       link_STM32F2xx_application_no_bootloader.ld   
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2009.   
  * @brief      PiOS linker for the OpenPilot board
  * @see        The GNU Public License (GPL) Version 3
@@ -28,11 +28,6 @@ MEMORY
 {
   RAM (xrw) :     ORIGIN = 0x20000000, LENGTH = 128K
   FLASH (rx) :    ORIGIN = 0x08000000, LENGTH = 1024K
-  FLASHB1 (rx) :  ORIGIN = 0x00000000, LENGTH = 0
-  EXTMEMB0 (rx) : ORIGIN = 0x00000000, LENGTH = 0
-  EXTMEMB1 (rx) : ORIGIN = 0x00000000, LENGTH = 0
-  EXTMEMB2 (rx) : ORIGIN = 0x00000000, LENGTH = 0
-  EXTMEMB3 (rx) : ORIGIN = 0x00000000, LENGTH = 0
 }
 
 INCLUDE link_STM32F2xx_common.ld

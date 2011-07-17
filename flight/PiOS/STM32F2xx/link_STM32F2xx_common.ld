@@ -1,46 +1,24 @@
-/**
- ******************************************************************************
- *
- * @file       link_STM32F2xx_common.ld   
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2009.   
- * @brief      PiOS linker for the OpenPilot board
- * @see        The GNU Public License (GPL) Version 3
- *
- *****************************************************************************/
-/* 
- * This program is free software; you can redistribute it and/or modify 
- * it under the terms of the GNU General Public License as published by 
- * the Free Software Foundation; either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
- * for more details.
- * 
- * You should have received a copy of the GNU General Public License along 
- * with this program; if not, write to the Free Software Foundation, Inc., 
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- */
-
-/* Memory Spaces Definitions */
-/* Not defined here - this file must be INCLUDEd by another that does */
-
 /* This is the size of the stack for early init and for all FreeRTOS IRQs */
 _irq_stack_size = 0x400;
+/* This is the size of the stack for early init: life span is until scheduler starts */
+_init_stack_size = 0x400;
+/* there is probably a way to get that from the MEMORY section */
+_eram = ORIGIN(RAM) + LENGTH(RAM);
 
 /* Check valid alignment for VTOR */
 ASSERT(ORIGIN(FLASH) == ALIGN(ORIGIN(FLASH), 0x80), "Start of memory region flash not aligned for startup vector table");
+
+/*PROVIDE(pios_board_info_blob = ORIGIN(BD_INFO));*/
 
 
 /* Sections Definitions */
 
 SECTIONS
 {
-     
     /* for Cortex devices, the beginning of the startup code is stored in the .isr_vector section, which goes to FLASH */
     .isr_vector :
     {
+        PROVIDE (pios_isr_vector_table_base = .);
         KEEP(*(.isr_vector))            /* Startup code */
         . = ALIGN(4);
     } >FLASH
@@ -64,6 +42,16 @@ SECTIONS
 	__uavobj_initcall_end   = .;
     } >FLASH
 
+    /* module sections */
+    .initcallmodule.init :
+    {
+        . = ALIGN(4);
+	__module_initcall_start = .;
+        KEEP(*(.initcallmodule.init))
+	. = ALIGN(4);
+	__module_initcall_end   = .;
+    } >FLASH
+
     /* the program code is stored in the .text section, which goes to Flash */
     .text :
     {
@@ -82,7 +70,6 @@ SECTIONS
          _sidata = _etext;
     } >FLASH
     
-
     /* 
      * This stack is used both as the initial sp during early init as well as ultimately
      * being used as the STM32's MSP (Main Stack Pointer) which is the same stack that
@@ -135,55 +122,29 @@ SECTIONS
          _ebss = . ;
     } >RAM
     
+    .heap (NOLOAD) :
+    {
+        _sheap = . ;
+        _sheap_pre_rtos = . ;
+        *(.heap)
+        . = ALIGN(4);
+        _eheap = . ;
+        _eheap_pre_rtos = . ;
+        _init_stack_end = . ; 
+        _sheap_post_rtos = . ;
+        . = . + _init_stack_size ;
+        . = ALIGN(4);
+        _eheap_post_rtos = . ;
+        _init_stack_top = . - 4 ;
+    } > RAM
+    
+    /* keep the heap section at the end of the SRAM */
+    /* this will allow to claim the remaining bytes not used
+    /* at run time! (done by the reset vector).
+
     PROVIDE ( end = _ebss );
     PROVIDE ( _end = _ebss );
 
-    /* this is the FLASH Bank1 */
-    /* the C or assembly source must explicitly place the code or data there
-    using the "section" attribute */
-    .b1text :
-    {
-        *(.b1text)                   /* remaining code */
-        *(.b1rodata)                 /* read-only data (constants) */
-        *(.b1rodata*)
-    } >FLASHB1
-    
-    /* this is the EXTMEM */
-    /* the C or assembly source must explicitly place the code or data there
-    using the "section" attribute */
-    
-    /* EXTMEM Bank0 */
-    .eb0text :
-    {
-        *(.eb0text)                   /* remaining code */
-        *(.eb0rodata)                 /* read-only data (constants) */
-        *(.eb0rodata*)
-    } >EXTMEMB0
-    
-    /* EXTMEM Bank1 */
-    .eb1text :
-    {
-        *(.eb1text)                   /* remaining code */
-        *(.eb1rodata)                 /* read-only data (constants) */
-        *(.eb1rodata*)
-    } >EXTMEMB1
-    
-    /* EXTMEM Bank2 */
-    .eb2text :
-    {
-        *(.eb2text)                   /* remaining code */
-        *(.eb2rodata)                 /* read-only data (constants) */
-        *(.eb2rodata*)
-    } >EXTMEMB2
-    
-    /* EXTMEM Bank0 */
-    .eb3text :
-    {
-        *(.eb3text)                   /* remaining code */
-        *(.eb3rodata)                 /* read-only data (constants) */
-        *(.eb3rodata*)
-    } >EXTMEMB3
-    
     __exidx_start = .;
     __exidx_end = .;
     
