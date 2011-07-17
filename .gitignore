@@ -8,6 +8,14 @@
 /flight/.settings
 /flight/Build
 
+*.pnproj
+*.pnps
+*.cproject
+*.metadata
+*.project
+*.settings
+build
+
 # /flight/AHRS/
 /flight/AHRS/Build
 
