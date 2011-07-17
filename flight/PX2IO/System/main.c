@@ -32,6 +32,7 @@ static xTaskHandle failsafeTaskHandle;
 /* Function Prototypes */
 static void protocolTask(void *parameters);
 static void failsafeTask(void *parameters);
+extern void Stack_Change();	// in startup
 
 /* Prototype of PIOS_Board_Init() function */
 extern void PIOS_Board_Init(void);
@@ -68,6 +69,9 @@ int main()
 	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, failsafeTaskHandle);
 	//PIOS_WDG_RegisterFlag(PIOS_WDG_FAILSAFE);
 
+	/* swap the stack to use the IRQ stack */
+	Stack_Change();
+
 	/* Start the FreeRTOS scheduler */
 	vTaskStartScheduler();
 
@@ -87,15 +91,19 @@ int main()
 static void
 protocolTask(void *parameters)
 {
-	PIOS_LED_Toggle(LED1);
-	vTaskDelay(500 / portTICK_RATE_MS);
+	for (;;) {
+		PIOS_LED_Toggle(LED1);
+		vTaskDelay(500 / portTICK_RATE_MS);
+	}
 }
 
 static void
 failsafeTask(void *parameters)
 {
-	PIOS_LED_Toggle(LED2);
-	vTaskDelay(100 / portTICK_RATE_MS);
+	for (;;) {
+		PIOS_LED_Toggle(LED2);
+		vTaskDelay(100 / portTICK_RATE_MS);
+	}
 }
 
 /**
