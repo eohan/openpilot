@@ -51,18 +51,6 @@ int main()
 	/* Do module init */
 	MODULE_INITIALISE_ALL;
 
-	//static uint16_t speeds[] = {50, 50, 50, 50, 50, 50, 50, 50};
-	//PIOS_Servo_SetHz(speeds, 8);
-
-	//PIOS_Servo_Set(1, 1500);
-	//PIOS_Servo_Set(2, 1500);
-	//PIOS_Servo_Set(3, 1500);
-	//PIOS_Servo_Set(4, 1500);
-	//PIOS_Servo_Set(5, 1500);
-	//PIOS_Servo_Set(6, 1500);
-	//PIOS_Servo_Set(7, 1500);
-	//PIOS_Servo_Set(0, 1500);
-
 	/* start tasks */
 	xTaskCreate(protocolTask, (const signed char *)"protocol", PROTOCOL_TASK_STACK, NULL, PROTOCOL_TASK_PRIORITY, &protocolTaskHandle);
 	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, protocolTaskHandle);
