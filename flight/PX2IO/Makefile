@@ -87,6 +87,8 @@ DOXYGENDIR		= ../Doc/Doxygen
 ## Core
 SRC += $(OPSYSTEM)/main.c
 SRC += $(OPSYSTEM)/pios_board.c
+SRC += $(OPSYSTEM)/cm3_fault_handlers.c
+SRC += $(OPSYSTEM)/dcc_stdio.c
 
 ## PIOS Hardware (STM32F10x)
 SRC += $(PIOSSTM32F10X)/pios_sys.c
