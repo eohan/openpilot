@@ -115,11 +115,13 @@ int32_t PIOS_DELAY_WaituS(uint16_t uS)
  */
 int32_t PIOS_DELAY_WaitmS(uint16_t mS)
 {
+#if 0 // XXX cannot do this if the scheduler hasn't started yet...
 #ifdef PIOS_INCLUDE_FREERTOS
 	if (mS > portTICK_RATE_MS) {
 		vTaskDelay(mS / portTICK_RATE_MS);
 		mS = mS % portTICK_RATE_MS;
 	}
+#endif
 #endif
 	for (int i = 0; i < mS; i++) {
 		PIOS_DELAY_WaituS(1000);
