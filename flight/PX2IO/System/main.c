@@ -48,6 +48,9 @@ int main()
 	/* Do board init */
 	PIOS_Board_Init();
 
+	/* Do module init */
+	MODULE_INITIALISE_ALL;
+
 	//static uint16_t speeds[] = {50, 50, 50, 50, 50, 50, 50, 50};
 	//PIOS_Servo_SetHz(speeds, 8);
 
