@@ -33,6 +33,8 @@
 
 .global  g_pfnVectors
 .global  Default_Handler
+.global  xPortIncreaseHeapSize
+.global  Stack_Change
 
 /* start address for the initialization values of the .data section. 
 defined in linker script */
@@ -46,6 +48,7 @@ defined in linker script */
 /* end address for the .bss section. defined in linker script */
 .word  _ebss
 
+.equ  BootRAM, 0xF108F85F
 /**
  * @brief  This is the code that gets called when the processor first
  *          starts execution following a reset event. Only the absolutely
@@ -55,11 +58,52 @@ defined in linker script */
  * @retval : None
 */
 
-  .section  .text.Reset_Handler
+    .section  .text.Reset_Handler
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:
 
+/*
+ * From Cortex-M3 reference manual:
+ * - Handler IRQ always use SP_main
+ * - Process use SP_main or SP_process
+ * Here, we will use beginning of SRAM for IRQ (SP_main)
+ * and end of heap for initialization (SP_process).
+ * Once the schedule starts, all threads will use their own stack
+ * from heap and NOBOBY should use SP_process again.
+ */
+ /* Do set/reset the stack pointers */
+  LDR r0, =_irq_stack_top
+  MSR msp, r0
+  LDR r2, =_init_stack_top
+  MSR psp, r2
+  /* check if irq and init stack are the same */
+  /* if they are, we don't do stack swap */
+  /* and lets bypass the monitoring as well for now */
+  cmp  r0, r2
+  beq SectionBssInit
+/* DO
+ * - stay in thread process mode
+ * - stay in privilege level
+ * - use process stack
+ */
+  movs r0, #2
+  MSR control, r0
+  ISB
+/* Fill IRQ stack for watermark monitoring */
+  ldr  r2, =_irq_stack_end
+  b  LoopFillIRQStack
+
+FillIRQStack:
+  movw  r3, #0xA5A5
+  str  r3, [r2], #4
+
+LoopFillIRQStack:
+  ldr  r3, = _irq_stack_top
+  cmp  r2, r3
+  bcc  FillIRQStack
+
+SectionBssInit:
 /* Copy the data segment initializers from flash to SRAM */  
   movs  r1, #0
   b  LoopCopyDataInit
@@ -89,18 +133,47 @@ LoopFillZerobss:
   bcc  FillZerobss
 /* Call the application's entry point.*/
   bl  main
+/* will never return here */
   bx  lr
-  .size  Reset_Handler, .-Reset_Handler
+.size  Reset_Handler, .-Reset_Handler
 
 /**
- * @brief  This is the code that gets called when the processor receives an 
+ * @brief  This is the code that swaps stack (from end of heap to irq_stack).
+ *         Also reclaim the heap that was used as a stack.
+ * @param  None
+ * @retval : None
+*/
+  .section  .text.Stack_Change
+  .weak  Stack_Change
+  .type  Stack_Change, %function
+Stack_Change:
+  mov r4, lr
+/* Switches stack back momentarily to MSP */
+  movs r0, #0
+  msr control, r0
+Heap_Reclaim:
+/* add heap_post_rtos to the heap (if the capability/function exist) */
+/* Also claim the unused memory (between end of heap to end of memory */
+/* CAREFULL: the heap section must be the last section in RAM in order this to work */
+  ldr r0, = _init_stack_size
+  ldr r1, = _eheap_post_rtos
+  ldr r2, = _eram
+  subs r2, r2, r1
+  adds r0, r0, r2
+  bl xPortIncreaseHeapSize
+  bx r4
+  .size  Stack_Change, .-Stack_Change
+
+
+/**
+ * @brief  This is the code that gets called when the processor receives an
  *         unexpected interrupt.  This simply enters an infinite loop, preserving
  *         the system state for examination by a debugger.
  *
- * @param  None     
- * @retval : None       
+ * @param  None
+ * @retval : None
 */
-  .section  .text.Default_Handler,"ax",%progbits
+    .section  .text.Default_Handler,"ax",%progbits
 Default_Handler:
 Infinite_Loop:
   b  Infinite_Loop
@@ -112,13 +185,13 @@ Infinite_Loop:
 * 0x0000.0000.
 *
 ******************************************************************************/    
-  .section  .isr_vector,"a",%progbits
+   .section  .isr_vector,"a",%progbits
   .type  g_pfnVectors, %object
   .size  g_pfnVectors, .-g_pfnVectors
     
     
 g_pfnVectors:
-  .word  _estack
+  .word  _irq_stack_top
   .word  Reset_Handler
   .word  NMI_Handler
   .word  HardFault_Handler
