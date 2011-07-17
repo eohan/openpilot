@@ -69,6 +69,8 @@ extern void InitModules(void);
 
 /* Prototype of PIOS_Board_Init() function */
 extern void PIOS_Board_Init(void);
+extern void Stack_Change(void);
+static void Stack_Change_Weak () __attribute__ ((weakref ("Stack_Change")));
 
 /**
 * OpenPilot Main function:
@@ -87,8 +89,18 @@ int main()
 	/* Brings up System using CMSIS functions, enables the LEDs. */
 	PIOS_SYS_Init();
 
-	/* Initialize the system thread */
-	SystemModInitialize();
+	/* Architecture dependant Hardware and
+	 * core subsystem initialisation
+	 * (see pios_board.c for your arch)
+	 * */
+
+	PIOS_Board_Init();
+
+	/* Initialize modules */
+	MODULE_INITIALISE_ALL;
+
+	/* swap the stack to use the IRQ stack (does nothing in sim mode) */
+	Stack_Change_Weak();
 
 	/* Start the FreeRTOS scheduler */
 	vTaskStartScheduler();
@@ -104,41 +116,6 @@ int main()
 	}
 
 	return 0;
-}
-
-/**
- * Initialize the hardware, libraries and modules (called by the System thread in systemmod.c)
- */
-void OpenPilotInit()
-{
-
-	/* Architecture dependant Hardware and
-	 * core subsystem initialisation
-	 * (see pios_board.c for your arch)
-	 * */
-	
-	PIOS_Board_Init();
-
-	/* Initialize modules */
-	InitModules();
-
-	//	/* Send MAVLink heartbeat */
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x55);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x03);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x1e);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0xfb);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x00);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x00);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x06);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x00);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0x02);
-	//	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, 0xf9);
-
-	/* Create test tasks */
-	//xTaskCreate(TaskTesting, (signed portCHAR *)"Testing", configMINIMAL_STACK_SIZE , NULL, 4, NULL);
-	//xTaskCreate(TaskHIDTest, (signed portCHAR *)"HIDTest", configMINIMAL_STACK_SIZE , NULL, 3, NULL);
-	//xTaskCreate(TaskServos, (signed portCHAR *)"Servos", configMINIMAL_STACK_SIZE , NULL, 3, NULL);
-	//xTaskCreate(TaskSDCard, (signed portCHAR *)"SDCard", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2), NULL);
 }
 
 #if INCLUDE_TEST_TASKS
