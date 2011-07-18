@@ -40,8 +40,7 @@
 /* Private Function Prototypes */
 void NVIC_Configuration(void);
 void SysTick_Handler(void);
-static int
-PIOS_SYS_ClockInit(const struct pios_clock_cfg *cfg) __attribute__((used));
+static int	PIOS_SYS_ClockInit(const struct pios_clock_cfg *cfg) __attribute__((used));
 
 /* Local Macros */
 #define MEM8(addr)  (*((volatile uint8_t  *)(addr)))
