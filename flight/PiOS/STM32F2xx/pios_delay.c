@@ -33,8 +33,8 @@
 #include <pios.h>
 
 /* these should be defined by CMSIS, but they aren't */
-#define DWT_CTRL	(*(unsigned long *)0xe0001000)
-#define DWT_CYCCNT	(*(unsigned long *)0xe0001004)
+#define DWT_CTRL	(*(volatile unsigned long *)0xe0001000)
+#define DWT_CYCCNT	(*(volatile unsigned long *)0xe0001004)
 
 /* cycles per microsecond */
 static uint32_t us_ticks;
