@@ -162,7 +162,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F10X)/startup_stm32f100_$(MODEL).S
+ASRC = $(PIOSSTM32F10X)/startup_stm32f100_$(MODEL)_OS.S
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM =
@@ -227,6 +227,7 @@ DEBUGF = dwarf-2
 # XXX should come from the board makefile I suspect
 CDEFS = -DSTM32F10X_MD_VL
 CDEFS += -DSYSCLK_FREQ=$(SYSCLK_FREQ)
+CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 $(info CDEFS $(CDEFS))
 CDEFS += -DUSE_STDPERIPH_DRIVER
 CDEFS += -DUSE_$(BOARD)
