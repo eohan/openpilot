@@ -5,12 +5,7 @@ _init_stack_size = 0x100;
 /* there is probably a way to get that from the MEMORY section */
 _eram = ORIGIN(SRAM) + LENGTH(SRAM);
 
-/* Stub out these functions since we don't use them anyway */
-PROVIDE (   vPortSVCHandler = 0 ) ;
-PROVIDE (   xPortPendSVHandler = 0 ) ;
-PROVIDE (   xPortSysTickHandler = 0 ) ;
-
-/*PROVIDE(pios_board_info_blob = ORIGIN(BD_INFO));*/
+PROVIDE(pios_board_info_blob = ORIGIN(BD_INFO));
 
 /* Section Definitions */
 SECTIONS
