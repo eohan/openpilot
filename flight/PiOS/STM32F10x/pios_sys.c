@@ -52,7 +52,9 @@ static int	PIOS_SYS_ClockInit(const struct pios_clock_cfg *cfg) __attribute__((u
 */
 void PIOS_SYS_Init(void)
 {
-#ifdef PIOS_CLOCK_CONFIG
+#ifdef PIOS_CLOCK_CONFIG_BYPASS
+	// avoid doing clock config
+#elif PIOS_CLOCK_CONFIG
 	/* do custom clock etc. config */
 	{
 		extern struct pios_clock_cfg PIOS_CLOCK_CONFIG;

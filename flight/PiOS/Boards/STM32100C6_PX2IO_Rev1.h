@@ -31,10 +31,6 @@
 // BOOTLOADER_SETTINGS
 //------------------------
 
-//#define FUNC_ID					2
-//#define HW_VERSION				69
-
-//#define BOOTLOADER_VERSION			0
 #define BOARD_REVISION					0x01
 #define MEM_SIZE						(32 * 1024)
 #define SIZE_OF_DESCRIPTION				50

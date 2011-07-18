@@ -64,12 +64,13 @@ int main()
 	PIOS_DELAY_Init();
 
 	/* XXX check for an external request to enter update mode here, set GO_dfu if requested */
-	while(TRUE)
+	//while(TRUE)
+	for (int i = 0; i < 20; i++)
 	{
 		PIOS_LED_Toggle(LED1);
 		PIOS_DELAY_WaitmS(100);
 	}
-	GO_dfu = TRUE;
+	//GO_dfu = TRUE;
 
 	/* check for program-requested update mode */
 	PIOS_IAP_Init();
