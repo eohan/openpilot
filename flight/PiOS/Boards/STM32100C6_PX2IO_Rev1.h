@@ -31,19 +31,15 @@
 // BOOTLOADER_SETTINGS
 //------------------------
 
-// XXX currently no bootloader for this board
-
 //#define FUNC_ID					2
 //#define HW_VERSION				69
 
 //#define BOOTLOADER_VERSION			0
-#define BOARD_TYPE						0x03	// XXX pick a value
 #define BOARD_REVISION					0x01
 #define MEM_SIZE						(32 * 1024)
 #define SIZE_OF_DESCRIPTION				50
 #define START_OF_USER_CODE				(uint32_t)0x08000000	// due to no bootloader
 #define SIZE_OF_CODE					(uint32_t)(MEM_SIZE-(START_OF_USER_CODE-0x08000000)-SIZE_OF_DESCRIPTION)
-#define HW_TYPE							2	// low-density (this will probably break things)
 #define BOARD_READABLE					TRUE
 #define BOARD_WRITABLA					TRUE
 #define MAX_DEL_RETRYS					3
