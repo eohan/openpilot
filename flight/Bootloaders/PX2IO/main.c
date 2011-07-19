@@ -70,7 +70,7 @@ int main()
 		PIOS_LED_Toggle(LED1);
 		PIOS_DELAY_WaitmS(100);
 	}
-	//GO_dfu = TRUE;
+	GO_dfu = TRUE;
 
 	/* check for program-requested update mode */
 	PIOS_IAP_Init();
