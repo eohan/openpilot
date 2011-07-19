@@ -9,7 +9,8 @@
  * @file       pios_delay.c
  * @author     Michael Smith Copyright (C) 2011
  * @brief      Delay Functions 
- *                 - Provides a micro-second granular delay using a TIM 
+ *                 - Provides a micro-second granular delay using the CPU
+ *                   cycle counter.
  * @see        The GNU Public License (GPL) Version 3
  *
  *****************************************************************************/
