@@ -47,7 +47,7 @@ struct i2c_slave_config {
 static const struct i2c_slave_config i2c_config = {
 		.regs = I2C1,
 		.init = {
-				.I2C_ClockSpeed				= 400000,
+				.I2C_ClockSpeed				= 100000,
 				.I2C_Mode					= I2C_Mode_I2C,
 				.I2C_DutyCycle				= I2C_DutyCycle_2,
 				.I2C_OwnAddress1			= 0x10,
@@ -57,7 +57,7 @@ static const struct i2c_slave_config i2c_config = {
 		.scl = {
 				.gpio = GPIOB,
 				.init = {
-						.GPIO_Pin		= 6,
+						.GPIO_Pin		= GPIO_Pin_6,
 						.GPIO_Mode		= GPIO_Mode_AF_OD,
 						.GPIO_Speed		= GPIO_Speed_10MHz,
 				},
@@ -65,7 +65,7 @@ static const struct i2c_slave_config i2c_config = {
 		.sda = {
 				.gpio = GPIOB,
 				.init = {
-						.GPIO_Pin		= 7,
+						.GPIO_Pin		= GPIO_Pin_7,
 						.GPIO_Mode		= GPIO_Mode_AF_OD,
 						.GPIO_Speed		= GPIO_Speed_10MHz,
 				},
@@ -92,11 +92,16 @@ void PIOS_Board_Init() {
 	GPIO_Init(i2c_config.sda.gpio, &(i2c_config.sda.init));
 	GPIO_Init(i2c_config.scl.gpio, &(i2c_config.scl.init));
 
-	// initialise I2C itself
+	// tell the FSM which port it's using
+	i2c_fsm_attach(i2c_config.regs);
+
+	// init the I2C interface
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
+	RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C1, ENABLE);
+	RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C1, DISABLE);
 	I2C_DeInit(i2c_config.regs);
 	I2C_Init(i2c_config.regs, &i2c_config.init);
 	I2C_Cmd(i2c_config.regs, ENABLE);
-
-	// tell the FSM which port it's using
-	i2c_fsm_attach(i2c_config.regs);
+	//I2C_SoftwareResetCmd(i2c_config.regs, ENABLE);
+	//I2C_SoftwareResetCmd(i2c_config.regs, DISABLE);
 }
