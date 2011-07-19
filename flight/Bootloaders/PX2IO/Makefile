@@ -66,9 +66,13 @@ CMSISDIR		= $(STMLIBDIR)/CMSIS/Core/CM3
 # use file-extension c for "c-only"-files
 
 ## BOOTLOADER:
-SRC = main.c
-SRC += pios_board.c
-SRC += i2c_fsm.c
+SRC = $(PX2IO_BL)/main.c
+SRC += $(PX2IO_BL)/pios_board.c
+SRC += $(PX2IO_BL)/i2c_fsm.c
+
+## Common debug bits
+SRC += $(PX2IO_BL)/cm3_fault_handlers.c
+SRC += $(PX2IO_BL)/dcc_stdio.c
 
 ## PIOS Hardware (STM32F10x)
 SRC += $(PIOSSTM32F10X)/pios_sys.c
