@@ -3,12 +3,12 @@
  */
 
 #include <pios.h>
+#include <pios_board_info.h>
 
 #include <stm32f10x_flash.h>
 #include <stm32f10x_i2c.h>
 
 #include <bl_fsm.h>
-#include <dcc_stdio.h>
 
 #include <string.h>
 
@@ -43,7 +43,7 @@
  *
  * <'f'><addr>
  *  Flashes the contents of the buffer to flash address <addr>
- *  <addr> 4-byte memory address
+ *  <addr> 4-byte offset into the firmware area
  *
  * <'c'>
  *  Calculates the 4-byte CRC of the program space and places it in the buffer.
@@ -177,21 +177,21 @@ struct fsm_transition fsm[NUM_STATES] = {
 				.handler = go_wait_command,
 				.next_state = {
 						[BYTE_RECEIVED] = RECEIVE_COMMAND,
-						[STOP_RECEIVED] = HANDLE_COMMAND,
+						[STOP_RECEIVED] = WAIT_FOR_MASTER,
 				},
 		},
 		[RECEIVE_COMMAND] = {
 				.handler = go_receive_command,
 				.next_state = {
 						[BYTE_RECEIVED] = RECEIVE_DATA,
-						[STOP_RECEIVED] = WAIT_FOR_MASTER,
+						[STOP_RECEIVED] = HANDLE_COMMAND,
 				},
 		},
 		[RECEIVE_DATA] = {
 				.handler = go_receive_data,
 				.next_state = {
 						[BYTE_RECEIVED] = RECEIVE_DATA,
-						[STOP_RECEIVED] = WAIT_FOR_MASTER,
+						[STOP_RECEIVED] = HANDLE_COMMAND,
 				},
 		},
 		[HANDLE_COMMAND] = {
@@ -227,7 +227,8 @@ struct fsm_transition fsm[NUM_STATES] = {
 static struct fsm_context context;
 
 /* debug support */
-
+/* note that enabling this will bump the BL over 4K and requires linker script changes */
+#if 0
 struct fsm_logentry {
 	char		kind;
 	uint32_t	code;
@@ -246,13 +247,20 @@ int	fsm_logptr;
 		} while(0)
 
 #define LOG(_kind, _code) \
-do {\
-	if (fsm_logptr < LOG_ENTRIES) { \
-		fsm_log[fsm_logptr].kind = _kind; \
-		fsm_log[fsm_logptr].code = _code; \
-		fsm_logptr++;\
-	}\
-}while(0)
+		do {\
+			if (fsm_logptr < LOG_ENTRIES) { \
+				fsm_log[fsm_logptr].kind = _kind; \
+				fsm_log[fsm_logptr].code = _code; \
+				fsm_logptr++;\
+			}\
+		}while(0)
+
+#else
+#define LOG(_kind, _code)
+#endif
+
+/** global board info blob */
+const struct pios_board_info *bdinfo = &pios_board_info_blob;
 
 /**
  * Attach the FSM to an I2C port.
@@ -276,10 +284,9 @@ i2c_fsm()
 
 	// initialise the FSM
 	ctx = &context;
-	ctx->state = WAIT_FOR_MASTER;
 	ctx->status = STATUS_OK;
-
-	dbg_write_str("fsm");
+	ctx->state = BAD_PHASE;
+	fsm_event(ctx, AUTO);
 
 	// spin handling I2C events
 	for (;;) {
@@ -359,8 +366,7 @@ fsm_event(struct fsm_context *ctx, enum fsm_event event)
 static void
 go_bad(struct fsm_context *ctx)
 {
-	dbg_write_str("go_bad");
-
+	LOG('B', 0);
 	fsm_event(ctx, AUTO);
 }
 
@@ -373,8 +379,20 @@ static void
 go_wait_master(struct fsm_context *ctx)
 {
 	ctx->command = ' ';
-	ctx->data_ptr = 0;
-	ctx->data_count = 0;
+
+	// The data pointer either points to:
+	// - the start of the data buffer
+	// - some distance into the data buffer during a 'w' command
+	// - the address buffer during an 'a', 'f' or 'r' command
+	//
+	ctx->data_ptr = ctx->buffer;
+
+	// The data count is either:
+	// - the size of the data buffer
+	// - some value less than or equal the size of the data buffer during a 'w' command or a read
+	// - some value less than or equal to the size of the address buffer during an 'a', 'f' or 'r' command.
+	//
+	ctx->data_count = sizeof(ctx->buffer);
 
 	// (re)enable the peripheral, clear the stop event flag in
 	// case we just finished receiving data
@@ -418,12 +436,6 @@ go_receive_command(struct fsm_context *ctx)
 		ctx->data_count = sizeof(ctx->address);
 		break;
 
-	case 'w':
-		// set up to receive a page of data
-		ctx->data_ptr = ctx->buffer;
-		ctx->data_count = sizeof(ctx->buffer);
-		break;
-
 	default:
 		break;
 	}
@@ -459,6 +471,7 @@ static void
 go_handle_command(struct fsm_context *ctx)
 {
 	uint32_t	crc;
+	uint32_t	resid;
 
 	// presume we are happy with the command
 	ctx->status = STATUS_OK;
@@ -468,6 +481,8 @@ go_handle_command(struct fsm_context *ctx)
 		// range-check the buffer address
 		if (ctx->address >= FLASH_PAGE_SIZE) {
 			ctx->status = STATUS_RANGE_ERROR;
+		} else {
+			LOG('A', ctx->address);
 		}
 		break;
 
@@ -481,14 +496,9 @@ go_handle_command(struct fsm_context *ctx)
 		ctx->status = STATUS_COMMAND_FAILED;
 		break;
 
-	case 'c':
-		// Generate CRC for the app area and write it to the buffer
-		crc = PIOS_BL_HELPER_CRC_Memory_Calc();
-		memcpy(ctx->buffer, &crc, sizeof(crc));
-		break;
-
 	case 'e':
 		// unlock and erase the flash
+		LOG('E', 0);
 		PIOS_BL_HELPER_FLASH_Ini();
 		if (!PIOS_BL_HELPER_FLASH_Start()) {
 			ctx->status = STATUS_COMMAND_FAILED;
@@ -497,10 +507,22 @@ go_handle_command(struct fsm_context *ctx)
 
 	case 'f':
 		// program the buffer at the supplied address
-		for (int i = 0; (i + ctx->data_count + 3) < FLASH_PAGE_SIZE; i += 4) {
-			if (FLASH_COMPLETE != FLASH_ProgramWord(ctx->address + i, *(uint32_t *)(ctx->buffer + i))) {
-				ctx->status = STATUS_COMMAND_FAILED;
-				break;
+		resid = FLASH_PAGE_SIZE - ctx->data_count;
+
+		LOG('F', ctx->address);
+		resid = FLASH_PAGE_SIZE - ctx->data_count;
+		LOG('F', resid);
+
+		if (resid % 4) {
+			ctx->status = STATUS_COMMAND_ERROR;
+		} else if ((ctx->address + resid) > bdinfo->fw_size) {
+			ctx->status = STATUS_RANGE_ERROR;
+		} else {
+			for (int i = 0; i < resid; i += 4) {
+				if (FLASH_COMPLETE != FLASH_ProgramWord(bdinfo->fw_base + ctx->address + i, *(uint32_t *)(ctx->buffer + i))) {
+					ctx->status = STATUS_COMMAND_FAILED;
+					break;
+				}
 			}
 		}
 		break;
@@ -511,17 +533,31 @@ go_handle_command(struct fsm_context *ctx)
 
 	case 'r':
 		// fill the buffer with flash data from the supplied address
-		memcpy(ctx->buffer, (void *)(ctx->address), FLASH_PAGE_SIZE);
+		if ((ctx->address + FLASH_PAGE_SIZE) > bdinfo->fw_size) {
+			ctx->status = STATUS_RANGE_ERROR;
+		} else {
+			memcpy(ctx->buffer, (void *)(bdinfo->fw_base + ctx->address), FLASH_PAGE_SIZE);
+		}
 		break;
 
 	case 's':
-		// Copy serial number to the buffer
-		// zero-fill, terminate, etc?
 		PIOS_SYS_SerialNumberGet((char *)&(ctx->buffer[0]));
 		break;
 
 	case 'v':
-		// XXX copy versions to buffer
+		// keep this similar to the structure returned by the AHRS bootloader
+		ctx->buffer[0] = BOOTLOADER_VERSION;
+		ctx->buffer[1] = 0;
+		ctx->buffer[2] = BOARD_REVISION;
+		ctx->buffer[3] = BOARD_TYPE;
+		ctx->data_ptr += 4;
+		/* FALLTHROUGH */
+
+	case 'c':
+		// Generate CRC for the app area and write it to the buffer
+		crc = PIOS_BL_HELPER_CRC_Memory_Calc();
+		LOG('C', crc);
+		memcpy(ctx->data_ptr, &crc, sizeof(crc));
 		break;
 
 	case 'w':
@@ -545,8 +581,7 @@ go_handle_command(struct fsm_context *ctx)
 static void
 go_wait_send(struct fsm_context *ctx)
 {
-	ctx->data_ptr = ctx->buffer;
-	ctx->data_count = sizeof(ctx->buffer);
+	// NOP
 }
 
 /**
