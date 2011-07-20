@@ -226,6 +226,34 @@ struct fsm_transition fsm[NUM_STATES] = {
 
 static struct fsm_context context;
 
+/* debug support */
+
+struct fsm_logentry {
+	char		kind;
+	uint32_t	code;
+};
+
+#define LOG_ENTRIES	32
+static struct fsm_logentry fsm_log[LOG_ENTRIES];
+int	fsm_logptr;
+#define LOG_NEXT(_x)	(((_x) + 1) % LOG_ENTRIES)
+#define LOGx(_kind, _code)		\
+		do {					\
+			fsm_log[fsm_logptr].kind = _kind; \
+			fsm_log[fsm_logptr].code = _code; \
+			fsm_logptr = LOG_NEXT(fsm_logptr); \
+			fsm_log[fsm_logptr].kind = 0; \
+		} while(0)
+
+#define LOG(_kind, _code) \
+do {\
+	if (fsm_logptr < LOG_ENTRIES) { \
+		fsm_log[fsm_logptr].kind = _kind; \
+		fsm_log[fsm_logptr].code = _code; \
+		fsm_logptr++;\
+	}\
+}while(0)
+
 /**
  * Attach the FSM to an I2C port.
  *
@@ -270,41 +298,39 @@ i2c_fsm()
 		// generate FSM events based on I2C events
 		switch (event) {
 		case I2C_EVENT_SLAVE_RECEIVER_ADDRESS_MATCHED:
-			dbg_write_str("write");
+			LOG('w', 0);
 			fsm_event(ctx, ADDRESSED_WRITE);
 			break;
 
 		case I2C_EVENT_SLAVE_TRANSMITTER_ADDRESS_MATCHED:
-			dbg_write_str("read");
+			LOG('r', 0);
 			fsm_event(ctx, ADDRESSED_READ);
 			break;
 
 		case I2C_EVENT_SLAVE_BYTE_RECEIVED:
-			dbg_write_str("rx");
+			LOG('R', 0);
 			fsm_event(ctx, BYTE_RECEIVED);
 			break;
 
 		case I2C_EVENT_SLAVE_STOP_DETECTED:
-			dbg_write_str("stop");
+			LOG('s', 0);
 			fsm_event(ctx, STOP_RECEIVED);
 			break;
 
 		case I2C_EVENT_SLAVE_BYTE_TRANSMITTING:
-		case I2C_EVENT_SLAVE_BYTE_TRANSMITTED:
-			dbg_write_str("tx");
+		//case I2C_EVENT_SLAVE_BYTE_TRANSMITTED:
+			LOG('T', 0);
 			fsm_event(ctx, BYTE_SENDABLE);
 			break;
 
 		case I2C_EVENT_SLAVE_ACK_FAILURE:
-			dbg_write_str("!ack");
+			LOG('a', 0);
 			fsm_event(ctx, ACK_FAILED);
 			break;
+
 		default:
-			// XXX ignore, or revert to wait-for-master?
-			if (0/*event*/) {
-				dbg_write_hex32(event);
-				dbg_write_str(" ignored");
-			}
+//			if ((event) && (event != 0x00020000))
+//				LOG('e', event);
 			break;
 		}
 	}
@@ -321,6 +347,8 @@ fsm_event(struct fsm_context *ctx, enum fsm_event event)
 {
 	// move to the next state
 	ctx->state = fsm[ctx->state].next_state[event];
+
+	LOG('f', ctx->state);
 
 	// call the state entry handler
 	if (fsm[ctx->state].handler) {
@@ -344,10 +372,16 @@ go_bad(struct fsm_context *ctx)
 static void
 go_wait_master(struct fsm_context *ctx)
 {
-	dbg_write_str("go_wait_master");
 	ctx->command = ' ';
 	ctx->data_ptr = 0;
 	ctx->data_count = 0;
+
+	// (re)enable the peripheral, clear the stop event flag in
+	// case we just finished receiving data
+	I2C_Cmd(ctx->regs, ENABLE);
+
+	// clear the ACK failed flag in case we just finished sending data
+	I2C_ClearFlag(ctx->regs, I2C_FLAG_AF);
 }
 
 /**
@@ -358,7 +392,6 @@ go_wait_master(struct fsm_context *ctx)
 static void
 go_wait_command(struct fsm_context *ctx)
 {
-	dbg_write_str("go_wait_command");
 	// NOP
 }
 
@@ -370,10 +403,10 @@ go_wait_command(struct fsm_context *ctx)
 static void
 go_receive_command(struct fsm_context *ctx)
 {
-	dbg_write_str("go_receive_command");
 
 	// fetch the command byte
 	ctx->command = I2C_ReceiveData(ctx->regs);
+	LOG('c', ctx->command);
 
 	switch (ctx->command) {
 	case 'a':
@@ -406,10 +439,9 @@ go_receive_data(struct fsm_context *ctx)
 {
 	uint8_t	d;
 
-	dbg_write_str("go_receive_data");
-
 	// fetch the byte
 	d = I2C_ReceiveData(ctx->regs);
+	LOG('d', d);
 
 	// if we have somewhere to put it, do so
 	if (ctx->data_count) {
@@ -427,8 +459,6 @@ static void
 go_handle_command(struct fsm_context *ctx)
 {
 	uint32_t	crc;
-
-	dbg_write_str("go_handle_command");
 
 	// presume we are happy with the command
 	ctx->status = STATUS_OK;
@@ -515,8 +545,6 @@ go_handle_command(struct fsm_context *ctx)
 static void
 go_wait_send(struct fsm_context *ctx)
 {
-	dbg_write_str("go_wait_send");
-
 	ctx->data_ptr = ctx->buffer;
 	ctx->data_count = sizeof(ctx->buffer);
 }
@@ -529,9 +557,8 @@ go_wait_send(struct fsm_context *ctx)
 static void
 go_send_status(struct fsm_context *ctx)
 {
-	dbg_write_str("go_send_status");
-
 	I2C_SendData(ctx->regs, ctx->status);
+	LOG('?', ctx->status);
 }
 
 /**
@@ -542,12 +569,12 @@ go_send_status(struct fsm_context *ctx)
 static void
 go_send_buffer(struct fsm_context *ctx)
 {
-	dbg_write_str("go_send_buffer");
-
 	if (ctx->data_count) {
+		LOG('D', *ctx->data_ptr);
 		I2C_SendData(ctx->regs, *(ctx->data_ptr++));
 		ctx->data_count--;
 	} else {
+		LOG('-', 0);
 		I2C_SendData(ctx->regs, 0xff);
 	}
 }
