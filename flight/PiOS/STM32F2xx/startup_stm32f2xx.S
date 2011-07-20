@@ -270,8 +270,8 @@ g_pfnVectors:
 	.word     SDIO_IRQHandler                   // SDIO
 	.word     TIM5_IRQHandler                   // TIM5
 	.word     SPI3_IRQHandler                   // SPI3
-	.word     UART4_IRQHandler                  // UART4
-	.word     UART5_IRQHandler                  // UART5
+	.word     USART4_IRQHandler                 // UART4
+	.word     USART5_IRQHandler                 // UART5
 	.word     TIM6_DAC_IRQHandler               // TIM6 and DAC1&2 underrun errors
 	.word     TIM7_IRQHandler                   // TIM7
 	.word     DMA2_Stream0_IRQHandler           // DMA2 Stream 0
@@ -493,11 +493,11 @@ g_pfnVectors:
 	.weak		SPI3_IRQHandler
 	.thumb_set	SPI3_IRQHandler,Default_Handler
 	
-	.weak		UART4_IRQHandler
-	.thumb_set	UART4_IRQHandler,Default_Handler
+	.weak		USART4_IRQHandler
+	.thumb_set	USART4_IRQHandler,Default_Handler
 	
-	.weak		UART5_IRQHandler
-	.thumb_set	UART5_IRQHandler,Default_Handler
+	.weak		USART5_IRQHandler
+	.thumb_set	USART5_IRQHandler,Default_Handler
 	
 	.weak		TIM6_DAC_IRQHandler
 	.thumb_set	TIM6_DAC_IRQHandler,Default_Handler
