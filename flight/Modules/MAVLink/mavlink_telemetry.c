@@ -264,11 +264,11 @@ FlightTelemetryStatsData flightStats;
 GCSTelemetryStatsData gcsTelemetryStatsData;
 static AttitudeActualData attitudeActual;
 static AttitudeRawData attitudeRaw;
-static ManualControlCommandData manualControl;
+//static ManualControlCommandData manualControl;
 static mavlink_raw_imu_t attitude_raw;
 static mavlink_attitude_t attitude;
-static mavlink_rc_channels_raw_t rc_channels;
-static mavlink_debug_vect_t debug;
+//static mavlink_rc_channels_raw_t rc_channels;
+//static mavlink_debug_vect_t debug;
 
 
 /**
@@ -377,31 +377,33 @@ static void processObjEvent(UAVObjEvent * ev)
 				// Send buffer
 				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
 
-//				uint8_t ucCpuLoad;
-//				SystemStatsCPULoadGet(&ucCpuLoad);
-//				mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
-//				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-//				// Send buffer
-//				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				uint8_t ucCpuLoad;
+				SystemStatsCPULoadGet(&ucCpuLoad);
+				uint16_t vbat = 11000;
+				mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, mavlink_system.nav_mode, mavlink_system.state, ucCpuLoad*4, vbat, 0, 0);
+				//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
+				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+				// Send buffer
+				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
 				break;
 			}
 			case MANUALCONTROLCOMMAND_OBJID:
 			{
-				manualControl.Channel[0] = PIOS_PPM_Get(0);
-				manualControl.Channel[1] = PIOS_PPM_Get(1);
-
-				rc_channels.chan1_raw = manualControl.Channel[0];
-				rc_channels.chan2_raw = manualControl.Channel[1];
-
-				debug.x = PIOS_PPM_Get(0);
-				debug.y = PIOS_PPM_Get(1);
-				debug.z = PIOS_PPM_Get(2);
-				debug.name[0] = 'R';
-				debug.name[1] = 'C';
-				debug.name[2] = 0;
-				debug.usec = 0;
-
-				mavlink_msg_debug_vect_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &debug);
+//				manualControl.Channel[0] = PIOS_PPM_Get(0);
+//				manualControl.Channel[1] = PIOS_PPM_Get(1);
+//
+//				rc_channels.chan1_raw = manualControl.Channel[0];
+//				rc_channels.chan2_raw = manualControl.Channel[1];
+//
+//				debug.x = PIOS_PPM_Get(0);
+//				debug.y = PIOS_PPM_Get(1);
+//				debug.z = PIOS_PPM_Get(2);
+//				debug.name[0] = 'R';
+//				debug.name[1] = 'C';
+//				debug.name[2] = 0;
+//				debug.usec = 0;
+//
+//				mavlink_msg_debug_vect_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &debug);
 
 
 
@@ -611,15 +613,15 @@ static void telemetryRxTask(void *parameters)
 					{
 						//sys_set_mode(mode.mode);
 
-						uint8_t mav_mode = MAV_MODE_LOCKED;
-						uint8_t nav_mode = MAV_NAV_LOST;
-						mav_mode = mode.mode;
-						uint8_t mav_state = MAV_STATE_ACTIVE;
+						mavlink_system.mode = MAV_MODE_LOCKED;
+						mavlink_system.nav_mode = MAV_NAV_LOST;
+						mavlink_system.mode = mode.mode;
+						mavlink_system.state = MAV_STATE_ACTIVE;
 						uint16_t vbat = 11000;
 
 						// Emit current mode
-						mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mav_mode, nav_mode,
-								mav_state, 0,vbat, 0, 0);
+						mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mavlink_system.mode, mavlink_system.nav_mode,
+								mavlink_system.state, 0,vbat, 0, 0);
 						// Send message
 						uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
 						// Send buffer

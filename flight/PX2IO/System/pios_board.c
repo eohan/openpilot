@@ -29,7 +29,7 @@
 const struct pios_clock_cfg px2io_clock_config = {
 		.source				= RCC_PLLSource_PREDIV1,
 		.refclock_frequency = HSE_VALUE,
-		.refclock_prescale	= RCC_PREDIV1_Div2,
+		.refclock_prescale	= RCC_PREDIV1_Div6,
 		.pll_multiply		= RCC_PLLMul_6,
 		.hclk_prescale		= RCC_SYSCLK_Div1,
 		.pclk1_prescale		= RCC_HCLK_Div1,

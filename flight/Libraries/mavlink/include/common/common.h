@@ -1,7 +1,7 @@
 /** @file
  *	@brief MAVLink comm protocol.
  *	@see http://pixhawk.ethz.ch/software/mavlink
- *	 Generated on Thursday, March 31 2011, 22:06 UTC
+ *	 Generated on Saturday, May 7 2011, 15:48 UTC
  */
 #ifndef COMMON_H
 #define COMMON_H
@@ -38,7 +38,7 @@ enum MAV_CMD
 	MAV_CMD_NAV_RETURN_TO_LAUNCH=20, /* Return to launch locationEmptyEmptyEmptyEmptyEmptyEmptyEmpty*/
 	MAV_CMD_NAV_LAND=21, /* Land at locationEmptyEmptyEmptyDesired yaw angle.LatitudeLongitudeAltitude*/
 	MAV_CMD_NAV_TAKEOFF=22, /* Takeoff from ground / handMinimum pitch (if airspeed sensor present), desired pitch without sensorEmptyEmptyYaw angle (if magnetometer present), ignored without magnetometerLatitudeLongitudeAltitude*/
-	MAV_CMD_NAV_ORIENTATION_TARGET=80, /* Set the location the system should be heading towards (camera heads or         rotary wing aircraft).EmptyEmptyEmptyEmptyLatitudeLongitudeAltitude*/
+	MAV_CMD_NAV_ROI=80, /* Sets the region of interest (ROI) for a sensor set or the             vehicle itself. This can then be used by the vehicles control             system to control the vehicle attitude and the attitude of various             sensors such as cameras.Region of intereset mode. (see MAV_ROI enum)Waypoint index/ target ID. (see MAV_ROI enum)ROI index (allows a vehicle to manage multiple ROI's)Emptyx the location of the fixed ROI (see MAV_FRAME)yz*/
 	MAV_CMD_NAV_PATHPLANNING=81, /* Control autonomous path planning on the MAV.0: Disable local obstacle avoidance / local path planning (without resetting map), 1: Enable local path planning, 2: Enable and reset local path planning0: Disable full path planning (without resetting map), 1: Enable, 2: Enable and reset map/occupancy grid, 3: Enable and reset planned route, but not occupancy gridEmptyYaw angle at goal, in compass degrees, [0..360]Latitude/X of goalLongitude/Y of goalAltitude/Z of goal*/
 	MAV_CMD_NAV_LAST=95, /* NOP - This command is only used to mark the upper limit of the NAV/ACTION commands in the enumerationEmptyEmptyEmptyEmptyEmptyEmptyEmpty*/
 	MAV_CMD_CONDITION_DELAY=112, /* Delay mission state machine.Delay in seconds (decimal)EmptyEmptyEmptyEmptyEmptyEmpty*/
@@ -75,6 +75,16 @@ enum MAV_DATA_STREAM
 	MAV_DATA_STREAM_EXTRA2=11, /* Dependent on the autopilot*/
 	MAV_DATA_STREAM_EXTRA3=12, /* Dependent on the autopilot*/
 	MAV_DATA_STREAM_ENUM_END
+};
+
+/** @brief  The ROI (region of interest) for the vehicle. This can be       be used by the vehicle for camera/vehicle attitude alignment (see 	  MAV_CMD_NAV_ROI).       */
+enum MAV_ROI
+{
+	MAV_ROI_WPNEXT=0, /* Point toward next waypoint.*/
+	MAV_ROI_WPINDEX=1, /* Point toward given waypoint.*/
+	MAV_ROI_LOCATION=2, /* Point toward fixed location.*/
+	MAV_ROI_TARGET=3, /* Point toward of given id.*/
+	MAV_ROI_ENUM_END
 };
 
 
@@ -143,6 +153,13 @@ enum MAV_DATA_STREAM
 #include "./mavlink_msg_named_value_int.h"
 #include "./mavlink_msg_statustext.h"
 #include "./mavlink_msg_debug.h"
+
+
+// MESSAGE LENGTHS
+
+#undef MAVLINK_MESSAGE_LENGTHS
+#define MAVLINK_MESSAGE_LENGTHS { 3, 4, 8, 14, 8, 28, 3, 32, 0, 2, 3, 2, 2, 0, 0, 0, 0, 0, 0, 0, 19, 2, 23, 21, 0, 37, 26, 101, 26, 16, 32, 32, 37, 32, 11, 17, 17, 16, 18, 36, 4, 4, 2, 2, 4, 2, 2, 3, 14, 12, 18, 16, 8, 27, 25, 0, 0, 0, 0, 0, 5, 5, 26, 16, 36, 5, 6, 0, 0, 21, 0, 0, 0, 18, 20, 20, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 14, 14, 51 }
+
 #ifdef __cplusplus
 }
 #endif

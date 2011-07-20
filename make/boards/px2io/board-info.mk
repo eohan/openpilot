@@ -12,7 +12,7 @@ MODEL               := MD
 MODEL_SUFFIX        :=
 
 # Note, osc freq may change with a board revision
-OSCILLATOR_FREQ     := 8000000
+OSCILLATOR_FREQ     := 24000000
 SYSCLK_FREQ         := 24000000
 
 # Note: These must match the values in link_$(BOARD)_memory.ld
