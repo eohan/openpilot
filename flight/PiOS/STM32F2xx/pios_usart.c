@@ -172,12 +172,12 @@ int32_t PIOS_USART_Init(uint32_t * usart_id, const struct pios_usart_cfg * cfg)
 
 	/* Configure USART Interrupts */
 	switch ((uint32_t)usart_dev->cfg->regs) {
-	case (uint32_t)USART1: PIOS_USART_1_id = (uint32_t)usart_dev;
-	case (uint32_t)USART2: PIOS_USART_2_id = (uint32_t)usart_dev;
-	case (uint32_t)USART3: PIOS_USART_3_id = (uint32_t)usart_dev;
-	case (uint32_t)UART4:  PIOS_USART_4_id = (uint32_t)usart_dev;
-	case (uint32_t)UART5:  PIOS_USART_5_id = (uint32_t)usart_dev;
-	case (uint32_t)USART6: PIOS_USART_6_id = (uint32_t)usart_dev;
+	case (uint32_t)USART1: PIOS_USART_1_id = (uint32_t)usart_dev; break;
+	case (uint32_t)USART2: PIOS_USART_2_id = (uint32_t)usart_dev; break;
+	case (uint32_t)USART3: PIOS_USART_3_id = (uint32_t)usart_dev; break;
+	case (uint32_t)UART4:  PIOS_USART_4_id = (uint32_t)usart_dev; break;
+	case (uint32_t)UART5:  PIOS_USART_5_id = (uint32_t)usart_dev; break;
+	case (uint32_t)USART6: PIOS_USART_6_id = (uint32_t)usart_dev; break;
 	}
 	NVIC_Init((NVIC_InitTypeDef *)&(usart_dev->cfg->irq.init));
 	USART_ITConfig(usart_dev->cfg->regs, USART_IT_RXNE, ENABLE);
