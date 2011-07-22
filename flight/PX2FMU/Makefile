@@ -223,7 +223,7 @@ SRC += $(STMSPDSRCDIR)/misc.c
 SRC += $(RTOSSRCDIR)/list.c
 SRC += $(RTOSSRCDIR)/queue.c
 SRC += $(RTOSSRCDIR)/tasks.c
-#SRC += $(RTOSSRCDIR)/timers.c
+SRC += $(RTOSSRCDIR)/timers.c
 
 ## RTOS Portable
 SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
