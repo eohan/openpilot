@@ -382,12 +382,6 @@ void PIOS_Board_Init(void)
 	uint32_t	usart_id;
 	uint32_t	rcvr_id;
 
-	/* Debug services */
-	PIOS_DEBUG_Init();
-
-	/* Delay system */
-	PIOS_DELAY_Init();
-
 	/* Initialise USARTs */
 	if (PIOS_USART_Init(&usart_id, &pios_usart_telem_cfg) ||
 		PIOS_COM_Init(&pios_com_telem_rf_id, &pios_usart_com_driver, usart_id)) {
