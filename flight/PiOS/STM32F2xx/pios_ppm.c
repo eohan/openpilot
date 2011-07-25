@@ -44,7 +44,7 @@
 # error PPM input requires FreeRTOS
 #else
 # if !configUSE_TIMERS
-#  error PPM input required FreeRTOS configUSE_TIMERS
+#  error PPM input requires FreeRTOS configUSE_TIMERS
 # endif
 #endif
 
