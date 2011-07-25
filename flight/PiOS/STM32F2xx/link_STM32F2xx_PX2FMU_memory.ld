@@ -26,8 +26,7 @@
 /* Memory Spaces Definitions */
 MEMORY
 {
-  RAM (xrw) :     ORIGIN = 0x20000000, LENGTH = 128K
-  FLASH (rx) :    ORIGIN = 0x08000000, LENGTH = 1024K
+	SRAM (xrw) :    ORIGIN = 0x20000000, LENGTH = 128K
+	FLASH (rx) :    ORIGIN = 0x08000000, LENGTH = 1020K
+	BD_INFO(r) :	ORIGIN = 0x080ff000, LENGTH = 4K	/* XXX just to make the linker happy, move once we have a bootloader */
 }
-
-INCLUDE link_STM32F2xx_common.ld
