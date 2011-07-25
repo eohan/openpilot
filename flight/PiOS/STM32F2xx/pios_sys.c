@@ -36,8 +36,7 @@
 #if defined(PIOS_INCLUDE_SYS)
 
 /* Private Function Prototypes */
-void NVIC_Configuration(void);
-void SysTick_Handler(void);
+static void NVIC_Configuration(void);
 
 /**
 * Initialises all system peripherals
@@ -51,6 +50,13 @@ void PIOS_SYS_Init(void)
 	 * @todo might make sense to fetch the bus clocks and save them somewhere to avoid
 	 * having to use the clunky get-all-clocks API everytime we need one.
 	 */
+
+	/* Init the delay system */
+	PIOS_DELAY_Init();
+	PIOS_DELAY_WaitmS(500);		/* XXX wait for the OpenOCD DCC stuff to get its act together */
+
+	/* Debug services */
+	PIOS_DEBUG_Init();
 
 	/*
 	 * Turn on all the peripheral clocks.
@@ -85,7 +91,7 @@ void PIOS_SYS_Init(void)
 			       //RCC_AHB2Periph_DCMI |				No camera   @todo might make sense later for basic vision support?
 			       //RCC_AHB2Periph_CRYP |				No crypto
 			       //RCC_AHB2Periph_HASH |				No hash generator
-			       //RCC_AHB2Periph_RNG |				No random numbers
+			       //RCC_AHB2Periph_RNG |				No random numbers @todo might be good to have later if entropy is desired
 			       RCC_AHB2Periph_OTG_FS |
 			0, ENABLE);
 	RCC_AHB3PeriphClockCmd(
@@ -248,7 +254,7 @@ int32_t PIOS_SYS_SerialNumberGet(char *str)
 /**
 * Configures Vector Table base location and SysTick
 */
-void NVIC_Configuration(void)
+static void NVIC_Configuration(void)
 {
 	/* Set the Vector Table base address as specified in .ld file */
 	NVIC_SetVectorTable(PIOS_NVIC_VECTTAB_FLASH, 0x0);

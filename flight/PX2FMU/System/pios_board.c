@@ -356,7 +356,7 @@ void PIOS_I2C_external_adapter_er_irq_handler(void)
   PIOS_I2C_ER_IRQ_Handler(pios_i2c_external_adapter_id);
 }
 
-uint32_t pios_rcvr_channel_to_id_map[PIOS_RCVR_MAX_DEVS];
+struct pios_rcvr_channel_map pios_rcvr_channel_to_id_map[PIOS_RCVR_MAX_CHANNELS];
 uint32_t pios_rcvr_max_channel;
 
 /*
@@ -380,12 +380,7 @@ uint32_t pios_com_control_id;
 void PIOS_Board_Init(void)
 {
 	uint32_t	usart_id;
-
-	/* Debug services */
-	PIOS_DEBUG_Init();
-
-	/* Delay system */
-	PIOS_DELAY_Init();
+	uint32_t	rcvr_id;
 
 	/* Initialise USARTs */
 	if (PIOS_USART_Init(&usart_id, &pios_usart_telem_cfg) ||
@@ -452,7 +447,20 @@ void PIOS_Board_Init(void)
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "I2C ");
 	PIOS_ADC_Init();
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "ADC ");
+
+	// XXX in theory we need to do this... but why?  This is crap.  It should be somewhere very far from here.
+	//uint8_t inputmode;
+	//ManualControlSettingsInputModeGet(&inputmode);
 	PIOS_PPM_Init();
+	if (PIOS_RCVR_Init(&rcvr_id, &pios_ppm_rcvr_driver, 0)) {
+		PIOS_Assert(0);
+	}
+	for (uint8_t i = 0; i < PIOS_PPM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map); i++) {
+		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = rcvr_id;
+		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+		pios_rcvr_max_channel++;
+	}
+
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "PPM ");
 
 #if defined(PIOS_INCLUDE_USB_HID)

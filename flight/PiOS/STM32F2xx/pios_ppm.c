@@ -42,7 +42,18 @@
 
 #ifndef PIOS_INCLUDE_FREERTOS
 # error PPM input requires FreeRTOS
+#else
+# if !configUSE_TIMERS
+#  error PPM input requires FreeRTOS configUSE_TIMERS
+# endif
 #endif
+
+/* Provide a RCVR driver */
+static int32_t PIOS_PPM_Get(uint32_t rcvr_id, uint8_t channel);
+
+const struct pios_rcvr_driver pios_ppm_rcvr_driver = {
+	.read = PIOS_PPM_Get,
+};
 
 /* Local Variables */
 
@@ -51,15 +62,123 @@ static uint32_t PreviousValue;
 static uint32_t CurrentValue;
 static uint32_t CapturedValue;
 static uint32_t CaptureValue[PIOS_PPM_NUM_INPUTS];
+static uint32_t CapCounter[PIOS_PPM_NUM_INPUTS];
+static uint16_t TimerCounter;
 
 static uint8_t SupervisorState = 0;
-static uint32_t CapCounter[PIOS_PPM_NUM_INPUTS];
 static uint32_t CapCounterPrev[PIOS_PPM_NUM_INPUTS];
 
-static xTaskHandle ppmSupvTaskHandle;
-static void ppmSupvTask(void *parameters);
+static xTimerHandle ppmSupvTimer;
+static void ppmSupvCallback(xTimerHandle xTimer);
 
-static void ppmSupvTask(void *parameters)
+/**
+ * Do PPM input initialisation.
+ */
+void PIOS_PPM_Init(void)
+{
+	/* Enable timer interrupts */
+	NVIC_Init((NVIC_InitTypeDef *)&pios_ppm_cfg.irq.init);
+
+	/* Configure input pins */
+	GPIO_Init(pios_ppm_cfg.port, (GPIO_InitTypeDef *)&pios_ppm_cfg.gpio_init);
+	GPIO_PinAFConfig(pios_ppm_cfg.port, __builtin_ctz(pios_ppm_cfg.gpio_init.GPIO_Pin), pios_ppm_cfg.remap);
+
+	/* Configure timer for input capture */
+	TIM_ICInit(pios_ppm_cfg.timer, (TIM_ICInitTypeDef *)&pios_ppm_cfg.tim_ic_init);
+
+	/* Configure timer clocks */
+	TIM_InternalClockConfig(pios_ppm_cfg.timer);
+	TIM_TimeBaseInit(pios_ppm_cfg.timer, (TIM_TimeBaseInitTypeDef *)&pios_ppm_cfg.tim_base_init);
+
+	/* Enable the Capture Compare Interrupt Request */
+	TIM_ITConfig(pios_ppm_cfg.timer, pios_ppm_cfg.ccr | TIM_IT_Update, ENABLE);
+
+	/* Enable timer */
+	TIM_Cmd(pios_ppm_cfg.timer, ENABLE);
+
+	/* register the supervisor timer callout at 25Hz */
+	ppmSupvTimer = xTimerCreate((signed char *)"ppmSupv", configTICK_RATE_HZ / 25, pdTRUE, NULL, ppmSupvCallback);
+}
+
+/**
+* Get the value of an input channel
+* \param[in] Channel Number of the channel desired
+* \output -1 Channel not available
+* \output >0 Channel value
+*/
+static int32_t PIOS_PPM_Get(uint32_t rcvr_id, uint8_t channel)
+{
+	/* Return error if channel not available */
+	if (channel >= PIOS_PPM_NUM_INPUTS) {
+		return -1;
+	}
+	return CaptureValue[channel];
+}
+
+/**
+* Handle TIMx global interrupt request
+* Some work and testing still needed, need to detect start of frame and decode pulses
+*
+*/
+void PIOS_PPM_irq_handler(void)
+{
+	if (TIM_GetITStatus(pios_ppm_cfg.timer, TIM_IT_Update) == SET) {
+		TimerCounter+=pios_ppm_cfg.timer->ARR;
+		TIM_ClearITPendingBit(pios_ppm_cfg.timer, TIM_IT_Update);
+		if (TIM_GetITStatus(pios_ppm_cfg.timer, pios_ppm_cfg.ccr) != SET) {
+			return;
+		}
+	}
+
+
+	/* Do this as it's more efficient */
+	if (TIM_GetITStatus(pios_ppm_cfg.timer, pios_ppm_cfg.ccr) == SET) {
+		PreviousValue = CurrentValue;
+		switch((int32_t) pios_ppm_cfg.ccr) {
+			case (int32_t)TIM_IT_CC1:
+				CurrentValue = TIM_GetCapture1(pios_ppm_cfg.timer);
+				break;
+			case (int32_t)TIM_IT_CC2:
+				CurrentValue = TIM_GetCapture2(pios_ppm_cfg.timer);
+				break;
+			case (int32_t)TIM_IT_CC3:
+				CurrentValue = TIM_GetCapture3(pios_ppm_cfg.timer);
+				break;
+			case (int32_t)TIM_IT_CC4:
+				CurrentValue = TIM_GetCapture4(pios_ppm_cfg.timer);
+				break;
+		}
+		CurrentValue+=TimerCounter;
+		if(CurrentValue > 0xFFFF) {
+			CurrentValue-=0xFFFF;
+		}
+
+		/* Clear TIMx Capture compare interrupt pending bit */
+		TIM_ClearITPendingBit(pios_ppm_cfg.timer, pios_ppm_cfg.ccr);
+
+		/* Capture computation */
+		if (CurrentValue > PreviousValue) {
+			CapturedValue = (CurrentValue - PreviousValue);
+		} else {
+			CapturedValue = ((0xFFFF - PreviousValue) + CurrentValue);
+		}
+
+		/* sync pulse */
+		if (CapturedValue > 8000) {
+			PulseIndex = 0;
+			/* trying to detect bad pulses, not sure this is working correctly yet. I need a scope :P */
+		} else if (CapturedValue > 750 && CapturedValue < 2500) {
+			if (PulseIndex < PIOS_PPM_NUM_INPUTS) {
+				CaptureValue[PulseIndex] = CapturedValue;
+				CapCounter[PulseIndex]++;
+				PulseIndex++;
+			}
+		}
+	}
+}
+
+static void
+ppmSupvCallback(xTimerHandle xTimer)
 {
 	for (;;) {
 		/* we should receive a PPM frame at least once every 100ms */
@@ -84,99 +203,6 @@ static void ppmSupvTask(void *parameters)
 
 			/* Move to next state */
 			SupervisorState = 0;
-		}
-	}
-}
-
-/**
- * Do PPM input initialisation.
- */
-void PIOS_PPM_Init(void)
-{
-	/* Enable timer interrupts */
-	NVIC_Init((NVIC_InitTypeDef *)&pios_ppm_cfg.irq.init);
-
-	/* Configure input pins */
-	GPIO_Init(pios_ppm_cfg.port, (GPIO_InitTypeDef *)&pios_ppm_cfg.gpio_init);
-	GPIO_PinAFConfig(pios_ppm_cfg.port, __builtin_ctz(pios_ppm_cfg.gpio_init.GPIO_Pin), pios_ppm_cfg.remap);
-
-	/* Configure timer for input capture */
-	TIM_ICInit(pios_ppm_cfg.timer, (TIM_ICInitTypeDef *)&pios_ppm_cfg.tim_ic_init);
-
-	/* Configure timer clocks */
-	TIM_InternalClockConfig(pios_ppm_cfg.timer);
-	TIM_TimeBaseInit(pios_ppm_cfg.timer, (TIM_TimeBaseInitTypeDef *)&pios_ppm_cfg.tim_base_init);
-
-	/* Enable the Capture Compare Interrupt Request */
-	TIM_ITConfig(pios_ppm_cfg.timer, pios_ppm_cfg.ccr, ENABLE);
-
-	/* Enable timer */
-	TIM_Cmd(pios_ppm_cfg.timer, ENABLE);
-
-	/* Start the supervisor task - only needs a tiny stack*/
-	xTaskCreate(ppmSupvTask, (signed char *)"ppmSupv", 64, NULL, tskIDLE_PRIORITY + 3, &ppmSupvTaskHandle);
-}
-
-/**
-* Get the value of an input channel
-* \param[in] Channel Number of the channel desired
-* \output -1 Channel not available
-* \output >0 Channel value
-*/
-int32_t PIOS_PPM_Get(int8_t Channel)
-{
-	/* Return error if channel not available */
-	if (Channel >= PIOS_PPM_NUM_INPUTS) {
-		return -1;
-	}
-	return CaptureValue[Channel];
-}
-
-/**
-* Handle TIMx global interrupt request
-* Some work and testing still needed, need to detect start of frame and decode pulses
-*
-*/
-void PIOS_PPM_irq_handler(void)
-{
-	/* Do this as it's more efficient */
-	if (TIM_GetITStatus(pios_ppm_cfg.timer, pios_ppm_cfg.ccr) == SET) {
-		PreviousValue = CurrentValue;
-		switch((int32_t) pios_ppm_cfg.ccr) {
-			case (int32_t)TIM_IT_CC1:
-				CurrentValue = TIM_GetCapture1(pios_ppm_cfg.timer);
-				break;
-			case (int32_t)TIM_IT_CC2:
-				CurrentValue = TIM_GetCapture2(pios_ppm_cfg.timer);
-				break;
-			case (int32_t)TIM_IT_CC3:
-				CurrentValue = TIM_GetCapture3(pios_ppm_cfg.timer);
-				break;
-			case (int32_t)TIM_IT_CC4:
-				CurrentValue = TIM_GetCapture4(pios_ppm_cfg.timer);
-				break;
-		}
-	}
-
-	/* Clear TIMx Capture compare interrupt pending bit */
-	TIM_ClearITPendingBit(pios_ppm_cfg.timer, pios_ppm_cfg.ccr);
-
-	/* Capture computation */
-	if (CurrentValue > PreviousValue) {
-		CapturedValue = (CurrentValue - PreviousValue);
-	} else {
-		CapturedValue = ((0xFFFF - PreviousValue) + CurrentValue);
-	}
-
-	/* sync pulse */
-	if (CapturedValue > 8000) {
-		PulseIndex = 0;
-		/* trying to detect bad pulses, not sure this is working correctly yet. I need a scope :P */
-	} else if (CapturedValue > 750 && CapturedValue < 2500) {
-		if (PulseIndex < PIOS_PPM_NUM_INPUTS) {
-			CaptureValue[PulseIndex] = CapturedValue;
-			CapCounter[PulseIndex]++;
-			PulseIndex++;
 		}
 	}
 }

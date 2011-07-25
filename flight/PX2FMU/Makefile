@@ -40,9 +40,6 @@ DEBUG ?= YES
 # XXX remove this, all UARTs are supported always
 ENABLE_AUX_UART ?= NO
 
-# Set to YES to build an object that works with the bootloader
-USE_BOOTLOADER ?= NO
-
 # Use the mavlink instead of the UAVTalk protocol
 USE_MAVLINK ?= NO
 
@@ -84,6 +81,8 @@ PIOSINC = $(PIOS)/inc
 PIOSSTM32F2XX = $(PIOS)/STM32F2xx
 PIOSSTM32F2XXINC = $(PIOSSTM32F2XX)/inc
 PIOSCOMMON = $(PIOS)/Common
+PIOSCOMMONLIB = $(PIOS)/Common/Libraries
+ZALLOCLIB = $(PIOSCOMMONLIB)/zalloc
 PIOSBOARDS = $(PIOS)/Boards
 APPLIBDIR = $(PIOSSTM32F2XX)/Libraries
 STMLIBDIR = $(APPLIBDIR)
@@ -223,11 +222,16 @@ SRC += $(STMSPDSRCDIR)/misc.c
 SRC += $(RTOSSRCDIR)/list.c
 SRC += $(RTOSSRCDIR)/queue.c
 SRC += $(RTOSSRCDIR)/tasks.c
-#SRC += $(RTOSSRCDIR)/timers.c
+SRC += $(RTOSSRCDIR)/timers.c
 
 ## RTOS Portable
 SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
 SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+
+## Better malloc/free
+#SRC += $(ZALLOCLIB)/malloc.c
+#SRC += $(ZALLOCLIB)/zalloc.c
+#SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
 
 ## Dosfs file system
 SRC += $(DOSFSDIR)/dosfs.c
@@ -286,6 +290,7 @@ EXTRAINCDIRS  += $(RTOSINCDIR)
 EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 EXTRAINCDIRS  += $(PYMITEINC)
+EXTRAINCDIRS  += $(ZALLOCLIB)
 
 EXTRAINCDIRS += ${foreach MOD, ${MODULES} ${PYMODULES}, $(OPMODULEDIR)/${MOD}/inc} ${OPMODULEDIR}/System/inc
 
@@ -342,11 +347,6 @@ CDEFS += -DPIOS_ENABLE_DEBUG_PINS
 endif
 ifeq ($(ENABLE_AUX_UART), YES)
 CDEFS += -DPIOS_ENABLE_AUX_UART
-endif
-
-# XXX this should go away
-ifeq ($(USE_BOOTLOADER), YES)
-CDEFS += -DUSE_BOOTLOADER
 endif
 
 # Place project-specific -D and/or -U options for
@@ -421,11 +421,7 @@ LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
 # Set linker-script name depending on selected submodel name
-ifeq ($(USE_BOOTLOADER),YES)
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_application.ld -L$(LINKERSCRIPTPATH)
-else
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_application_no_bootloader.ld -L$(LINKERSCRIPTPATH)
-endif
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f

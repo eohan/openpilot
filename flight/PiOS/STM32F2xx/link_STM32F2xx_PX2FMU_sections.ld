@@ -1,7 +1,7 @@
 /* This is the size of the stack for all FreeRTOS IRQs */
-_irq_stack_size = 0x180;
+_irq_stack_size = 0x400;
 /* This is the size of the stack for early init: life span is until scheduler starts */
-_init_stack_size = 0x100;
+_init_stack_size = 0x400;
 
 
 PROVIDE(pios_board_info_blob = ORIGIN(BD_INFO));
@@ -104,7 +104,6 @@ SECTIONS
         _init_stack_top = . - 4 ;
     } > SRAM
 
-    
     _free_ram = . ;
     .free_ram (NOLOAD) :
     {
