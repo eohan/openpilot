@@ -98,10 +98,13 @@ static const unsigned short  heapSTRUCT_SIZE	= ( sizeof( xBlockLink ) + portBYTE
 /* Create a couple of list links to mark the start and end of the list. */
 static xBlockLink xStart, xEnd;
 
+/* Size the heap based on the free space in the segment */
+extern char _sheap, _eheap;
+static size_t currentTOTAL_HEAP_SIZE;
+
 /* Keeps track of the number of free bytes remaining, but says nothing about
 fragmentation. */
-static size_t xFreeBytesRemaining = configTOTAL_HEAP_SIZE;
-static size_t currentTOTAL_HEAP_SIZE = configTOTAL_HEAP_SIZE;
+static size_t xFreeBytesRemaining;
 
 /* STATIC FUNCTIONS ARE DEFINED AS MACROS TO MINIMIZE THE FUNCTION CALL DEPTH. */
 
@@ -134,6 +137,9 @@ size_t xBlockSize;																	\
 #define prvHeapInit()																\
 {																					\
 xBlockLink *pxFirstFreeBlock;														\
+																					\
+	currentTOTAL_HEAP_SIZE = &_eheap - &_sheap;										\
+	xFreeBytesRemaining = currentTOTAL_HEAP_SIZE;									\
 																					\
 	/* xStart is used to hold a pointer to the first item in the list of free */	\
 	/* blocks.  The void cast is used to prevent compiler warnings. */				\
