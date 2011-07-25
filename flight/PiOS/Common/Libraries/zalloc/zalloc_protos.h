@@ -1,0 +1,17 @@
+Prototype struct MemPool *DummyStructMemPool;
+Prototype struct MemPool MallocPool;
+Library void *znalloc(struct MemPool *mpool, iaddr_t bytes);
+Library void *zalloc(struct MemPool *mpool, iaddr_t bytes);
+Library void *zallocAlign(struct MemPool *mpool, iaddr_t bytes, iaddr_t align);
+Library void *zxalloc(struct MemPool *mp, void *addr1, void *addr2, iaddr_t bytes);
+Library void *znxalloc(struct MemPool *mp, void *addr1, void *addr2, iaddr_t bytes);
+Library char *zallocStr(struct MemPool *mpool, const char *s, int slen);
+Library void zfree(struct MemPool *mpool, void *ptr, iaddr_t bytes);
+Library void zfreeStr(struct MemPool *mpool, char *s);
+Library void zinitPool(struct MemPool *mp, const char *id, void (*fpanic)(const char *ctl, ...), int (*freclaim)(struct MemPool *memPool, iaddr_t bytes), void *pBase, iaddr_t pSize);
+Library void zclearPool(struct MemPool *mp);
+Library void znop(const char *ctl, ...);
+Library int znot(struct MemPool *memPool, iaddr_t bytes);
+Library void zallocstats(struct MemPool *mp);
+Library void zlock(void);
+Library void zunlock(void);
