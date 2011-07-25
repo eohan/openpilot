@@ -38,24 +38,22 @@
 	.fpu		softvfp
 	.thumb
 
-.global	g_pfnVectors
-.global	SystemInit_ExtMemCtl_Dummy
-.global	Default_Handler
-.global	xPortIncreaseHeapSize
-.global	Stack_Change
+.global  g_pfnVectors
+.global  Default_Handler
+.global  xPortIncreaseHeapSize
+.global  Stack_Change
 
 /* start address for the initialization values of the .data section. 
 defined in linker script */
-.word		_sidata
+.word  _sidata
 /* start address for the .data section. defined in linker script */  
-.word		_sdata
+.word  _sdata
 /* end address for the .data section. defined in linker script */
-.word		_edata
+.word  _edata
 /* start address for the .bss section. defined in linker script */
-.word		_sbss
+.word  _sbss
 /* end address for the .bss section. defined in linker script */
-.word		_ebss
-/* stack used for SystemInit_ExtMemCtl; always internal RAM used */
+.word  _ebss
 
 /**
  * @brief  This is the code that gets called when the processor first
@@ -66,12 +64,21 @@ defined in linker script */
  * @retval : None
 */
 
-  .section  .text.Reset_Handler
+    .section  .text.Reset_Handler
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:
 
-/* restore original stack pointer */
+/*
+ * From Cortex-M3 reference manual:
+ * - Handler IRQ always use SP_main
+ * - Process use SP_main or SP_process
+ * Here, we will use beginning of SRAM for IRQ (SP_main)
+ * and end of heap for initialization (SP_process).
+ * Once the schedule starts, all threads will use their own stack
+ * from heap and NOBOBY should use SP_process again.
+ */
+ /* Do set/reset the stack pointers */
   LDR r0, =_irq_stack_top
   MSR msp, r0
   LDR r2, =_init_stack_top
@@ -103,7 +110,7 @@ LoopFillIRQStack:
   bcc  FillIRQStack
 
 SectionBssInit:
-/* Copy the data segment initializers from flash to SRAM */
+/* Copy the data segment initializers from flash to SRAM */  
   movs  r1, #0
   b  LoopCopyDataInit
 
@@ -112,7 +119,7 @@ CopyDataInit:
   ldr  r3, [r3, r1]
   str  r3, [r0, r1]
   adds  r1, r1, #4
-
+    
 LoopCopyDataInit:
   ldr  r0, =_sdata
   ldr  r3, =_edata
@@ -121,11 +128,11 @@ LoopCopyDataInit:
   bcc  CopyDataInit
   ldr  r2, =_sbss
   b  LoopFillZerobss
-/* Zero fill the bss segment. */
+/* Zero fill the bss segment. */  
 FillZerobss:
   movs  r3, #0
   str  r3, [r2], #4
-
+    
 LoopFillZerobss:
   ldr  r3, = _ebss
   cmp  r2, r3
@@ -174,17 +181,18 @@ SystemInit_ExtMemCtl_Dummy:
   .size  SystemInit_ExtMemCtl_Dummy, .-SystemInit_ExtMemCtl_Dummy
 
 /**
- * @brief  This is the code that gets called when the processor receives an 
+ * @brief  This is the code that gets called when the processor receives an
  *         unexpected interrupt.  This simply enters an infinite loop, preserving
  *         the system state for examination by a debugger.
- * @param  None     
- * @retval None       
+ *
+ * @param  None
+ * @retval : None
 */
-    .section .text.Default_Handler,"ax",%progbits
+    .section  .text.Default_Handler,"ax",%progbits
 Default_Handler:
 Infinite_Loop:
-	b	Infinite_Loop
-	.size Default_Handler, .-Default_Handler
+  b  Infinite_Loop
+  .size  Default_Handler, .-Default_Handler
 
 /******************************************************************************
 *
