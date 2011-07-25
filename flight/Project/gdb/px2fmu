@@ -129,3 +129,13 @@ define showlist
 		set $list = $list->pxNext;
 	end
 end
+
+define showheap2
+	printf "heap2 @ 0x%08x free 0x%08x total 0x%08x\n", &(xHeap.ucHeap), xFreeBytesRemaining, currentTOTAL_HEAP_SIZE
+	# amazingly, even though they have linkage in allocated blocks, they aren't linked
+	set $block = xStart.pxNextFreeBlock
+	while $block != &xEnd
+		printf "0x%08x free 0x%08x\n", $block, $block->xBlockSize
+		set $block = $block->pxNextFreeBlock
+	end
+end

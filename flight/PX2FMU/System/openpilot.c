@@ -110,10 +110,7 @@ mainTask(void *parameters)
 	MODULE_INITIALISE_ALL;
 
 	/* suspend this task indefinitely */
-	/* XXX should terminate, but not sure that works yet */
-	for (;;)
-		vTaskSuspend(NULL);
-	//vTaskDelete(NULL);
+	vTaskDelete(NULL);
 }
 
 /**

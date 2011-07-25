@@ -4,8 +4,8 @@
  */
 
 #define MALLOCLIB	1
+#define USEGUARD	1
 //#define DMALLOCDEBUG	1
-//#define USEGUARD	1
 //#define USEENDGUARD	1
 //#define USEPANIC	1
 //#define ZALLOCDEBUG	1
