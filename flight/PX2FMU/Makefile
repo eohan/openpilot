@@ -229,9 +229,9 @@ SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
 SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
 
 ## Better malloc/free
-#SRC += $(RTOSSRCDIR)/portable/MemMang/heap_3.c
 #SRC += $(ZALLOCLIB)/malloc.c
 #SRC += $(ZALLOCLIB)/zalloc.c
+#SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
 
 ## Dosfs file system
 SRC += $(DOSFSDIR)/dosfs.c
