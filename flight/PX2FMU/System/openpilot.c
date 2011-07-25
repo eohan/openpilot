@@ -82,7 +82,7 @@ main()
 	/* create the init thread */
 	result = xTaskGenericCreate(mainTask,
 								(const signed char *)"main",
-								&_init_stack_top - &_init_stack_end,
+								(&_init_stack_top - &_init_stack_end) / sizeof(portSTACK_TYPE),
 								NULL,
 								INIT_TASK_PRIORITY,
 								&mainThreadHandle,
