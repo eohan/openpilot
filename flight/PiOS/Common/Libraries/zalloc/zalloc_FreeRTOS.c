@@ -38,10 +38,10 @@
  * Symbols exported by the linker script telling us where the heap
  * and init stack are.
  */
-extern uintptr_t	_sheap;
-extern uintptr_t	_eheap;
-extern uintptr_t	_init_stack_end;
-extern uintptr_t	_init_stack_top;
+extern char	_sheap;
+extern char	_eheap;
+extern char	_init_stack_end;
+extern char	_init_stack_top;
 
 extern void vApplicationMallocFailedHook(void);
 
@@ -65,8 +65,8 @@ void
 vPortFree(void *p)
 {
 	/* this is the init stack being freed */
-	if (p == (void *)_init_stack_end) {
-		zfree(&MallocPool, (void *)_init_stack_end, (_init_stack_top - _init_stack_end));
+	if (p == (void *)&_init_stack_end) {
+		zfree(&MallocPool, (void *)&_init_stack_end, (&_init_stack_top - &_init_stack_end));
 	} else {
 		free(p);
 	}
@@ -88,19 +88,19 @@ vPortInitialiseBlocks(void)
 	 * If the init stack is immediately adjacent to the zalloc pool then we can absorb it if/when it is freed,
 	 * so we should account for it in the sizing of the heap.
 	 */
-	initial_heap_size = _eheap - _sheap;
-	if (_init_stack_end == _eheap) {
-		final_heap_size = _init_stack_top - _sheap;
+	initial_heap_size = &_eheap - &_sheap;
+	if (&_init_stack_end == &_eheap) {
+		final_heap_size = &_init_stack_top - &_sheap;
 	} else {
 		final_heap_size = initial_heap_size;
 	}
 
 	/* assign all of the heap space to the zalloc pool */
 	/* XXX might be nice to have better panic hooks here */
-	zinitPool(&MallocPool, "Malloc", znop, znot, (void *)_sheap, final_heap_size);
+	zinitPool(&MallocPool, "Malloc", znop, znot, (void *)&_sheap, final_heap_size);
 
 	/* free back all of the heap except for the init stack; this will be given back when the init task terminates */
-	zfree(&MallocPool, (void *)_sheap, initial_heap_size);
+	zfree(&MallocPool, (void *)&_sheap, initial_heap_size);
 }
 
 void
