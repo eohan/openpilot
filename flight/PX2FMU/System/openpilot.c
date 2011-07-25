@@ -59,6 +59,11 @@ extern void InitModules(void);
 /* Prototype of PIOS_Board_Init() function */
 extern void PIOS_Board_Init(void);
 
+/* bounds of the init stack courtesy of the linker script */
+extern char		_init_stack_top, _init_stack_end;
+
+/* external helper that swaps the current stack to the interrupt stack */
+extern void Stack_Change(void);
 
 int
 main()
@@ -71,8 +76,19 @@ main()
 	/* initialise the heap */
 	vPortInitialiseBlocks();
 
+	/* swap to the interrupt stack so that when xTaskGenericCreate clears the init stack we aren't clobbered */
+	Stack_Change();
+
 	/* create the init thread */
-	result = xTaskCreate(mainTask, (signed char *)"main", INIT_TASK_STACK, NULL, INIT_TASK_PRIORITY, &mainThreadHandle);
+	result = xTaskGenericCreate(mainTask,
+								(const signed char *)"main",
+								&_init_stack_top - &_init_stack_end,
+								NULL,
+								INIT_TASK_PRIORITY,
+								&mainThreadHandle,
+								(void *)&_init_stack_end,
+								NULL);
+	//result = xTaskCreate(mainTask, (signed char *)"main", INIT_TASK_STACK, NULL, INIT_TASK_PRIORITY, &mainThreadHandle);
 	PIOS_Assert(result == pdPASS);
 
 	/* Start the FreeRTOS scheduler */
