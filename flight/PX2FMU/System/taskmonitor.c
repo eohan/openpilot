@@ -47,6 +47,7 @@ int32_t TaskMonitorInitialize(void)
 {
 	lock = xSemaphoreCreateRecursiveMutex();
 	memset(handles, 0, sizeof(xTaskHandle)*TASKINFO_RUNNING_NUMELEM);
+	portCONFIGURE_TIMER_FOR_RUN_TIME_STATS();
 	lastMonitorTime = portGET_RUN_TIME_COUNTER_VALUE();
 	return 0;
 }
