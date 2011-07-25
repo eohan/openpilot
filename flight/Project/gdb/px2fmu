@@ -37,10 +37,54 @@ define hookpost-finish
 	monitor cortex_m3 maskisr off
 end
 
+define vecstate
+	set $icsr = *(uint32_t *)0xe000ed04
+	printf "vectactive %d  vectpending %d  isrpending %d\n", $icsr & 0xff, ($icsr >> 12) & 0xff, ($icsr >> 22) & 1
+	set $hfsr = *(uint32_t *)0xe000ed2c
+	printf "hardfault 0x%08x xforced %d  vector read error %d\n", $hfsr, ($hfsr >> 30) & 1, ($hfsr >> 1) & 1
+	set $cfsr = *(uint32_t *)0xE000ED28
+	set $ufsr = ($cfsr >> 16) & 0xffff
+	set $bfsr = ($cfsr >> 8) & 0xff
+	printf "usefault 0x%08x undef %d  align %d  divzero %d\n", $ufsr, $ufsr & 1, ($ufsr >> 8) & 1, ($ufsr >> 9) & 1
+	set $bfar = *(uint32_t *)0xe000ed38
+	printf "busfault 0x%08x prefetch %d  data %d  stack %d\n", $bfsr, $bfsr & 1, ($bfsr >> 1) & 3, ($bfsr >> 3) & 3
+	if $bfsr & 0x80
+		printf "busfault addr 0x%08x\n", $bfar
+	end
+end
+
+define unwind
+	set $frame = (struct cm3_frame *)$sp
+	set $r0 = $frame->r0
+	set $r1 = $frame->r1
+	set $r2 = $frame->r2
+	set $r3 = $frame->r3
+	set $r12 = $frame->r12
+	set $lr = $frame->lr
+	set $pc = $frame->pc
+	set $psr = $frame->psr
+	set $sp = $sp + sizeof(struct cm3_frame)
+	where
+end
+
+define reflash
+	mon reset halt
+	mon flash write_image erase build/px2fmu/px2fmu.elf
+	mon reset
+end
+
 # FreeRTOS macros
 define showtask
-       set $tcb = (struct tskTaskControlBlock*)$arg0
-       printf "  0x%08x %s\n", $tcb, $tcb->pcTaskName
+	set $tcb = (struct tskTaskControlBlock *)$arg0
+	printf "  0x%08x %s\n", $tcb, $tcb->pcTaskName
+	printf "    stack 0x%08x limit 0x%08x\n", $tcb->pxTopOfStack, $tcb->pxStack
+	printf "    pri %d basepri %d\n", $tcb->uxBasePriority, $tcb->uxPriority
+# Not working/useful
+#	if ($tcb != pxCurrentTCB)
+#		set $frame = (struct cm3_frame *)($tcb->pxTopOfStack + 8)
+#		x/i $frame->pc
+#		x/i $frame->lr
+#	end
 end
 
 define showtasklist
@@ -54,10 +98,14 @@ define showtasklist
 end
 
 define showtasks
+	if pxCurrentTCB != 0
+		printf "running:\n"
+		showtask pxCurrentTCB
+	end
 	set $priority = sizeof(pxReadyTasksLists) / sizeof(pxReadyTasksLists[0])
 	while $priority > 0
 		set $priority = $priority - 1
-		printf "ready - %d:\n", $priority
+		printf "ready @ pri %d:\n", $priority
 		showtasklist &pxReadyTasksLists[$priority]
 	end
 	printf "ready - pending:\n"
@@ -70,4 +118,14 @@ define showtasks
 	printf "waiting termination:\n"
 	showtasklist &xTasksWaitingTermination
 	
+end
+
+define showlist
+	set $list = (struct xLIST *)$arg0
+	printf "0x%08x: %d items\n", $list, $list->uxNumberOfItems
+	set $list_entry = $list->xListEnd.pxNext
+	while $list != 0
+		printf "0x%08x: value 0x%08x owner 0x%08x container 0x%08x\n", $list, $list->xItemValue, $list->pvOwner, $list->pvContainer
+		set $list = $list->pxNext;
+	end
 end
