@@ -450,6 +450,8 @@ void vApplicationIdleHook(void)
 void vApplicationStackOverflowHook(xTaskHandle * pxTask, signed portCHAR * pcTaskName)
 {
 	stackOverflow = 1;
+	for (;;)
+		;
 }
 
 /**
