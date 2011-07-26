@@ -122,14 +122,13 @@ extern uint32_t pios_i2c_external_adapter_id;
 //------------------------
 // PIOS_BMP085
 //------------------------
-#define PIOS_BMP085_EOC_GPIO_PORT               GPIOA
-#define PIOS_BMP085_EOC_GPIO_PIN                GPIO_Pin_10
-#define PIOS_BMP085_EOC_PORT_SOURCE             EXTI_PortSourceGPIOA
-#define PIOS_BMP085_EOC_PIN_SOURCE              EXTI_PinSource10
-#define PIOS_BMP085_EOC_EXTI_LINE               EXTI_Line10
-#define PIOS_BMP085_EOC_IRQn                    EXTI15_10_IRQn
+#define PIOS_BMP085_EOC_GPIO_PORT               GPIOB
+#define PIOS_BMP085_EOC_GPIO_PIN                GPIO_Pin_0
+#define PIOS_BMP085_EOC_PORT_SOURCE             EXTI_PortSourceGPIOB
+#define PIOS_BMP085_EOC_PIN_SOURCE              EXTI_PinSource0
+#define PIOS_BMP085_EOC_EXTI_LINE               EXTI_Line0
+#define PIOS_BMP085_EOC_IRQn                    EXTI0_IRQn
 #define PIOS_BMP085_EOC_PRIO                    PIOS_IRQ_PRIO_LOW
-//#define PIOS_BMP085_OVERSAMPLING                2
 #define PIOS_BMP085_OVERSAMPLING                3
 
 //------------------------
@@ -139,7 +138,7 @@ extern uint32_t pios_i2c_external_adapter_id;
 #define PIOS_HMC5883_DRDY_GPIO_PIN				GPIO_Pin_1
 #define PIOS_HMC5883_DRDY_PORT_SOURCE			EXTI_PortSourceGPIOB
 #define PIOS_HMC5883_DRDY_PIN_SOURCE			EXTI_PinSource1
-#define PIOS_HMC5883_DRDY_EXTI_LINE				EXTI_Line1	// XXX probably wrong
+#define PIOS_HMC5883_DRDY_EXTI_LINE				EXTI_Line1
 #define PIOS_HMC5883_DRDY_IRQn					EXTI1_IRQn
 #define PIOS_HMC5883_DRDY_PRIO					PIOS_IRQ_PRIO_HIGH
 
@@ -264,55 +263,6 @@ extern uint32_t pios_com_aux_id;
 #define PIOS_ADC_USE_ADC2			0
 
 
-#if 0
-//#define PIOS_ADC_OVERSAMPLING_RATE            1
-#define PIOS_ADC_USE_TEMP_SENSOR                1
-#define PIOS_ADC_TEMP_SENSOR_ADC                ADC1
-#define PIOS_ADC_TEMP_SENSOR_ADC_CHANNEL        1
-#define PIOS_ADC_PIN1_GPIO_PORT                 GPIOC                   // PC0 (Power Sense - Voltage)
-#define PIOS_ADC_PIN1_GPIO_PIN                  GPIO_Pin_0              // ADC123_IN10
-#define PIOS_ADC_PIN1_GPIO_CHANNEL              ADC_Channel_10
-#define PIOS_ADC_PIN1_ADC                       ADC1
-#define PIOS_ADC_PIN1_ADC_NUMBER                3
-#define PIOS_ADC_PIN2_GPIO_PORT                 GPIOC                   // PC3 (AUX 1)
-#define PIOS_ADC_PIN2_GPIO_PIN                  GPIO_Pin_3              // ADC123_IN13
-#define PIOS_ADC_PIN2_GPIO_CHANNEL              ADC_Channel_13
-#define PIOS_ADC_PIN2_ADC                       ADC2
-#define PIOS_ADC_PIN2_ADC_NUMBER                1
-#define PIOS_ADC_PIN3_GPIO_PORT                 GPIOC                   // PC1 (AUX 2)
-#define PIOS_ADC_PIN3_GPIO_PIN                  GPIO_Pin_1              // ADC123_IN11
-#define PIOS_ADC_PIN3_GPIO_CHANNEL              ADC_Channel_11
-#define PIOS_ADC_PIN3_ADC                       ADC2
-#define PIOS_ADC_PIN3_ADC_NUMBER                3
-#define PIOS_ADC_PIN4_GPIO_PORT                 GPIOC                   // PC2 (AUX 3)
-#define PIOS_ADC_PIN4_GPIO_PIN                  GPIO_Pin_2              // ADC123_IN12
-#define PIOS_ADC_PIN4_GPIO_CHANNEL              ADC_Channel_12
-#define PIOS_ADC_PIN4_ADC                       ADC1
-#define PIOS_ADC_PIN4_ADC_NUMBER                4
-#define PIOS_ADC_NUM_PINS                       4
-#define PIOS_ADC_PORTS                          { PIOS_ADC_PIN1_GPIO_PORT, PIOS_ADC_PIN2_GPIO_PORT, PIOS_ADC_PIN3_GPIO_PORT, PIOS_ADC_PIN4_GPIO_PORT }
-#define PIOS_ADC_PINS                           { PIOS_ADC_PIN1_GPIO_PIN, PIOS_ADC_PIN2_GPIO_PIN, PIOS_ADC_PIN3_GPIO_PIN, PIOS_ADC_PIN4_GPIO_PIN }
-#define PIOS_ADC_CHANNELS                       { PIOS_ADC_PIN1_GPIO_CHANNEL, PIOS_ADC_PIN2_GPIO_CHANNEL, PIOS_ADC_PIN3_GPIO_CHANNEL, PIOS_ADC_PIN4_GPIO_CHANNEL }
-#define PIOS_ADC_MAPPING                        { PIOS_ADC_PIN1_ADC, PIOS_ADC_PIN2_ADC, PIOS_ADC_PIN3_ADC, PIOS_ADC_PIN4_ADC }
-#define PIOS_ADC_CHANNEL_MAPPING                { PIOS_ADC_PIN1_ADC_NUMBER, PIOS_ADC_PIN2_ADC_NUMBER, PIOS_ADC_PIN3_ADC_NUMBER, PIOS_ADC_PIN4_ADC_NUMBER }
-#define PIOS_ADC_NUM_CHANNELS                   (PIOS_ADC_NUM_PINS + PIOS_ADC_USE_TEMP_SENSOR)
-#define PIOS_ADC_NUM_ADC_CHANNELS               2
-#define PIOS_ADC_CLOCK_FUNCTION                 do {} while(0)
-#define PIOS_ADC_ADCCLK                         RCC_PCLK2_Div8
-                                                /* RCC_PCLK2_Div2: ADC clock = PCLK2/2 */
-                                                /* RCC_PCLK2_Div4: ADC clock = PCLK2/4 */
-                                                /* RCC_PCLK2_Div6: ADC clock = PCLK2/6 */
-                                                /* RCC_PCLK2_Div8: ADC clock = PCLK2/8 */
-#define PIOS_ADC_SAMPLE_TIME                    ADC_SampleTime_480Cycles
-                                                /* Sample time: */
-                                                /* With an ADCCLK = 14 MHz and a sampling time of 293.5 cycles: */
-                                                /* Tconv = 239.5 + 12.5 = 252 cycles = 18us */
-                                                /* (1 / (ADCCLK / CYCLES)) = Sample Time (uS) */
-#define PIOS_ADC_IRQ_PRIO                       PIOS_IRQ_PRIO_LOW
-#define PIOS_ADC_MAX_OVERSAMPLING               10
-#define PIOS_ADC_RATE                           (120.0e6 / 1 / 8 / 252 / PIOS_ADC_NUM_ADC_CHANNELS)
-#endif
-
 //-------------------------
 // GPIO
 //-------------------------
@@ -320,20 +270,23 @@ extern uint32_t pios_com_aux_id;
 #define PIOS_GPIO_1_PIN                         GPIO_Pin_4
 #define PIOS_GPIO_2_PORT                        GPIOC
 #define PIOS_GPIO_2_PIN                         GPIO_Pin_5
-#define PIOS_GPIO_PORTS                         { PIOS_GPIO_1_PORT, PIOS_GPIO_2_PORT}
-#define PIOS_GPIO_PINS                          { PIOS_GPIO_1_PIN, PIOS_GPIO_2_PIN}
-#define PIOS_GPIO_NUM                           2
+#define PIOS_GPIO_3_PORT                        GPIOC
+#define PIOS_GPIO_3_PIN							GPIO_Pin_8
+#define PIOS_GPIO_PORTS                         { PIOS_GPIO_1_PORT, PIOS_GPIO_2_PORT, PIOS_GPIO_3_PORT}
+#define PIOS_GPIO_PINS                          { PIOS_GPIO_1_PIN, PIOS_GPIO_2_PIN, PIOS_GPIO_3_PIN}
+#define PIOS_GPIO_NUM                           3
 
 #define GPIO_EXT1								0
 #define GPIO_EXT2								1
+#define GPIO_PC8								2
 
 //-------------------------
 // USB
 //-------------------------
 #define PIOS_USB_ENABLED                        1
 #define PIOS_USB_DETECT_GPIO_PORT               GPIOA
-#define PIOS_USB_DETECT_GPIO_PIN                GPIO_Pin_9
-#define PIOS_USB_DETECT_EXTI_LINE               EXTI_Line4
+#define PIOS_USB_DETECT_GPIO_PIN                GPIO_Pin_10
+#define PIOS_USB_DETECT_EXTI_LINE               EXTI_Line10
 #define PIOS_IRQ_USB_PRIORITY                   PIOS_IRQ_PRIO_MID
 #define PIOS_USB_RX_BUFFER_SIZE                 512
 #define PIOS_USB_TX_BUFFER_SIZE                 512
