@@ -98,8 +98,10 @@ static const unsigned short  heapSTRUCT_SIZE	= ( sizeof( xBlockLink ) + portBYTE
 /* Create a couple of list links to mark the start and end of the list. */
 static xBlockLink xStart, xEnd;
 
-/* Size the heap based on the free space in the segment */
+/* Markers in the heap segment */
 extern char _sheap, _eheap;
+extern char	_init_stack_top, _init_stack_end;
+
 static size_t currentTOTAL_HEAP_SIZE;
 
 /* Keeps track of the number of free bytes remaining, but says nothing about
@@ -254,10 +256,9 @@ void vPortFree( void *pv )
 {
 unsigned char *puc = ( unsigned char * ) pv;
 xBlockLink *pxLink;
-extern char		_init_stack_top, _init_stack_end;
 
 	/* if this is the init stack being cleaned up on termination of the init task, sacrifice it to the heap */
-	if( ( pv == (void *)&_init_stack_end ) && ( pv == &xHeap.ucHeap[configTOTAL_HEAP_SIZE]) )
+	if( ( pv == (void *)&_init_stack_end ) && ( pv == &xHeap.ucHeap[currentTOTAL_HEAP_SIZE]) )
 	{
 		xPortIncreaseHeapSize(&_init_stack_top - &_init_stack_end);
 		return;
@@ -297,14 +298,21 @@ void vPortInitialiseBlocks( void )
 void xPortIncreaseHeapSize( size_t bytes )
 {
 	xBlockLink *pxNewBlockLink;
+
 	vTaskSuspendAll();
-	currentTOTAL_HEAP_SIZE = configTOTAL_HEAP_SIZE + bytes;
-	xEnd.xBlockSize = currentTOTAL_HEAP_SIZE;
-	xFreeBytesRemaining += bytes;
+
+	/* increase the size of the end block so that this block will always be before it */
+	xEnd.xBlockSize += bytes;
+
 	/* Insert the new block into the list of free blocks. */
-	pxNewBlockLink = ( void * ) &xHeap.ucHeap[ configTOTAL_HEAP_SIZE ];
+	pxNewBlockLink = ( void * ) &xHeap.ucHeap[ currentTOTAL_HEAP_SIZE ];
 	pxNewBlockLink->xBlockSize = bytes;
 	prvInsertBlockIntoFreeList( ( pxNewBlockLink ) );
+
+	/* update heap statistics */
+	currentTOTAL_HEAP_SIZE += bytes;
+	xFreeBytesRemaining += bytes;
+
 	xTaskResumeAll();
 }
 /*-----------------------------------------------------------*/

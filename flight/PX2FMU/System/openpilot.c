@@ -46,7 +46,7 @@
 /* Local Variables */
 #define INIT_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// max priority
 #define INIT_TASK_STACK		(1024 / 4)
-static xTaskHandle mainThreadHandle;
+static xTaskHandle mainTaskHandle;
 
 /* Function Prototypes */
 //int32_t CONSOLE_Parse(uint8_t port, char c);
@@ -60,7 +60,7 @@ extern void InitModules(void);
 extern void PIOS_Board_Init(void);
 
 /* bounds of the init stack courtesy of the linker script */
-extern char		_init_stack_top, _init_stack_end;
+extern char	_init_stack_top, _init_stack_end;
 
 /* external helper that swaps the current stack to the interrupt stack */
 extern void Stack_Change(void);
@@ -85,10 +85,9 @@ main()
 								(&_init_stack_top - &_init_stack_end) / sizeof(portSTACK_TYPE),
 								NULL,
 								INIT_TASK_PRIORITY,
-								&mainThreadHandle,
+								&mainTaskHandle,
 								(void *)&_init_stack_end,
 								NULL);
-	//result = xTaskCreate(mainTask, (signed char *)"main", INIT_TASK_STACK, NULL, INIT_TASK_PRIORITY, &mainThreadHandle);
 	PIOS_Assert(result == pdPASS);
 
 	/* Start the FreeRTOS scheduler */
