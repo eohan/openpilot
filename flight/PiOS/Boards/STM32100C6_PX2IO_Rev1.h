@@ -32,10 +32,10 @@
 //------------------------
 
 #define BOARD_REVISION					0x01
-#define MEM_SIZE						(32 * 1024)
+#define MEM_SIZE						(64 * 1024)
 #define SIZE_OF_DESCRIPTION				50
-#define START_OF_USER_CODE				(uint32_t)0x08000000	// due to no bootloader
-#define SIZE_OF_CODE					(uint32_t)(MEM_SIZE-(START_OF_USER_CODE-0x08000000)-SIZE_OF_DESCRIPTION)
+#define START_OF_USER_CODE				(uint32_t)FW_BANK_BASE
+#define SIZE_OF_CODE					(uint32_t)FW_BANK_SIZE
 #define BOARD_READABLE					TRUE
 #define BOARD_WRITABLA					TRUE
 #define MAX_DEL_RETRYS					3
@@ -62,7 +62,7 @@
 #define PIOS_LED_LED2_GPIO_PIN          GPIO_Pin_15
 #define PIOS_LED_LED2_GPIO_CLK          RCC_APB2Periph_GPIOB
 #define PIOS_LED_LED3_GPIO_PORT         GPIOB
-#define PIOS_LED_LED3_GPIO_PIN          GPIO_Pin_9
+#define PIOS_LED_LED3_GPIO_PIN          GPIO_Pin_10
 #define PIOS_LED_LED3_GPIO_CLK          RCC_APB2Periph_GPIOB
 #define PIOS_LED_NUM                    3
 #define PIOS_LED_PORTS                  { PIOS_LED_LED1_GPIO_PORT, PIOS_LED_LED2_GPIO_PORT, PIOS_LED_LED3_GPIO_PORT}
@@ -78,9 +78,11 @@
 //-------------------------
 // System Settings
 //-------------------------
-#define PIOS_MASTER_CLOCK				24000000
+#define PIOS_MASTER_CLOCK				SYSCLK_FREQ
 #define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)
-#if defined(USE_BOOTLOADER)
+
+
+#if defined(USE_BOOTLOADER)				// XXX should be derived from the symbol table
 #define PIOS_NVIC_VECTTAB_FLASH			(START_OF_USER_CODE)
 #else
 #define PIOS_NVIC_VECTTAB_FLASH			((uint32_t)0x08000000)
@@ -93,6 +95,13 @@
 #define PIOS_IRQ_PRIO_MID				8		// higher than RTOS
 #define PIOS_IRQ_PRIO_HIGH				5		// for SPI, ADC, I2C etc...
 #define PIOS_IRQ_PRIO_HIGHEST			4 		// for USART etc...
+
+//------------------------
+// PIOS_RCVR
+// See also pios_board.c
+//------------------------
+#define PIOS_RCVR_MAX_DEVS				1			// number of receiver devices
+#define PIOS_RCVR_MAX_CHANNELS			12			// number of channels (total)
 
 //-------------------------
 // PIOS_USART
@@ -120,12 +129,6 @@ extern uint32_t pios_com_spektrum_id;
 
 // XXX spektrum UART is also S.Bus UART
 
-//------------------------
-// PIOS_RCVR
-// See also pios_board.c
-//------------------------
-#define PIOS_RCVR_MAX_DEVS                      12
-
 //-------------------------
 // Receiver PPM input
 //-------------------------
@@ -146,17 +149,17 @@ extern uint32_t pios_com_spektrum_id;
 #define PIOS_ADC_TEMP_SENSOR_ADC			ADC1
 #define PIOS_ADC_TEMP_SENSOR_ADC_CHANNEL	1
 
-#define PIOS_ADC_PIN1_GPIO_PORT			GPIOB
-#define PIOS_ADC_PIN1_GPIO_PIN			GPIO_Pin_0
-#define PIOS_ADC_PIN1_GPIO_CHANNEL		ADC_Channel_4	// XXX probably wrong
-#define PIOS_ADC_PIN1_ADC				ADC1			// XXX probably wrong
-#define PIOS_ADC_PIN1_ADC_NUMBER		1				// XXX probably wrong
+#define PIOS_ADC_PIN1_GPIO_PORT			GPIOA			// Battery voltage
+#define PIOS_ADC_PIN1_GPIO_PIN			GPIO_Pin_4
+#define PIOS_ADC_PIN1_GPIO_CHANNEL		ADC_Channel_4
+#define PIOS_ADC_PIN1_ADC				ADC1
+#define PIOS_ADC_PIN1_ADC_NUMBER		1
 
-#define PIOS_ADC_PIN2_GPIO_PORT			GPIOB
-#define PIOS_ADC_PIN2_GPIO_PIN			GPIO_Pin_1
-#define PIOS_ADC_PIN2_GPIO_CHANNEL		ADC_Channel_5	// XXX probably wrong
-#define PIOS_ADC_PIN2_ADC				ADC1			// XXX probably wrong
-#define PIOS_ADC_PIN2_ADC_NUMBER		2				// XXX probably wrong
+#define PIOS_ADC_PIN2_GPIO_PORT			GPIOA			// Not assigned
+#define PIOS_ADC_PIN2_GPIO_PIN			GPIO_Pin_5
+#define PIOS_ADC_PIN2_GPIO_CHANNEL		ADC_Channel_5
+#define PIOS_ADC_PIN2_ADC				ADC1
+#define PIOS_ADC_PIN2_ADC_NUMBER		1
 
 #define PIOS_ADC_NUM_PINS				2
 
@@ -197,11 +200,11 @@ extern uint32_t pios_com_spektrum_id;
 // GPIO
 //-------------------------
 #define PIOS_GPIO_1_PORT				GPIOA					// Relay 1
-#define PIOS_GPIO_1_PIN					GPIO_Pin_11
+#define PIOS_GPIO_1_PIN					GPIO_Pin_12
 #define PIOS_GPIO_1_GPIO_CLK			RCC_APB2Periph_GPIOA
 
 #define PIOS_GPIO_2_PORT				GPIOA					// Relay 2
-#define PIOS_GPIO_2_PIN					GPIO_Pin_12
+#define PIOS_GPIO_2_PIN					GPIO_Pin_11
 #define PIOS_GPIO_2_GPIO_CLK			RCC_APB2Periph_GPIOA
 
 #define PIOS_GPIO_3_PORT				GPIOC					// Accessory 1

@@ -212,9 +212,9 @@ void NVIC_Configuration(void)
 }
 
 /*
- * Clock init for F10xx devices, both Value and Normal line.
+ * Simplified clock init for F10xx devices, both Value and Normal line.
  *
- * Assumes the RCC is in the as-reset state.
+ * Always assumes that the PLL will be used.
  *
  * @param			The desired clock configuration.
  * @return			Zero if the clock(s) started correctly.
