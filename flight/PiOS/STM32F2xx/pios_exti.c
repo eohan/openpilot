@@ -40,7 +40,7 @@
 /**
 * Handle external lines 15 to 10 interrupt requests
 */
-void EXTI15_10_IRQHandler(void)
+void EXTI0_IRQHandler(void)
 {
 #if defined(PIOS_INCLUDE_FREERTOS)
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
@@ -66,7 +66,7 @@ void EXTI15_10_IRQHandler(void)
 * Handle external line 4 interrupt requests
 */
 #if defined(PIOS_INCLUDE_USB)
-void EXTI4_IRQHandler(void)
+void EXTI1_IRQHandler(void)
 {
 	if (EXTI_GetITStatus(PIOS_USB_DETECT_EXTI_LINE) != RESET) {
 		/* Clear the EXTI line pending bit */
