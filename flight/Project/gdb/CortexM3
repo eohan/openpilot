@@ -1,0 +1,72 @@
+#
+# Assorted CortexM3 macros
+#
+
+define do_connect
+	file $arg0
+	target remote localhost:3333
+	monitor cortex_m3 vector_catch all
+end
+
+# mask interrupts while single-stepping
+define hook-step
+	monitor cortex_m3 maskisr on
+end
+define hookpost-step
+	monitor cortex_m3 maskisr off
+end
+
+define hook-stepi
+	monitor cortex_m3 maskisr on
+end
+
+define hookpost-stepi
+	monitor cortex_m3 maskisr off
+end
+
+define hook-next
+	monitor cortex_m3 maskisr on
+end
+
+define hookpost-next
+	monitor cortex_m3 maskisr off
+end
+
+define hook-finish
+	monitor cortex_m3 maskisr on
+end
+
+define hookpost-finish
+	monitor cortex_m3 maskisr off
+end
+
+define vecstate
+       set $icsr = *(uint32_t *)0xe000ed04
+       printf "vectactive %d  vectpending %d  isrpending %d\n", $icsr & 0xff, ($icsr >> 12) & 0xff, ($icsr >> 22) & 1
+       set $hfsr = *(uint32_t *)0xe000ed2c
+       printf "hardfault 0x%08 xforced %d  vector read error %d\n", $hfsr, ($hfsr >> 30) & 1, ($hfsr >> 1) & 1
+       set $cfsr = *(uint32_t *)0xE000ED28
+       set $ufsr = ($cfsr >> 16) & 0xffff
+       set $bfsr = ($cfsr >> 8) & 0xff
+       printf "usefault 0x%08x undef %d  align %d  divzero %d\n", $ufsr, $ufsr & 1, ($ufsr >> 8) & 1, ($ufsr >> 9) & 1
+       set $bfar = *(uint32_t *)0xe000ed38
+       printf "busfault 0x%08x prefetch %d  data %d  stack %d\n", $bfsr & 1, ($bfsr >> 1) & 3, ($bfsr >> 3) & 3
+       if $bfsr & 0x80
+       	  printf "busfault addr 0x%08x\n", $bfar
+       end
+end
+
+# XXX this may only work with the fault handlers in scope... should work on that.
+define unwind
+	set $frame = (struct cm3_frame *)$sp
+	set $r0 = $frame->r0
+	set $r1 = $frame->r1
+	set $r2 = $frame->r2
+	set $r3 = $frame->r3
+	set $r12 = $frame->r12
+	set $lr = $frame->lr
+	set $pc = $frame->pc
+	set $psr = $frame->psr
+	set $sp = $sp + sizeof(struct cm3_frame)
+	where
+end
