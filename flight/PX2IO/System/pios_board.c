@@ -29,8 +29,8 @@
 const struct pios_clock_cfg px2io_clock_config = {
 		.source				= RCC_PLLSource_PREDIV1,
 		.refclock_frequency = HSE_VALUE,
-		.refclock_prescale	= RCC_PREDIV1_Div6,
-		.pll_multiply		= RCC_PLLMul_6,
+		.refclock_prescale	= RCC_PREDIV1_Div12,
+		.pll_multiply		= RCC_PLLMul_12,
 		.hclk_prescale		= RCC_SYSCLK_Div1,
 		.pclk1_prescale		= RCC_HCLK_Div1,
 		.pclk2_prescale		= RCC_HCLK_Div1,
@@ -247,13 +247,15 @@ uint32_t pios_com_aux_id;
 uint32_t pios_com_spektrum_id;
 #endif
 
-uint32_t pios_rcvr_channel_to_id_map[PIOS_RCVR_MAX_DEVS];
+struct pios_rcvr_channel_map pios_rcvr_channel_to_id_map[PIOS_RCVR_MAX_CHANNELS];
 uint32_t pios_rcvr_max_channel;
 
 /**
  * PIOS_Board_Init()
  */
-void PIOS_Board_Init(void) {
+void PIOS_Board_Init(void)
+{
+	uint32_t	rcvr_id;
 
 	/* Delay system */
 	PIOS_DELAY_Init();	
@@ -271,6 +273,7 @@ void PIOS_Board_Init(void) {
 #warning Need RTC for PPM
 #endif
 	
+#if 0 // XXX this is all very wrong now
 #if defined(PIOS_INCLUDE_SBUS)
 	// XXX need to do this
 	PIOS_SBUS_Init(&pios_sbus_cfg);
@@ -290,6 +293,7 @@ void PIOS_Board_Init(void) {
 		PIOS_DEBUG_Assert(0);
 	}
 #endif
+#endif
 
 #if defined(PIOS_COM_AUX)
 	uint32_t pios_usart_aux_id;
@@ -307,15 +311,17 @@ void PIOS_Board_Init(void) {
 	PIOS_GPIO_Init();
 
 #if defined(PIOS_INCLUDE_PPM)
+	// XXX in theory we need to do this... but why?  This is crap.  It should be somewhere very far from here.
+	//uint8_t inputmode;
+	//ManualControlSettingsInputModeGet(&inputmode);
 	PIOS_PPM_Init();
-	for (uint8_t i = 0; i < PIOS_PPM_NUM_INPUTS && i < PIOS_RCVR_MAX_DEVS; i++) {
-		if (!PIOS_RCVR_Init(&pios_rcvr_channel_to_id_map[pios_rcvr_max_channel],
-				    &pios_ppm_rcvr_driver,
-				    i)) {
-			pios_rcvr_max_channel++;
-		} else {
-			PIOS_Assert(0);
-		}
+	if (PIOS_RCVR_Init(&rcvr_id, &pios_ppm_rcvr_driver, 0)) {
+		PIOS_Assert(0);
+	}
+	for (uint8_t i = 0; i < PIOS_PPM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map); i++) {
+		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = rcvr_id;
+		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+		pios_rcvr_max_channel++;
 	}
 #endif
 

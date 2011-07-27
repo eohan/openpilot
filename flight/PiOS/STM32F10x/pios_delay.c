@@ -33,9 +33,13 @@
 /* Project Includes */
 #include <pios.h>
 
+#if defined(PIOS_INCLUDE_DELAY)
+
 /* these should be defined by CMSIS, but they aren't */
-#define DWT_CTRL	(*(volatile unsigned long *)0xe0001000)
-#define DWT_CYCCNT	(*(volatile unsigned long *)0xe0001004)
+#define DWT_CTRL	(*(volatile uint32_t *)0xe0001000)
+#define CYCCNTENA	(1<<0)
+#define DWT_CYCCNT	(*(volatile uint32_t *)0xe0001004)
+
 
 /* cycles per microsecond */
 static uint32_t us_ticks;
@@ -53,12 +57,13 @@ int32_t PIOS_DELAY_Init(void)
 	/* compute the number of system clocks per microsecond */
 	RCC_GetClocksFreq(&clocks);
 	us_ticks = clocks.SYSCLK_Frequency / 1000000;
+	PIOS_DEBUG_Assert(us_ticks > 1);
 
 	/* turn on access to the DWT registers */
 	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
 	/* enable the CPU cycle counter */
-	DWT_CTRL |= 1;
+	DWT_CTRL |= CYCCNTENA;
 
 	return 0;
 }
@@ -71,28 +76,32 @@ int32_t PIOS_DELAY_Init(void)
  *   // Wait for 500 uS
  *   PIOS_DELAY_Wait_uS(500);
  * \endcode
- * \param[in] uS delay (1..65535 microseconds)
+ * \param[in] uS delay
  * \return < 0 on errors
  */
-int32_t PIOS_DELAY_WaituS(uint16_t uS)
+int32_t PIOS_DELAY_WaituS(uint32_t uS)
 {
-	uint32_t	deadline;
+	uint32_t	elapsed = 0;
+	uint32_t	last_count = DWT_CYCCNT;
+	
+	for (;;) {
+		uint32_t current_count = DWT_CYCCNT;
+		uint32_t elapsed_uS;
 
-	/*
-	 * This logic is mildly sneaky and depends on C's casting behaviour from
-	 * unsigned to signed when the MSB is set.
-	 *
-	 * We also depend on the difference between the deadline and DWT_CYCCNT
-	 * never starting off at more than half of the counter period.  Since we
-	 * can't be asked to wait more than 65.5ms, the counter would have to wrap
-	 * in 131ms (approx 32THz for the 32-bit counter) for this to be a problem.
-	 *
-	 * If we are stopped by the debugger for more than half the counter period,
-	 * and the cycle counter doesn't stop (it normally does), the delay will be
-	 * protracted.
-	 */
-	deadline = DWT_CYCCNT + (uS * us_ticks);
-	while ((int32_t)(deadline - DWT_CYCCNT) > 0) {
+		/* measure the time elapsed since the last time we checked */
+		elapsed += current_count - last_count;
+		last_count = current_count;
+
+		/* convert to microseconds */
+		elapsed_uS = elapsed / us_ticks;
+		if (elapsed_uS >= uS)
+			break;
+
+		/* reduce the delay by the elapsed time */
+		uS -= elapsed_uS;
+
+		/* keep fractional microseconds for the next iteration */
+		elapsed %= us_ticks;
 	}
 
 	/* No error */
@@ -102,10 +111,6 @@ int32_t PIOS_DELAY_WaituS(uint16_t uS)
 /**
  * Waits for a specific number of mS
  *
- * If FreeRTOS is configured, and the delay is longer than a tick, wait whole
- * ticks using the RTOS.  Fractional remainders or periods shorter than a tick
- * are busy-waited.
- *
  * Example:<BR>
  * \code
  *   // Wait for 500 mS
@@ -114,17 +119,9 @@ int32_t PIOS_DELAY_WaituS(uint16_t uS)
  * \param[in] mS delay (1..65535 milliseconds)
  * \return < 0 on errors
  */
-int32_t PIOS_DELAY_WaitmS(uint16_t mS)
+int32_t PIOS_DELAY_WaitmS(uint32_t mS)
 {
-#if 0 // XXX cannot do this if the scheduler hasn't started yet...
-#ifdef PIOS_INCLUDE_FREERTOS
-	if (mS > portTICK_RATE_MS) {
-		vTaskDelay(mS / portTICK_RATE_MS);
-		mS = mS % portTICK_RATE_MS;
-	}
-#endif
-#endif
-	for (int i = 0; i < mS; i++) {
+	while (mS--) {
 		PIOS_DELAY_WaituS(1000);
 	}
 
@@ -132,6 +129,16 @@ int32_t PIOS_DELAY_WaitmS(uint16_t mS)
 	return 0;
 }
 
+/**
+ * @brief Query the Delay timer for the current uS 
+ * @return A microsecond value
+ */
+uint32_t PIOS_DELAY_GetuS()
+{
+	return DWT_CYCCNT / us_ticks;
+}
+
+#endif
 
 /**
   * @}

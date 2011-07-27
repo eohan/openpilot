@@ -1,6 +1,5 @@
 define connect
-	do_connect ./build/px2io/px2io.elf
+	do_connect ./build/bl_px2io/bl_px2io.elf
 end
 directory ./flight/project/gdb
 source CortexM3
-source FreeRTOS

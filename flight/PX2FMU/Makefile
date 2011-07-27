@@ -382,6 +382,7 @@ CFLAGS += -O$(OPT)
 CFLAGS += -mcpu=$(MCU)
 CFLAGS += $(CDEFS)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
+CFLAGS += -ffunction-sections -fdata-sections
 
 CFLAGS += -mapcs-frame
 CFLAGS += -fomit-frame-pointer
