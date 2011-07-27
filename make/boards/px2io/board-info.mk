@@ -15,7 +15,7 @@ OSCILLATOR_FREQ     := 24000000
 SYSCLK_FREQ         := 24000000
 
 # Note: These must match the values in link_$(BOARD)_memory.ld
-FW_BANK_BASE        := 0x08001000	# Start of firmware flash
-FW_BANK_SIZE        := 0xf000		# Should include FW_DESC_SIZE
+FW_BANK_BASE        := 0x08002000	# Start of firmware flash
+FW_BANK_SIZE        := 0x0000e000	# Should include FW_DESC_SIZE
 
 FW_DESC_SIZE        := 0x00000064
