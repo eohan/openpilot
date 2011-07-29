@@ -3,14 +3,14 @@
  * @addtogroup OpenPilotModules OpenPilot Modules
  * @{ 
  * @addtogroup TelemetryModule Telemetry Module
- * @brief MAVLink telemetry module
+ * @brief Main telemetry module
  * Starts three tasks (RX, TX, and priority TX) that watch event queues
  * and handle all the telemetry of the UAVobjects
  * @{ 
  *
- * @file       mavlink_telemetry.h
+ * @file       telemetry.h
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @brief      Include file of the MAVLink telemetry module.
+ * @brief      Include file of the telemetry module.
  * 	       As with all modules only the initialize function is exposed all other
  * 	       interactions with the module take place through the event queue and
  *             objects.
