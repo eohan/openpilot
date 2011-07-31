@@ -503,13 +503,16 @@ go_handle_command(struct fsm_context *ctx)
 	case 'e':
 		// unlock and erase the flash
 		LOG('E', 0);
+		PIOS_LED_On(LED2);
 		PIOS_BL_HELPER_FLASH_Ini();
 		if (!PIOS_BL_HELPER_FLASH_Start()) {
 			ctx->status = STATUS_COMMAND_FAILED;
 		}
+		PIOS_LED_Off(LED2);
 		break;
 
 	case 'f':
+		PIOS_LED_On(LED2);
 		// program the buffer at the supplied address
 		resid = FLASH_PAGE_SIZE - ctx->data_count;
 
@@ -532,6 +535,7 @@ go_handle_command(struct fsm_context *ctx)
 				}
 			}
 		}
+		PIOS_LED_Off(LED2);
 		break;
 
 	case 'm':
