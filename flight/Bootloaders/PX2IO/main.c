@@ -63,18 +63,23 @@ int main()
 	/* start the delay system */
 	PIOS_DELAY_Init();
 
-	/* XXX check for an external request to enter update mode here, set GO_dfu if requested */
-	//while(TRUE)
-	//for (int i = 0; i < 20; i++)
-	//{
-	//	PIOS_LED_Toggle(LED1);
-	//	PIOS_DELAY_WaitmS(100);
-	//}
-	//GO_dfu = TRUE;
+	// check for an external request to enter update mode here, set GO_dfu if requested
+	if (GPIO_ReadInputDataBit(GPIO_PORT_SafetySwitch, GPIO_PIN_SafetySwitch) == Bit_SET) {
+		GO_dfu = TRUE;
+	}
 
 	/* check for program-requested update mode */
 	PIOS_IAP_Init();
 	GO_dfu = GO_dfu | PIOS_IAP_CheckRequest();// OR with app boot request
+
+	if (GO_dfu) {
+		for (int i = 0; i < 20; i++)
+		{
+			PIOS_LED_Toggle(LED3);
+			PIOS_DELAY_WaitmS(50);
+		}
+	}
+
 
 	/* update not requested, start the app immediately */
 	if (GO_dfu == FALSE) {
