@@ -19,7 +19,9 @@
  * Read always returns:
  *  - status byte
  *   'o' - last command completed successfully
- *   'e' - last command completed with an error
+ *   'e' - last command had a parameter out of range
+ *   'c' - last command was bad
+ *   'f' - last command failed unexpectedly
  *  - buffer bytes to max buffer size
  *  - pad bytes (0xff)
  *
@@ -43,26 +45,26 @@
  *
  * <'f'><addr>
  *  Flashes the contents of the buffer to flash address <addr>
- *  <addr> 4-byte offset into the firmware area
+ *  <addr> 4-byte memory address in the programmable flash area.
  *
  * <'c'>
  *  Calculates the 4-byte CRC of the program space and places it in the buffer.
  *
  * <'s'>
- *  Places the TBD byte serial number of the board in the buffer.
+ *  Places the 12 byte serial number of the board in the buffer.
  *
  * <'b'>
  *  Reboots the board.
  *
  * <'r'><addr>
  *  Copies FLASH_PAGE_SIZE bytes of memory from <addr> to the buffer
- *  <addr> 4-byte memory address
+ *  <addr> 4-byte memory address in the programmable flash area.
  *
  * <'m'>
- *  Places the memory map structure (TBD, likely to be like the AHRS memory map) in the buffer.
+ *  Places the memory map structure (like the AHRS memory map) in the buffer.
  *
  * <'v'>
- *  Places the versions structure (TBD, likely to be the same as the AHRS) in the buffer.
+ *  Places the versions structure (the same as the AHRS) in the buffer.
  *
  */
 
@@ -111,7 +113,6 @@ enum fsm_event {
 #define STATUS_RANGE_ERROR		'e'
 #define STATUS_COMMAND_ERROR	'c'
 #define STATUS_COMMAND_FAILED	'f'
-#define STATUS_DATA_ERROR		'd'
 
 #define FLASH_PAGE_SIZE	1024	// XXX 2048 for high-density devices, should config automatically
 
@@ -478,11 +479,14 @@ go_handle_command(struct fsm_context *ctx)
 
 	switch (ctx->command) {
 	case 'a':
-		// range-check the buffer address
-		if (ctx->address >= FLASH_PAGE_SIZE) {
+		// Range-check the buffer address, it must fall within the buffer
+		// and leave room to write at least one byte.
+		if (ctx->address >= (FLASH_PAGE_SIZE - 1)) {
 			ctx->status = STATUS_RANGE_ERROR;
 		} else {
 			LOG('A', ctx->address);
+			ctx->data_ptr = ctx->buffer + ctx->address;
+			ctx->data_count = FLASH_PAGE_SIZE - ctx->address;
 		}
 		break;
 
@@ -514,12 +518,15 @@ go_handle_command(struct fsm_context *ctx)
 		LOG('F', resid);
 
 		if (resid % 4) {
+			// must program in multiples of 4 bytes
 			ctx->status = STATUS_COMMAND_ERROR;
-		} else if ((ctx->address + resid) > bdinfo->fw_size) {
+		} else if ((ctx->address < bdinfo->fw_base) ||
+				   ((ctx->address + resid) > (bdinfo->fw_base + bdinfo->fw_size))) {
+			// program operation must be entirely within the firmware area
 			ctx->status = STATUS_RANGE_ERROR;
 		} else {
 			for (int i = 0; i < resid; i += 4) {
-				if (FLASH_COMPLETE != FLASH_ProgramWord(bdinfo->fw_base + ctx->address + i, *(uint32_t *)(ctx->buffer + i))) {
+				if (FLASH_COMPLETE != FLASH_ProgramWord(ctx->address + i, *(uint32_t *)(ctx->buffer + i))) {
 					ctx->status = STATUS_COMMAND_FAILED;
 					break;
 				}
@@ -528,15 +535,22 @@ go_handle_command(struct fsm_context *ctx)
 		break;
 
 	case 'm':
-		// XXX copy memory map to buffer
+	{
+		// populate the buffer with something that looks like the AHRS memory map structure
+		uint32_t *bp = (uint32_t *)ctx->buffer;
+		bp[0] = bdinfo->fw_base;
+		bp[1] = bdinfo->fw_size;
+		ctx->buffer[8] = 0x3;		// readable/writable
+		ctx->buffer[9] = bdinfo->hw_type;
 		break;
+	}
 
 	case 'r':
 		// fill the buffer with flash data from the supplied address
-		if ((ctx->address + FLASH_PAGE_SIZE) > bdinfo->fw_size) {
+		if ((ctx->address + FLASH_PAGE_SIZE) > (bdinfo->fw_base + bdinfo->fw_size)) {
 			ctx->status = STATUS_RANGE_ERROR;
 		} else {
-			memcpy(ctx->buffer, (void *)(bdinfo->fw_base + ctx->address), FLASH_PAGE_SIZE);
+			memcpy(ctx->buffer, (void *)ctx->address, FLASH_PAGE_SIZE);
 		}
 		break;
 
