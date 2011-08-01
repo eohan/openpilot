@@ -27,6 +27,7 @@
  */
 /* Bootloader Includes */
 #include <pios.h>
+#include <pios_board_info.h>
 #include "pios_opahrs.h"
 #include "stopwatch.h"
 #include "op_dfu.h"
@@ -56,17 +57,17 @@ uint32_t sweep_steps2 = 100; // * 5 mS -> 500 mS
 
 
 ////////////////////////////////////////
-uint8_t tempcount=0;
-
+uint8_t tempcount = 0;
 
 /// SSP SECTION
 /// SSP TIME SOURCE
 #define SSP_TIMER	TIM7
-uint32_t ssp_time=0;
+uint32_t ssp_time = 0;
 #define MAX_PACKET_DATA_LEN	255
 #define MAX_PACKET_BUF_SIZE	(1+1+MAX_PACKET_DATA_LEN+2)
 #define UART_BUFFER_SIZE 1024
-uint8_t rx_buffer[UART_BUFFER_SIZE] __attribute__ ((aligned(4)));    // align to 32-bit to try and provide speed improvement;
+uint8_t rx_buffer[UART_BUFFER_SIZE] __attribute__ ((aligned(4)));
+// align to 32-bit to try and provide speed improvement;
 // master buffers...
 uint8_t SSP_TxBuf[MAX_PACKET_BUF_SIZE];
 uint8_t SSP_RxBuf[MAX_PACKET_BUF_SIZE];
@@ -85,11 +86,9 @@ t_fifo_buffer ssp_buffer;
 /* Extern variables ----------------------------------------------------------*/
 DFUStates DeviceState;
 DFUPort ProgPort;
-int16_t status=0;
+int16_t status = 0;
 uint8_t JumpToApp = FALSE;
 uint8_t GO_dfu = FALSE;
-uint8_t USB_connected = FALSE;
-uint8_t User_DFU_request = FALSE;
 static uint8_t mReceive_Buffer[64];
 /* Private function prototypes -----------------------------------------------*/
 uint32_t LedPWM(uint32_t pwm_period, uint32_t pwm_sweep_steps, uint32_t count);
@@ -100,62 +99,60 @@ uint32_t sspTimeSource();
 #define BLUE LED1
 #define RED	LED2
 #define LED_PWM_TIMER	TIM6
-volatile int spin = 1;
-
 int main() {
 	/* NOTE: Do NOT modify the following start-up sequence */
 	/* Any new initialization functions should be added in OpenPilotInit() */
 
-	/* Brings up System using CMSIS functions, enables the LEDs. */
+	/* do basic PiOS init */
 	PIOS_SYS_Init();
-	if (BSL_HOLD_STATE == 0)
-		USB_connected = TRUE;
 
+	/* init the IAP helper and check for a boot-to-DFU request */
 	PIOS_IAP_Init();
-
 	if (PIOS_IAP_CheckRequest() == TRUE) {
-		PIOS_Board_Init();
-		PIOS_DELAY_WaitmS(1000);
-		User_DFU_request = TRUE;
+		GO_dfu = TRUE;
 		PIOS_IAP_ClearRequest();
 	}
 
-	GO_dfu = (USB_connected == TRUE) || (User_DFU_request == TRUE);
+	/* if DFU not forced, try to jump to the app */
+	if (GO_dfu == FALSE)
+		jump_to_app();
 
-	if (GO_dfu == TRUE) {
-		if (USB_connected)
-			ProgPort = Usb;
-		else
-			ProgPort = Serial;
-		PIOS_Board_Init();
-		if(User_DFU_request == TRUE)
-			DeviceState = DFUidle;
-		else
-			DeviceState = BLidle;
-		STOPWATCH_Init(100,LED_PWM_TIMER);
-		if (ProgPort == Serial) {
-			fifoBuf_init(&ssp_buffer,rx_buffer,UART_BUFFER_SIZE);
-			STOPWATCH_Init(100,SSP_TIMER);//nao devia ser 1000?
-			STOPWATCH_Reset(SSP_TIMER);
-			ssp_Init(&ssp_port, &SSP_PortConfig);
-		}
-	} else
-		JumpToApp = TRUE;
+	/* if we get here, either jumping to the app failed or the app requested DFU mode */
+
+	/* configure the board for bootloader use */
+	PIOS_Board_Init();
+	PIOS_COM_SendString(PIOS_COM_DEBUG, "FMU Bootloader\r\n");
+
+	/* check whether USB us connected */
+	PIOS_DELAY_WaitmS(10);	/* let the pin settle */
+
+	/* configure for DFU */
+	ProgPort = GPIO_ReadInputDataBit(PIOS_USB_DETECT_GPIO_PORT, PIOS_USB_DETECT_GPIO_PIN) ? Usb : Serial;
+
+	/* set the initial state */
+	DeviceState = DFUidle;
+
+	STOPWATCH_Init(100, LED_PWM_TIMER);
+	if (ProgPort == Serial) {
+		fifoBuf_init(&ssp_buffer, rx_buffer, UART_BUFFER_SIZE);
+		STOPWATCH_Init(100, SSP_TIMER);//nao devia ser 1000?
+		STOPWATCH_Reset(SSP_TIMER);
+		ssp_Init(&ssp_port, &SSP_PortConfig);
+	}
 
 	STOPWATCH_Reset(LED_PWM_TIMER);
 	while (TRUE) {
 		if (ProgPort == Serial) {
 			ssp_ReceiveProcess(&ssp_port);
-			status=ssp_SendProcess(&ssp_port);
-			while((status!=SSP_TX_IDLE) && (status!=SSP_TX_ACKED)){
+			status = ssp_SendProcess(&ssp_port);
+			while ((status != SSP_TX_IDLE) && (status != SSP_TX_ACKED)) {
 				ssp_ReceiveProcess(&ssp_port);
-				status=ssp_SendProcess(&ssp_port);
+				status = ssp_SendProcess(&ssp_port);
 			}
 		}
 		if (JumpToApp == TRUE)
 			jump_to_app();
-		//pwm_period = 50; // *100 uS -> 5 mS
-		//pwm_sweep_steps =100; // * 5 mS -> 500 mS
+		JumpToApp = FALSE;		// if we come back, no point trying again
 
 		switch (DeviceState) {
 		case Last_operation_Success:
@@ -208,7 +205,8 @@ int main() {
 
 		if (STOPWATCH_ValueGet(LED_PWM_TIMER) > 100 * 50 * 100)
 			STOPWATCH_Reset(LED_PWM_TIMER);
-		if ((STOPWATCH_ValueGet(LED_PWM_TIMER) > 60000) && (DeviceState == BLidle))
+		if ((STOPWATCH_ValueGet(LED_PWM_TIMER) > 60000) && (DeviceState
+				== BLidle))
 			JumpToApp = TRUE;
 
 		processRX();
@@ -217,17 +215,17 @@ int main() {
 }
 
 void jump_to_app() {
-	if (((*(__IO uint32_t*) START_OF_USER_CODE) & 0x2FFE0000) == 0x20000000) { /* Jump to user application */
+	const struct pios_board_info * bdinfo = &pios_board_info_blob;
+
+	if (((*(__IO uint32_t*) bdinfo->fw_base) & 0x2FFE0000) == 0x20000000) { /* Jump to user application */
 		FLASH_Lock();
 		// XXX reset all peripherals here
-		dbg_write_str("STARTING APP\n");
 		JumpAddress = *(__IO uint32_t*) (START_OF_USER_CODE + 4);
 		Jump_To_Application = (pFunction) JumpAddress;
 		/* Initialize user application's Stack Pointer */
-		__set_MSP(*(__IO uint32_t*) START_OF_USER_CODE);
+		__set_MSP(*(__IO uint32_t*) bdinfo->fw_base);
 		Jump_To_Application();
 	} else {
-		dbg_write_str("CANNOT START APP\n");
 		DeviceState = failed_jump;
 		return;
 	}
@@ -242,14 +240,7 @@ uint32_t LedPWM(uint32_t pwm_period, uint32_t pwm_sweep_steps, uint32_t count) {
 }
 
 uint8_t processRX() {
-	if (ProgPort == Usb) {
-		while (PIOS_COM_ReceiveBufferUsed(PIOS_COM_TELEM_USB) >= 63) {
-			for (int32_t x = 0; x < 63; ++x) {
-				mReceive_Buffer[x] = PIOS_COM_ReceiveBuffer(PIOS_COM_TELEM_USB);
-			}
-			processComand(mReceive_Buffer);
-		}
-	} else if (ProgPort == Serial) {
+	if (ProgPort == Serial) {
 
 		if (fifoBuf_getUsed(&ssp_buffer) >= 63) {
 			for (int32_t x = 0; x < 63; ++x) {
@@ -270,17 +261,15 @@ uint32_t sspTimeSource() {
 }
 void SSP_CallBack(uint8_t *buf, uint16_t len) {
 	fifoBuf_putData(&ssp_buffer, buf, len);
-	}
+}
 int16_t SSP_SerialRead(void) {
-	if(PIOS_COM_ReceiveBufferUsed(PIOS_COM_TELEM_RF)>0)
-	{
+	if (PIOS_COM_ReceiveBufferUsed(PIOS_COM_TELEM_RF) > 0) {
 		return PIOS_COM_ReceiveBuffer(PIOS_COM_TELEM_RF);
-	}
-	else
+	} else
 		return -1;
 }
 void SSP_SerialWrite(uint8_t value) {
-	PIOS_COM_SendChar(PIOS_COM_TELEM_RF,value);
+	PIOS_COM_SendChar(PIOS_COM_TELEM_RF, value);
 }
 uint32_t SSP_GetTime(void) {
 	return sspTimeSource();

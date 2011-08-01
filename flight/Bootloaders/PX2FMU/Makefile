@@ -25,6 +25,13 @@
 WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
 TOP      := $(realpath $(WHEREAMI)/../../../)
 include $(TOP)/make/firmware-defs.mk
+include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
+
+# Target file name (without extension).
+TARGET := bl_$(BOARD_NAME)
+
+# Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
+OUTDIR := $(TOP)/build/$(TARGET)
 
 # Set developer code and compile options
 # Set to YES to compile for debugging
@@ -35,9 +42,6 @@ ENABLE_DEBUG_PINS ?= NO
 
 # Set to Yes to enable the AUX UART which is mapped on the S1 (Tx) and S2 (Rx) servo outputs  
 ENABLE_AUX_UART ?= NO
-
-# We ARE the bootloader
-OVERRIDE USE_BOOTLOADER = NO
 
 # Set to YES when using Code Sourcery toolchain
 CODE_SOURCERY ?= NO
@@ -50,21 +54,6 @@ REMOVE_CMD = rm
 endif
 
 FLASH_TOOL = OPENOCD
-
-# MCU name, submodel and board
-# - MCU used for compiler-option (-mcpu)
-# - MODEL used for linker-script name (-T) and passed as define
-# - BOARD just passed as define (optional)
-MCU      = cortex-m3
-CHIP     = STM32F205RGT
-BOARD    = STM32205_PX2FMU_Rev1
-OSCILLATOR_FREQ	= 8000000
-
-# Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
-OUTDIR = $(TOP)/build/bl_px2_fmu
-
-# Target file name (without extension).
-TARGET = PX2_FMU_BL
 
 # Paths
 OPSYSTEM = .
@@ -104,7 +93,7 @@ DOXYGENDIR = ../Doc/Doxygen
 SRC += $(OPSYSTEM)/main.c
 SRC += $(OPSYSTEM)/pios_board.c
 SRC += $(OPSYSTEM)/op_dfu.c
-SRC += $(OPSYSTEM)/stopwatch.c
+SRC += $(FLIGHTLIB)/stopwatch.c
 SRC += $(OPSYSTEM)/ssp.c
 SRC += $(OPSYSTEM)/dcc_stdio.c
 SRC += $(OPSYSTEM)/cm3_fault_handlers.c
@@ -122,14 +111,14 @@ SRC += $(PIOSSTM32F2XX)/pios_gpio.c
 
 # PIOS USB related files (seperated to make code maintenance more easy)
 # XXX  should just link with a .a
-SRC	+=	$(PIOSSTM32F2XX)/pios_usb_bsp.c
-SRC	+=	$(PIOSSTM32F2XX)/pios_usb_hid_core.c
-SRC	+=	$(PIOSSTM32F2XX)/pios_usb_hid_desc.c
-SRC	+=	$(PIOSSTM32F2XX)/pios_usb_hid.c
-SRC	+=	$(PIOSSTM32F2XX)/pios_usb_usr.c
+#SRC	+=	$(PIOSSTM32F2XX)/pios_usb_bsp.c
+#SRC	+=	$(PIOSSTM32F2XX)/pios_usb_hid_core.c
+#SRC	+=	$(PIOSSTM32F2XX)/pios_usb_hid_desc.c
+#SRC	+=	$(PIOSSTM32F2XX)/pios_usb_hid.c
+#SRC	+=	$(PIOSSTM32F2XX)/pios_usb_usr.c
 
 ## PIOS Hardware (Common)
-# XXX  should just link with a .a
+SRC += $(PIOSCOMMON)/pios_board_info.c
 SRC += $(PIOSCOMMON)/pios_com.c
 SRC += $(PIOSCOMMON)/pios_opahrs_v0.c
 SRC += $(PIOSCOMMON)/pios_bl_helper.c
@@ -163,13 +152,13 @@ SRC += $(STMSPDSRCDIR)/misc.c
 
 ## STM32 USB Library
 # XXX  should just link with a .a
-SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_core.c
-SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_desc.c
-SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_ioreq.c
-SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_req.c
-SRC += $(STMUSBCOREDIR)/src/usb_core.c
-SRC += $(STMUSBCOREDIR)/src/usb_dcd_int.c
-SRC += $(STMUSBCOREDIR)/src/usb_dcd.c
+#SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_core.c
+#SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_desc.c
+#SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_ioreq.c
+#SRC	+= $(STMUSBDEVDIR)/Core/src/usbd_req.c
+#SRC += $(STMUSBCOREDIR)/src/usb_core.c
+#SRC += $(STMUSBCOREDIR)/src/usb_dcd_int.c
+#SRC += $(STMUSBCOREDIR)/src/usb_dcd.c
 
 # List C source files here which must be compiled in ARM-Mode (no -mthumb).
 # use file-extension c for "c-only"-files
@@ -192,7 +181,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F2XX)/startup_stm32f2xx.S
+ASRC = $(PIOSSTM32F2XX)/startup_stm32f2xx_BL.S
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM = 
@@ -272,10 +261,15 @@ endif
 ifeq ($(ENABLE_AUX_UART), YES)
 CDEFS += -DPIOS_ENABLE_AUX_UART
 endif
-ifeq ($(USE_BOOTLOADER), YES)
-CDEFS += -DUSE_BOOTLOADER
-endif
 
+# Provide (only) the bootloader with board-specific defines
+BLONLY_CDEFS += -DBOARD_TYPE=$(BOARD_TYPE)
+BLONLY_CDEFS += -DBOARD_REVISION=$(BOARD_REVISION)
+BLONLY_CDEFS += -DHW_TYPE=$(HW_TYPE)
+BLONLY_CDEFS += -DBOOTLOADER_VERSION=$(BOOTLOADER_VERSION)
+BLONLY_CDEFS += -DFW_BANK_BASE=$(FW_BANK_BASE)
+BLONLY_CDEFS += -DFW_BANK_SIZE=$(FW_BANK_SIZE)
+BLONLY_CDEFS += -DFW_DESC_SIZE=$(FW_DESC_SIZE)
 
 # Place project-specific -D and/or -U options for 
 # Assembler with preprocessor here.
@@ -303,9 +297,10 @@ CSTANDARD = -std=gnu99
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
 
 ifeq ($(DEBUG),YES)
-CFLAGS = -g$(DEBUGF) -DDEBUG
+CFLAGS = -DDEBUG
 endif
 
+CFLAGS += -g$(DEBUGF)
 CFLAGS += -O$(OPT)
 
 # if we leave this out then -gc_sections will strip the startup code... bad 
@@ -315,12 +310,12 @@ CFLAGS += -ffunction-sections
 
 CFLAGS += -mcpu=$(MCU)
 CFLAGS += $(CDEFS)
+CFLAGS += $(BLONLY_CDEFS)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 
 CFLAGS += -mapcs-frame 
 CFLAGS += -fomit-frame-pointer
-CFLAGS += -msoft-float
-#CFLAGS += -fpromote-loop-indices
+CFLAGS += -fpromote-loop-indices
 
 CFLAGS += -Wall 
 CFLAGS += -Werror
@@ -348,57 +343,19 @@ MATH_LIB = -lm
 #    --cref:    add cross reference to  map file
 LDFLAGS = -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
 ifeq ($(DEBUG),NO)
-LDFLAGS += -Wl,-static -Wl,-s
+LDFLAGS += -Wl,-static
 endif
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
 LDFLAGS += -lc
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
-LDFLAGS += -msoft-float
 LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
-# Set linker-script name
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_bootloader.ld -L$(LINKERSCRIPTPATH)
-
-# ---------------------------------------------------------------------------
-# Options for OpenOCD flash-programming
-# see openocd.pdf/openocd.texi for further information
-#
-OOCD_LOADFILE+=$(OUTDIR)/$(TARGET).elf
-# if OpenOCD is in the $PATH just set OOCD_EXE=openocd
-OOCD_EXE=openocd
-# debug level
-OOCD_CL=-d0
-# interface and board/target settings (using the OOCD target-library here)
-UNAME := $(shell uname)
-ifeq ($(UNAME), Darwin)
-  OOCD_CL+=-f ../../Project/OpenOCD/floss-jtag.openpilot.osx.cfg -f ../../Project/OpenOCD/stm32.cfg
-else
-  OOCD_CL+=-f ../../Project/OpenOCD/floss-jtag.openpilot.cfg -f ../../Project/OpenOCD/stm32.cfg
-endif
-# initialize
-OOCD_CL+=-c init
-# show the targets
-OOCD_CL+=-c targets
-# commands to prepare flash-write
-OOCD_CL+= -c "reset halt"
-# flash erase 
-OOCD_CL+=-c "stm32x mass_erase 0"
-# flash-write
-OOCD_CL+=-c "flash write_image $(OOCD_LOADFILE)" 
-# Verify
-OOCD_CL+=-c "verify_image $(OOCD_LOADFILE)"
-# reset target
-OOCD_CL+=-c "reset run"
-# terminate OOCD after programming
-OOCD_CL+=-c shutdown
-# ---------------------------------------------------------------------------
-
+# Hardcoded linker script names for now
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_BL_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f
-###SHELL   = sh
-###COPY    = cp
 
 # List of all source files.
 ALLSRC     = $(ASRCARM) $(ASRC) $(SRCARM) $(SRC) $(CPPSRCARM) $(CPPSRC)
@@ -438,14 +395,6 @@ ${OUTDIR}/InitMods.c: Makefile
 	@echo ${quote}${foreach MOD, ${MODNAMES}, ${MOD}Initialize();}${quote}  >> ${OUTDIR}/InitMods.c
 	@echo ${quote}}${quote} >> ${OUTDIR}/InitMods.c
 
-# Program the device.
-ifeq ($(FLASH_TOOL),OPENOCD)
-# Program the device with Dominic Rath's OPENOCD in "batch-mode", needs cfg and "reset-script".
-program: $(OUTDIR)/$(TARGET).elf
-	@echo ${quote}Programming with OPENOCD${quote}
-	$(OOCD_EXE) $(OOCD_CL)
-endif
-
 # Link: create ELF output file from object files.
 $(eval $(call LINK_TEMPLATE, $(OUTDIR)/$(TARGET).elf, $(ALLOBJ)))
 
@@ -473,21 +422,35 @@ $(eval $(call PARTIAL_COMPILE_TEMPLATE, SRC))
 # Compile: create assembler files from C source files. ARM only
 $(eval $(call PARTIAL_COMPILE_ARM_TEMPLATE, SRCARM))
 
-.PHONY: elf lss sym hex bin
+$(OUTDIR)/$(TARGET).bin.o: $(OUTDIR)/$(TARGET).bin
+
+# Add jtag targets (program and wipe)
+$(eval $(call JTAG_TEMPLATE,$(OUTDIR)/$(TARGET).bin,$(BL_BANK_BASE),$(BL_BANK_SIZE)))
+
+.PHONY: elf lss sym hex bin bino
 elf: $(OUTDIR)/$(TARGET).elf
 lss: $(OUTDIR)/$(TARGET).lss 
 sym: $(OUTDIR)/$(TARGET).sym
 hex: $(OUTDIR)/$(TARGET).hex
 bin: $(OUTDIR)/$(TARGET).bin
+bino: $(OUTDIR)/$(TARGET).bin.o
 
 # Display sizes of sections.
 $(eval $(call SIZE_TEMPLATE, $(OUTDIR)/$(TARGET).elf))
-.PHONY: size
-size: $(OUTDIR)/$(TARGET).elf_size
 
 # Generate Doxygen documents
 docs:
 	doxygen  $(DOXYGENDIR)/doxygen.cfg
+
+# Install: install binary file with prefix/suffix into install directory
+install: $(OUTDIR)/$(TARGET).bin
+ifneq ($(INSTALL_DIR),)
+	@echo $(MSG_INSTALLING) $(call toprel, $<)
+	$(V1) mkdir -p $(INSTALL_DIR)
+	$(V1) $(INSTALL) $< $(INSTALL_DIR)/$(INSTALL_PFX)$(TARGET)$(INSTALL_SFX).bin
+else
+	$(error INSTALL_DIR must be specified for $@)
+endif
 
 # Target: clean project.
 clean: clean_list
@@ -500,6 +463,7 @@ clean_list :
 	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).bin
 	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).sym
 	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).lss
+	$(V1) $(REMOVE) $(OUTDIR)/$(TARGET).bin.o
 	$(V1) $(REMOVE) $(ALLOBJ)
 	$(V1) $(REMOVE) $(LSTFILES)
 	$(V1) $(REMOVE) $(DEPFILES)
@@ -525,4 +489,4 @@ else
 endif
 
 # Listing of phony targets.
-.PHONY : all build clean clean_list program
+.PHONY : all build clean clean_list install
