@@ -7,8 +7,8 @@ OP_DFU::OP_DFU(bool _debug,bool _use_serial,QString portname,bool umodereset): d
 {
     if(use_serial)
     {
-        cout<<"Connect hw now and press any key";
-        //  getch();
+        // cout<<"Connect hw now and press any key"<<endl;
+        // getch();
         // delay::msleep(2000);
         PortSettings settings;
         settings.BaudRate=BAUD57600;
