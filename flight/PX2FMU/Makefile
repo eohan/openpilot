@@ -421,7 +421,7 @@ LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
-# Set linker-script name depending on selected submodel name
+# Hardcoded linker script names for now
 LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_sections.ld
 
 # Define programs and commands.
