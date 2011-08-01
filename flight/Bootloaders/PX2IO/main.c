@@ -52,47 +52,37 @@ uint8_t			jumpFW = FALSE;
  */
 int main()
 {
-	uint8_t GO_dfu = false;
+	bool	boot_app = true;
 
-	/* move to the PLL, default GPIOs and LEDs */
+	/* do basic system init - clocks, GPIOs, LEDs */
 	PIOS_SYS_Init();
 
-	/* turn on the CRC clock */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_CRC, ENABLE);
-
-	/* start the delay system */
+	/* start the delay system - should be in SYS_Init */
 	PIOS_DELAY_Init();
 
-	// check for an external request to enter update mode here, set GO_dfu if requested
+	/* check for an external request to enter update mode here, set GO_dfu if requested */
 	if (GPIO_ReadInputDataBit(GPIO_PORT_SafetySwitch, GPIO_PIN_SafetySwitch) == Bit_SET) {
-		GO_dfu = TRUE;
-	}
+		boot_app = false;
 
-	/* check for program-requested update mode */
-	PIOS_IAP_Init();
-	GO_dfu = GO_dfu | PIOS_IAP_CheckRequest();// OR with app boot request
-
-	if (GO_dfu) {
-		for (int i = 0; i < 20; i++)
-		{
+		/* blink the safety switch LED to tell the user we got their request */
+		for (int i = 0; i < 20; i++) {
 			PIOS_LED_Toggle(LED3);
 			PIOS_DELAY_WaitmS(50);
 		}
 	}
 
-
-	/* update not requested, start the app immediately */
-	if (GO_dfu == FALSE) {
-		jump_to_app();
-	}
-
-	/* XXX not entirely clear why we'd do this vs. just clearing the request unconditionally */
+	/* check for program-requested update mode */
+	PIOS_IAP_Init();
 	if (PIOS_IAP_CheckRequest()) {
-		PIOS_DELAY_WaitmS(1000);
+		boot_app = false;
 		PIOS_IAP_ClearRequest();
 	}
 
-	/* bring up the rest of the board as required */
+	/* update not requested, start the app immediately - may return if app is invalid */
+	if (boot_app)
+		jump_to_app();
+
+	/* bring up the rest of the board as required for the updater */
 	PIOS_Board_Init();
 	PIOS_LED_On(LED1);
 	i2c_fsm();
@@ -103,9 +93,6 @@ void
 jump_to_app()
 {
 	const struct pios_board_info * bdinfo = &pios_board_info_blob;
-
-	// XXX it might make sense just to make sure that the request(s) that got us into update
-	// mode have been cleared and then reset the SoC here.
 
 	PIOS_LED_On(LED1);
 	if (((*(__IO uint32_t*) bdinfo->fw_base) & 0x2FFE0000) == 0x20000000) { /* Jump to user application */

@@ -88,6 +88,9 @@ const struct pios_clock_cfg px2io_clock_config = {
 
 void PIOS_Board_Init() {
 
+	/* turn on the CRC clock */
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_CRC, ENABLE);		/* XXX clocks should always be on */
+
 	// initialise I2C pins
 	GPIO_Init(i2c_config.sda.gpio, &(i2c_config.sda.init));
 	GPIO_Init(i2c_config.scl.gpio, &(i2c_config.scl.init));
@@ -96,10 +99,10 @@ void PIOS_Board_Init() {
 	i2c_fsm_attach(i2c_config.regs);
 
 	// init the I2C interface
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
-	RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C1, ENABLE);
-	RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C1, DISABLE);
-	I2C_DeInit(i2c_config.regs);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);	/* XXX clocks should always be on */
+	RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C1, ENABLE);	/* XXX should not be required */
+	RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C1, DISABLE);	/* XXX should not be required */
+	I2C_DeInit(i2c_config.regs);							/* XXX should not be required */
 	I2C_Init(i2c_config.regs, &i2c_config.init);
 	I2C_Cmd(i2c_config.regs, ENABLE);
 	//I2C_SoftwareResetCmd(i2c_config.regs, ENABLE);
