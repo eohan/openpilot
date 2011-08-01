@@ -14,8 +14,10 @@
 	.section .isr_vector,"a",%progbits
 	.type	g_pfnVectors, %object
 	.size	g_pfnVectors, .-g_pfnVectors
+	.global g_pfnVectors
 	
 g_pfnVectors:
+	// standard CM3 vectors
 	.word	INITIAL_STACK_TOP
 	.word	Reset_Handler
 	.word	NMI_Handler
@@ -32,6 +34,8 @@ g_pfnVectors:
 	.word	0
 	.word	xPortPendSVHandler
 	.word	xPortSysTickHandler
+
+	// ST device interrupt vectors
 	.word	WWDG_IRQHandler
 	.word	PVD_IRQHandler
 	.word	TAMPER_IRQHandler
@@ -94,12 +98,12 @@ g_pfnVectors:
 	.word	DMA2_Channel4_5_IRQHandler
    
 /*******************************************************************************
-*
-* Provide weak aliases for each Exception handler to the Default_Handler. 
-* As they are weak aliases, any function with the same name will override 
-* this definition.
-*
-*******************************************************************************/
+ *
+ * Provide weak aliases for each Exception handler to the Default_Handler.
+ * As they are weak aliases, any function with the same name will override
+ * this definition.
+ *
+ *******************************************************************************/
     
 	.weak  NMI_Handler
 	.thumb_set NMI_Handler,Default_Handler
