@@ -49,7 +49,6 @@
 /* STM32 Std Perf Lib */
 #if defined(STM32F2XX)
 #include <stm32f2xx.h>
-#include "timers.h"
 // XXX probably don't need this (header above gets it)
 #include <stm32f2xx_conf.h>
 #else
