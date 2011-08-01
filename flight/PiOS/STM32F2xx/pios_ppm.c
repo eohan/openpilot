@@ -39,6 +39,7 @@
 /* Project Includes */
 #include <pios.h>
 #include <pios_ppm_priv.h>
+#include <timers.h>
 
 #ifndef PIOS_INCLUDE_FREERTOS
 # error PPM input requires FreeRTOS
