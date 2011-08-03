@@ -99,6 +99,15 @@ static void updateSensors(AttitudeRawData *attitudeRaw);
 static void updateAttitude(AttitudeRawData *attitudeRaw);
 //static void settingsUpdatedCb(UAVObjEvent * objEv);
 
+int32_t PX2AttitudeStart()
+{
+	// Start the attitude task
+	xTaskCreate(attitudeTask, (signed char *)"Attitude", STACK_SIZE_BYTES/4, NULL, ATTITUDE_TASK_PRIORITY, &attitudeTaskHandle);
+	TaskMonitorAdd(TASKINFO_RUNNING_ATTITUDE, attitudeTaskHandle);
+	PIOS_WDG_RegisterFlag(PIOS_WDG_ATTITUDE);
+
+	return 0;
+}
 
 /**
  * Initialise the module, called on startup
@@ -108,14 +117,10 @@ int32_t PX2AttitudeInitialize(void)
 {
 	// Connect settings update callback
 	//AttitudeSettingsConnectCallback(&settingsUpdatedCb);
-	
-	// Start the attitude task
-	xTaskCreate(attitudeTask, (signed char *)"Attitude", STACK_SIZE_BYTES/4, NULL, ATTITUDE_TASK_PRIORITY, &attitudeTaskHandle);
-	TaskMonitorAdd(TASKINFO_RUNNING_ATTITUDE, attitudeTaskHandle);
-	PIOS_WDG_RegisterFlag(PIOS_WDG_ATTITUDE);
 
 	return 0;
 }
+MODULE_INITCALL(PX2AttitudeInitialize, PX2AttitudeStart)
 
 /**
  * Module thread, should not return.

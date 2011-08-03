@@ -60,28 +60,28 @@ int32_t AlarmsInitialize(void)
  */
 int32_t AlarmsSet(SystemAlarmsAlarmElem alarm, SystemAlarmsAlarmOptions severity)
 {
-//	SystemAlarmsData alarms;
-//
-//	// Check that this is a valid alarm
-//	if (alarm >= SYSTEMALARMS_ALARM_NUMELEM)
-//	{
-//		return -1;
-//	}
-//
-//	// Lock
-//    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
-//
-//    // Read alarm and update its severity only if it was changed
-//    SystemAlarmsGet(&alarms);
-//    if ( alarms.Alarm[alarm] != severity )
-//    {
-//    	alarms.Alarm[alarm] = severity;
-//    	SystemAlarmsSet(&alarms);
-//    	SystemAlarmsUpdated(); // force telemetry update since the alarm was changed
-//    }
-//
-//    // Release lock
-//    xSemaphoreGiveRecursive(lock);
+	SystemAlarmsData alarms;
+
+	// Check that this is a valid alarm
+	if (alarm >= SYSTEMALARMS_ALARM_NUMELEM)
+	{
+		return -1;
+	}
+
+	// Lock
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+
+    // Read alarm and update its severity only if it was changed
+    SystemAlarmsGet(&alarms);
+    if ( alarms.Alarm[alarm] != severity )
+    {
+    	alarms.Alarm[alarm] = severity;
+    	SystemAlarmsSet(&alarms);
+    	SystemAlarmsUpdated(); // force telemetry update since the alarm was changed
+    }
+
+    // Release lock
+    xSemaphoreGiveRecursive(lock);
     return 0;
 
 }

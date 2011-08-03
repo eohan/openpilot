@@ -59,7 +59,7 @@ FLASH_TOOL = OPENOCD
 #MODULES =  Actuator Telemetry GPS ManualControl Altitude AHRSComms Stabilization Guidance FirmwareIAP FlightPlan
 
 #MODULES = MAVLink PX2Attitude Altitude Stabilization GPS FlightPlan ManualControl Guidance
-MODULES = MAVLink Telemetry Actuator Stabilization ManualControl GPS Altitude Guidance
+MODULES = MAVLink Telemetry PX2Attitude Actuator Stabilization ManualControl GPS Altitude Guidance
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 

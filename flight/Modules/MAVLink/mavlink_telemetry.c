@@ -37,7 +37,10 @@
 #include "telemetrysettings.h"
 
 /* Include all UAVObjects that need to be translated to MAVLink */
-#include "manualcontrolcommand.h"
+#include "manualcontrolcommand.h"  /* Remote control / manual commands */
+#include "baroaltitude.h"          /* Pressure sensor */
+#include "attitudeactual.h"        /* Estimated attitude */
+#include "attituderaw.h"           /* Raw attitude sensor measurements */
 
 // Private constants
 #define MAX_QUEUE_SIZE   TELEM_QUEUE_SIZE
@@ -263,8 +266,7 @@ static void updateObject(UAVObjHandle obj)
 }
 
 // FIXME XXX
-#include "attitudeactual.h"
-#include "attituderaw.h"
+
 #include "systemstats.h"
 #include "flighttelemetrystats.h"
 #include "gcstelemetrystats.h"
@@ -273,9 +275,11 @@ FlightTelemetryStatsData flightStats;
 GCSTelemetryStatsData gcsTelemetryStatsData;
 static AttitudeActualData attitudeActual;
 static AttitudeRawData attitudeRaw;
+static BaroAltitudeData baroAltitude;
 //static ManualControlCommandData manualControl;
 static mavlink_raw_imu_t attitude_raw;
 static mavlink_attitude_t attitude;
+static mavlink_scaled_pressure_t pressure;
 //static mavlink_rc_channels_raw_t rc_channels;
 //static mavlink_debug_vect_t debug;
 
@@ -352,8 +356,20 @@ static void processObjEvent(UAVObjEvent * ev)
 //				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
 //						attitudeActual.Pitch,attitudeActual.Yaw,
 //						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
-//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
-//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
+				//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
+				//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
+				break;
+			}
+			case BAROALTITUDE_OBJID:
+			{
+				BaroAltitudeGet(&baroAltitude);
+				pressure.press_abs = baroAltitude.Pressure*10.0f;
+				pressure.temperature = baroAltitude.Temperature*100.0f;
+				mavlink_msg_scaled_pressure_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &pressure);
+				// Copy the message to the send buffer
+				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+				// Send buffer
+				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
 				break;
 			}
 			case FLIGHTTELEMETRYSTATS_OBJID:

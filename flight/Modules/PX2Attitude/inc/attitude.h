@@ -27,11 +27,11 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef ATTITUDE_H
-#define ATTITUDE_H
+#ifndef PX2ATTITUDE_H
+#define PX2ATTITUDE_H
 
 #include "openpilot.h"
 
-int32_t AttitudeInitialize(void);
+int32_t PX2AttitudeInitialize(void);
 
-#endif // ATTITUDE_H
+#endif // PX2ATTITUDE_H

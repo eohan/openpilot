@@ -69,7 +69,7 @@
 #define PIOS_TELEM_PRIORITY_QUEUE
 
 /* COM Module */
-#define GPS_BAUDRATE			19200
+#define GPS_BAUDRATE			38400
 
 #ifndef TELEM_BAUDRATE
 #define TELEM_BAUDRATE			115200

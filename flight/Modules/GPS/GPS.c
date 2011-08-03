@@ -39,6 +39,10 @@
 	#include "GTOP_BIN.h"
 #endif
 
+#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+	#include "GTOP_BIN_CUSTOM.h"
+#endif
+
 #if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
 	#include "NMEA.h"
 #endif
@@ -92,7 +96,7 @@ static uint32_t gpsPort;
 
 static xTaskHandle gpsTaskHandle;
 
-#ifndef ENABLE_GPS_BINARY_GTOP
+#if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
 	static char gps_rx_buffer[128];
 #endif
 
@@ -142,9 +146,13 @@ static void gpsTask(void *parameters)
 	uint32_t timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;;
 	GPSPositionData GpsData;
 	
+#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+	GTOP_BIN_CUSTOM_init();
+#endif
 #ifdef ENABLE_GPS_BINARY_GTOP
 	GTOP_BIN_init();
-#else
+#endif
+#if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
 	uint8_t rx_count = 0;
 	bool start_flag = false;
 	bool found_cr = false;
@@ -191,6 +199,22 @@ static void gpsTask(void *parameters)
 	// Loop forever
 	while (1)
 	{
+		#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+			// GTOP BINARY GPS mode
+
+			while (PIOS_COM_ReceiveBufferUsed(gpsPort) > 0)
+			{
+				int res = GTOP_BIN_CUSTOM_update_position(PIOS_COM_ReceiveBuffer(gpsPort), &numChecksumErrors, &numParsingErrors);
+				if (res >= 0)
+				{
+					numUpdates++;
+
+					timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;
+					timeOfLastUpdateMs = timeNowMs;
+					timeOfLastCommandMs = timeNowMs;
+				}
+			}
+		#endif
 		#ifdef ENABLE_GPS_BINARY_GTOP
 			// GTOP BINARY GPS mode
 
@@ -206,8 +230,8 @@ static void gpsTask(void *parameters)
 					timeOfLastCommandMs = timeNowMs;
 				}
 			}
-
-		#else
+		#endif
+		#if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
 			// NMEA or SINGLE-SENTENCE GPS mode
 
 			// This blocks the task until there is something on the buffer
@@ -306,6 +330,11 @@ static void gpsTask(void *parameters)
 			{	// resend the command .. just incase the gps has only just been plugged in or the gps did not get our last command
 				timeOfLastCommandMs = timeNowMs;
 
+				#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+					GTOP_BIN_CUSTOM_init();
+					// Module is configured fixed for this mode, do nothing
+					//PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,1*6F\r\n");
+				#endif
 				#ifdef ENABLE_GPS_BINARY_GTOP
 					GTOP_BIN_init();
 					// switch to binary mode
