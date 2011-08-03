@@ -85,7 +85,7 @@ typedef struct
 // ************
 
 // buffer that holds the incoming binary packet
-static uint8_t gps_rx_buffer[sizeof(t_gps_bin_packet)] __attribute__ ((aligned(4)));
+//static uint8_t gps_rx_buffer[sizeof(t_gps_bin_packet)] __attribute__ ((aligned(4)));
 
 // number of bytes currently in the rx buffer
 static int16_t gps_rx_buffer_wr = 0;
@@ -119,28 +119,69 @@ static int16_t gps_rx_buffer_wr = 0;
 
 int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors, volatile uint32_t *parsing_errors)
 {
-	if (gps_rx_buffer_wr >= sizeof(gps_rx_buffer))
-	{	// make room for the new byte .. this will actually never get executed, just here as a safe guard really
-		memmove(gps_rx_buffer, gps_rx_buffer + 1, sizeof(gps_rx_buffer) - 1);
-		gps_rx_buffer_wr = sizeof(gps_rx_buffer) - 1;
+	// TESTING
+	//	static uint8_t last = b;
+
+	if (b == 0xD0 || b == 0xDD || b == 0xB5 || b == 0x62)
+	{
+		GPSPositionData	GpsData;
+		GpsData.Status = GPSPOSITION_STATUS_FIX3D;
+		GpsData.Latitude        = 1000;   // degrees * 10e6
+		GpsData.Longitude       = 200000;	// degrees * 10e6
+		GpsData.Altitude        = 500;                                       // meters
+		GpsData.GeoidSeparation = 5000;                                 // meters
+		GpsData.Heading         = 200;                                 // degrees
+		GpsData.Groundspeed     = 5;                                  // m/s
+		GpsData.Satellites      = 5;                                                  //
+		GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
+		GpsData.HDOP            = 10 / 100;                                                //
+		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
+
+		GPSPositionSet(&GpsData);
+		return 0;
+	}
+	else
+	{
+		GPSPositionData	GpsData;
+		GpsData.Status = GPSPOSITION_STATUS_NOFIX;
+		GpsData.Latitude        = 1000;   // degrees * 10e6
+		GpsData.Longitude       = 200000;	// degrees * 10e6
+		GpsData.Altitude        = 500;                                       // meters
+		GpsData.GeoidSeparation = 5000;                                 // meters
+		GpsData.Heading         = 200;                                 // degrees
+		GpsData.Groundspeed     = 5;                                  // m/s
+		GpsData.Satellites      = 5;                                                  //
+		GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
+		GpsData.HDOP            = 10 / 100;                                                //
+		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
+
+		GPSPositionSet(&GpsData);
+		return -1;
 	}
 
-	// add the new byte into the buffer
-	gps_rx_buffer[gps_rx_buffer_wr++] = b;
 
-	int16_t i = 0;
-
-	while (gps_rx_buffer_wr > 0)
-	{
-		t_gps_bin_packet *rx_packet = (t_gps_bin_packet *)(gps_rx_buffer + i);
-
-		// scan for the start of a binary packet (the header bytes)
-		while (gps_rx_buffer_wr - i >= sizeof(rx_packet->header))
-		{
-			if (rx_packet->header == 0xD0DD || rx_packet->header == 0xDDD0 || rx_packet->header == 0xB562 || rx_packet->header == 0x62B5)
-				break;   // found a valid header marker
-			rx_packet = (t_gps_bin_packet *)(gps_rx_buffer + ++i);
-		}
+//	if (gps_rx_buffer_wr >= sizeof(gps_rx_buffer))
+//	{	// make room for the new byte .. this will actually never get executed, just here as a safe guard really
+//		memmove(gps_rx_buffer, gps_rx_buffer + 1, sizeof(gps_rx_buffer) - 1);
+//		gps_rx_buffer_wr = sizeof(gps_rx_buffer) - 1;
+//	}
+//
+//	// add the new byte into the buffer
+//	gps_rx_buffer[gps_rx_buffer_wr++] = b;
+//
+//	int16_t i = 0;
+//
+//	while (gps_rx_buffer_wr > 0)
+//	{
+//		t_gps_bin_packet *rx_packet = (t_gps_bin_packet *)(gps_rx_buffer + i);
+//
+//		// scan for the start of a binary packet (the header bytes)
+//		while (gps_rx_buffer_wr - i >= sizeof(rx_packet->header))
+//		{
+//			if (rx_packet->header == 0xD0DD || rx_packet->header == 0xDDD0 || rx_packet->header == 0xB562 || rx_packet->header == 0x62B5)
+//				break;   // found a valid header marker
+//			rx_packet = (t_gps_bin_packet *)(gps_rx_buffer + ++i);
+//		}
 
 		// Set GPS position // FIXME Just to debug, delete after!
 
@@ -212,39 +253,40 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 //		GPSTimeSet(&GpsTime);
 //
 //		// set the gps position object
-		GPSPositionData	GpsData;
-//		GPSPositionGet(&GpsData);
-//			switch (rx_packet->data.fix_type)
-//			{
-//				case 1: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
-//				case 2: GpsData.Status = GPSPOSITION_STATUS_FIX2D; break;
-//				case 3: GpsData.Status = GPSPOSITION_STATUS_FIX3D; break;
-//				default: GpsData.Status = GPSPOSITION_STATUS_NOGPS; break;
-//			}
-//			GpsData.Latitude        = rx_packet->data.latitude  * (rx_packet->data.ns_indicator == 1 ? +1 : -1) * 10;   // degrees * 10e6
-//			GpsData.Longitude       = rx_packet->data.longitude * (rx_packet->data.ew_indicator == 1 ? +1 : -1) * 10;	// degrees * 10e6
-//			GpsData.Altitude        = (float)rx_packet->data.msl_altitude / 1000;                                       // meters
-//			GpsData.GeoidSeparation = (float)rx_packet->data.geoidal_seperation / 1000;                                 // meters
-//			GpsData.Heading         = (float)rx_packet->data.course_over_ground / 1000;                                 // degrees
-//			GpsData.Groundspeed     = (float)rx_packet->data.speed_over_ground / 3600;                                  // m/s
-//			GpsData.Satellites      = rx_packet->data.satellites_used;                                                  //
+//		GPSPositionData	GpsData;
+////		GPSPositionGet(&GpsData);
+////			switch (rx_packet->data.fix_type)
+////			{
+////				case 1: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
+////				case 2: GpsData.Status = GPSPOSITION_STATUS_FIX2D; break;
+////				case 3: GpsData.Status = GPSPOSITION_STATUS_FIX3D; break;
+////				default: GpsData.Status = GPSPOSITION_STATUS_NOGPS; break;
+////			}
+////			GpsData.Latitude        = rx_packet->data.latitude  * (rx_packet->data.ns_indicator == 1 ? +1 : -1) * 10;   // degrees * 10e6
+////			GpsData.Longitude       = rx_packet->data.longitude * (rx_packet->data.ew_indicator == 1 ? +1 : -1) * 10;	// degrees * 10e6
+////			GpsData.Altitude        = (float)rx_packet->data.msl_altitude / 1000;                                       // meters
+////			GpsData.GeoidSeparation = (float)rx_packet->data.geoidal_seperation / 1000;                                 // meters
+////			GpsData.Heading         = (float)rx_packet->data.course_over_ground / 1000;                                 // degrees
+////			GpsData.Groundspeed     = (float)rx_packet->data.speed_over_ground / 3600;                                  // m/s
+////			GpsData.Satellites      = rx_packet->data.satellites_used;                                                  //
+////			GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
+////			GpsData.HDOP            = (float)rx_packet->data.hdop / 100;                                                //
+////			GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
+//
+//			GpsData.Status = GPSPOSITION_STATUS_FIX3D;
+//			GpsData.Latitude        = 1000;   // degrees * 10e6
+//			GpsData.Longitude       = 200000;	// degrees * 10e6
+//			GpsData.Altitude        = 500;                                       // meters
+//			GpsData.GeoidSeparation = 5000;                                 // meters
+//			GpsData.Heading         = 200;                                 // degrees
+//			GpsData.Groundspeed     = 5;                                  // m/s
+//			GpsData.Satellites      = 5;                                                  //
 //			GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
-//			GpsData.HDOP            = (float)rx_packet->data.hdop / 100;                                                //
+//			GpsData.HDOP            = 10 / 100;                                                //
 //			GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
-
-			GpsData.Latitude        = 1000;   // degrees * 10e6
-			GpsData.Longitude       = 200000;	// degrees * 10e6
-			GpsData.Altitude        = 500;                                       // meters
-			GpsData.GeoidSeparation = 5000;                                 // meters
-			GpsData.Heading         = 200;                                 // degrees
-			GpsData.Groundspeed     = 5;                                  // m/s
-			GpsData.Satellites      = 5;                                                  //
-			GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
-			GpsData.HDOP            = 10 / 100;                                                //
-			GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
-
-
-			GPSPositionSet(&GpsData);
+//
+//
+//			GPSPositionSet(&GpsData);
 
 //		// set the number of satellites
 ////		GPSSatellitesData SattelliteData;
@@ -258,8 +300,8 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 //		if (gps_rx_buffer_wr > 0)
 //			memmove(gps_rx_buffer, gps_rx_buffer + sizeof(t_gps_bin_packet), gps_rx_buffer_wr);
 
-		return 0;  // found a valid packet
-	}
+//		return 0;  // found a valid packet
+//	}
 
 	return -1;     // no valid packet found
 }

@@ -41,6 +41,8 @@
 #include "baroaltitude.h"          /* Pressure sensor */
 #include "attitudeactual.h"        /* Estimated attitude */
 #include "attituderaw.h"           /* Raw attitude sensor measurements */
+#include "gpsposition.h"		   /* GPS position */
+#include "gpssatellites.h"		   /* GPS satellites */
 
 // Private constants
 #define MAX_QUEUE_SIZE   TELEM_QUEUE_SIZE
@@ -56,7 +58,7 @@
 // Private types
 
 // Private variables
-static uint32_t telemetryPort;
+static uint32_t telemetryPort; // FIXME INIT
 static xQueueHandle queue;
 
 #if defined(PIOS_TELEM_PRIORITY_QUEUE)
@@ -71,7 +73,7 @@ static xTaskHandle telemetryTxTaskHandle;
 static xTaskHandle telemetryRxTaskHandle;
 static uint32_t txErrors;
 static uint32_t txRetries;
-//static TelemetrySettingsData settings;
+static TelemetrySettingsData settings;
 static uint32_t timeOfLastObjectUpdate;
 
 // Private functions
@@ -85,7 +87,7 @@ static int32_t setUpdatePeriod(UAVObjHandle obj, int32_t updatePeriodMs);
 static void processObjEvent(UAVObjEvent * ev);
 //static void updateTelemetryStats();
 //static void gcsTelemetryStatsUpdated();
-//static void updateSettings();
+static void updateSettings();
 
 #include "mavlink_types.h"
 
@@ -99,7 +101,7 @@ static void processObjEvent(UAVObjEvent * ev);
 
    Lines also in your main.c, e.g. by reading these parameter from EEPROM.
  */
-static mavlink_system_t mavlink_system;
+mavlink_system_t mavlink_system;
 static mavlink_message_t rx_msg;
 static mavlink_message_t tx_msg;
 static mavlink_status_t rx_status;
@@ -137,6 +139,40 @@ static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 
 #include "common/mavlink.h"
 
+/* 3: Define waypoint helper functions */
+void mavlink_wpm_send_message(mavlink_message_t* msg);
+void mavlink_wpm_send_gcs_string(const char* string);
+uint64_t mavlink_wpm_get_system_timestamp();
+
+/* 4: Include waypoint protocol */
+#include <waypoints.h>
+mavlink_wpm_storage wpm;
+
+/* Provide the interface functions for the waypoint manager */
+
+/*
+ *  @brief Sends a MAVLink message over UDP
+ */
+void mavlink_wpm_send_message(mavlink_message_t* msg)
+{
+	uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, msg);
+	// Send buffer
+	PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+}
+
+void mavlink_wpm_send_gcs_string(const char* string)
+{
+	//printf("%s",string);
+}
+
+uint64_t mavlink_wpm_get_system_timestamp()
+{
+//	struct timeval tv;
+//	gettimeofday(&tv, NULL);
+//	return ((uint64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
+	return 0;
+}
+
 
 
 /**
@@ -148,13 +184,13 @@ int32_t MAVLinkStart(void)
 {
 
 	// Start telemetry tasks
-	xTaskCreate(telemetryTxTask, (signed char *)"TelTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
-	xTaskCreate(telemetryRxTask, (signed char *)"TelRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
+	xTaskCreate(telemetryTxTask, (signed char *)"MLTelTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
+	xTaskCreate(telemetryRxTask, (signed char *)"MLTelRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTX, telemetryTxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYRX, telemetryRxTaskHandle);
 
 #if defined(PIOS_TELEM_PRIORITY_QUEUE)
-	xTaskCreate(telemetryTxPriTask, (signed char *)"TelPriTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TXPRI, &telemetryTxPriTaskHandle);
+	xTaskCreate(telemetryTxPriTask, (signed char *)"MLTelPriTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TXPRI, &telemetryTxPriTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTXPRI, telemetryTxPriTaskHandle);
 #endif
 
@@ -180,7 +216,7 @@ int32_t MAVLinkInitialize(void)
 #endif
 	
 	// Get telemetry settings object
-//	updateSettings();
+	updateSettings();
 
 	// Initialise UAVTalk
 //	UAVTalkInitialize(&transmitData);
@@ -276,10 +312,12 @@ GCSTelemetryStatsData gcsTelemetryStatsData;
 static AttitudeActualData attitudeActual;
 static AttitudeRawData attitudeRaw;
 static BaroAltitudeData baroAltitude;
+static GPSPositionData gpsPosition;
 //static ManualControlCommandData manualControl;
 static mavlink_raw_imu_t attitude_raw;
 static mavlink_attitude_t attitude;
 static mavlink_scaled_pressure_t pressure;
+static mavlink_gps_raw_int_t gps_raw;
 //static mavlink_rc_channels_raw_t rc_channels;
 //static mavlink_debug_vect_t debug;
 
@@ -337,7 +375,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				// Copy the message to the send buffer
 				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 
 				attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
 				attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
@@ -351,7 +389,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				// Copy the message to the send buffer
 				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 //
 //				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
 //						attitudeActual.Pitch,attitudeActual.Yaw,
@@ -369,7 +407,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				// Copy the message to the send buffer
 				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 				break;
 			}
 			case FLIGHTTELEMETRYSTATS_OBJID:
@@ -389,7 +427,7 @@ static void processObjEvent(UAVObjEvent * ev)
 //				// Copy the message to the send buffer
 //				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 //				// Send buffer
-//				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+//				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 				break;
 			}
 			case SYSTEMSTATS_OBJID:
@@ -400,7 +438,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				// Copy the message to the send buffer
 				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 
 				uint8_t ucCpuLoad;
 				SystemStatsCPULoadGet(&ucCpuLoad);
@@ -409,7 +447,20 @@ static void processObjEvent(UAVObjEvent * ev)
 				//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
 				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+				break;
+			}
+			case GPSPOSITION_OBJID:
+			{
+				GPSPositionGet(&gpsPosition);
+				gps_raw.lat = gpsPosition.Latitude;
+				gps_raw.lon = gpsPosition.Longitude;
+				gps_raw.fix_type = gpsPosition.Status;
+				mavlink_msg_gps_raw_int_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &gps_raw);
+				// Copy the message to the send buffer
+				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+				// Send buffer
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 				break;
 			}
 			case MANUALCONTROLCOMMAND_OBJID:
@@ -564,8 +615,12 @@ static void telemetryRxTask(void *parameters)
 		// TODO: Currently we periodically check the buffer for data, update once the PIOS_COM is made blocking
 		len = PIOS_COM_ReceiveBufferUsed(inputPort);
 		for (int32_t n = 0; n < len; ++n) {
+			PIOS_LED_On(LED2);
+			PIOS_LED_On(LED1);
 			if (mavlink_parse_char(MAVLINK_COMM_0, PIOS_COM_ReceiveBuffer(inputPort), &rx_msg, &rx_status))
 			{
+				// Handle packet with waypoint component
+				mavlink_wpm_message_handler(&rx_msg);
 
 				switch (rx_msg.msgid)
 				{
@@ -590,7 +645,7 @@ static void telemetryRxTask(void *parameters)
 						// Send message
 						uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
 						// Send buffer
-						PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+						PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 
 					}
 				}
@@ -782,34 +837,34 @@ static int32_t setUpdatePeriod(UAVObjHandle obj, int32_t updatePeriodMs)
 //		FlightTelemetryStatsUpdated();
 //	}
 //}
-//
-///**
-// * Update the telemetry settings, called on startup and
-// * each time the settings object is updated
-// */
-//static void updateSettings()
-//{
-//    // Set port
-//    telemetryPort = PIOS_COM_TELEM_RF;
-//
-//    // Retrieve settings
-//    TelemetrySettingsGet(&settings);
-//
-//    // Set port speed
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_2400) PIOS_COM_ChangeBaud(telemetryPort, 2400);
-//    else
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_4800) PIOS_COM_ChangeBaud(telemetryPort, 4800);
-//    else
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_9600) PIOS_COM_ChangeBaud(telemetryPort, 9600);
-//    else
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_19200) PIOS_COM_ChangeBaud(telemetryPort, 19200);
-//    else
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_38400) PIOS_COM_ChangeBaud(telemetryPort, 38400);
-//    else
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_57600) PIOS_COM_ChangeBaud(telemetryPort, 57600);
-//    else
-//    if (settings.Speed == TELEMETRYSETTINGS_SPEED_115200) PIOS_COM_ChangeBaud(telemetryPort, 115200);
-//}
+
+/**
+ * Update the telemetry settings, called on startup and
+ * each time the settings object is updated
+ */
+static void updateSettings()
+{
+    // Set port
+    telemetryPort = PIOS_COM_TELEM_RF;
+
+    // Retrieve settings
+    TelemetrySettingsGet(&settings);
+
+    // Set port speed
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_2400) PIOS_COM_ChangeBaud(telemetryPort, 2400);
+    else
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_4800) PIOS_COM_ChangeBaud(telemetryPort, 4800);
+    else
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_9600) PIOS_COM_ChangeBaud(telemetryPort, 9600);
+    else
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_19200) PIOS_COM_ChangeBaud(telemetryPort, 19200);
+    else
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_38400) PIOS_COM_ChangeBaud(telemetryPort, 38400);
+    else
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_57600) PIOS_COM_ChangeBaud(telemetryPort, 57600);
+    else
+    if (settings.Speed == TELEMETRYSETTINGS_SPEED_115200) PIOS_COM_ChangeBaud(telemetryPort, 115200);
+}
 
 /**
   * @}

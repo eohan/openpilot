@@ -59,7 +59,7 @@ FLASH_TOOL = OPENOCD
 #MODULES =  Actuator Telemetry GPS ManualControl Altitude AHRSComms Stabilization Guidance FirmwareIAP FlightPlan
 
 #MODULES = MAVLink PX2Attitude Altitude Stabilization GPS FlightPlan ManualControl Guidance
-MODULES = MAVLink Telemetry PX2Attitude Actuator Stabilization ManualControl GPS Altitude Guidance
+MODULES = MAVLink PX2Attitude Actuator Stabilization ManualControl GPS Altitude Guidance # Batt module is crashing: Battery
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
@@ -69,7 +69,8 @@ OPSYSTEMINC = $(OPSYSTEM)/inc
 OPUAVTALK = ../UAVTalk
 OPUAVTALKINC = $(OPUAVTALK)/inc
 MAVLINK = ../Libraries/mavlink/include
-MAVLINKCOMMON = ../$(MAVLINK)/include/common
+MAVLINKCOMMON = $(MAVLINK)/common
+MAVLINKMISSIONLIB = $(MAVLINK)/../missionlib
 OPUAVOBJ = ../UAVObjects
 OPUAVOBJINC = $(OPUAVOBJ)/inc
 OPTESTS  = ./Tests
@@ -157,6 +158,9 @@ ifndef TESTAPP
 include ./UAVObjects.inc
 SRC += $(UAVOBJSRC)
 endif
+
+## MAVLINK MISSION LIB
+SRC += $(MAVLINKMISSIONLIB)/waypoints.c
 
 ## PIOS Hardware (STM32F2xx)
 SRC += $(PIOSSTM32F2XX)/pios_sys.c
@@ -271,6 +275,7 @@ EXTRAINCDIRS  += $(OPUAVTALK)
 EXTRAINCDIRS  += $(OPUAVTALKINC)
 EXTRAINCDIRS  += $(MAVLINK)
 EXTRAINCDIRS  += $(MAVLINKCOMMON)
+EXTRAINCDIRS  += $(MAVLINKMISSIONLIB)
 EXTRAINCDIRS  += $(OPUAVOBJ)
 EXTRAINCDIRS  += $(OPUAVOBJINC)
 EXTRAINCDIRS  += $(UAVOBJSYNTHDIR)
