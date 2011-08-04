@@ -45,8 +45,8 @@
 #include "gpssatellites.h"		   /* GPS satellites */
 
 // Private constants
-#define MAX_QUEUE_SIZE   TELEM_QUEUE_SIZE
-#define STACK_SIZE_BYTES PIOS_TELEM_STACK_SIZE
+#define MAX_QUEUE_SIZE   MAVLINK_QUEUE_SIZE
+#define STACK_SIZE_BYTES PIOS_MAVLINK_STACK_SIZE
 #define TASK_PRIORITY_RX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_TX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_TXPRI (tskIDLE_PRIORITY + 2)
@@ -85,8 +85,8 @@ static void updateObject(UAVObjHandle obj);
 static int32_t addObject(UAVObjHandle obj);
 static int32_t setUpdatePeriod(UAVObjHandle obj, int32_t updatePeriodMs);
 static void processObjEvent(UAVObjEvent * ev);
-//static void updateTelemetryStats();
-//static void gcsTelemetryStatsUpdated();
+static void updateTelemetryStats();
+static void gcsTelemetryStatsUpdated();
 static void updateSettings();
 
 #include "mavlink_types.h"
@@ -103,7 +103,7 @@ static void updateSettings();
  */
 mavlink_system_t mavlink_system;
 static mavlink_message_t rx_msg;
-static mavlink_message_t tx_msg;
+//static mavlink_message_t tx_msg;
 static mavlink_status_t rx_status;
 static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 
@@ -162,7 +162,21 @@ void mavlink_wpm_send_message(mavlink_message_t* msg)
 
 void mavlink_wpm_send_gcs_string(const char* string)
 {
-	//printf("%s",string);
+	const int len = 50;
+	mavlink_statustext_t status;
+	char* str = (char*)status.text;
+	int i = 0;
+	while (i < len - 1)
+	{
+		str[i] = string[i];
+		if (string[i] == '\0')
+			break;
+		i++;
+	}
+	str[i] = '\0'; // Enforce null termination
+	mavlink_message_t msg;
+
+	mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &status);
 }
 
 uint64_t mavlink_wpm_get_system_timestamp()
@@ -170,7 +184,7 @@ uint64_t mavlink_wpm_get_system_timestamp()
 //	struct timeval tv;
 //	gettimeofday(&tv, NULL);
 //	return ((uint64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
-	return 0;
+	return xTaskGetTickCount() * portTICK_RATE_MS * 1000;
 }
 
 
@@ -184,13 +198,13 @@ int32_t MAVLinkStart(void)
 {
 
 	// Start telemetry tasks
-	xTaskCreate(telemetryTxTask, (signed char *)"MLTelTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
-	xTaskCreate(telemetryRxTask, (signed char *)"MLTelRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
+	xTaskCreate(telemetryTxTask, (signed char *)"TelTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
+	xTaskCreate(telemetryRxTask, (signed char *)"TelRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTX, telemetryTxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYRX, telemetryRxTaskHandle);
 
 #if defined(PIOS_TELEM_PRIORITY_QUEUE)
-	xTaskCreate(telemetryTxPriTask, (signed char *)"MLTelPriTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TXPRI, &telemetryTxPriTaskHandle);
+	xTaskCreate(telemetryTxPriTask, (signed char *)"TelPriTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TXPRI, &telemetryTxPriTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTXPRI, telemetryTxPriTaskHandle);
 #endif
 
@@ -218,8 +232,10 @@ int32_t MAVLinkInitialize(void)
 	// Get telemetry settings object
 	updateSettings();
 
-	// Initialise UAVTalk
-//	UAVTalkInitialize(&transmitData);
+	// Initialize waypoint protocol
+	mavlink_wpm_init(&wpm);
+
+	// Initialize parameter protocol
 
 	// Process all registered objects and connect queue for updates
 	UAVObjIterate(&registerObject);
@@ -320,6 +336,7 @@ static mavlink_scaled_pressure_t pressure;
 static mavlink_gps_raw_int_t gps_raw;
 //static mavlink_rc_channels_raw_t rc_channels;
 //static mavlink_debug_vect_t debug;
+static uint32_t lastOperatorHeartbeat = 0;
 
 
 /**
@@ -333,12 +350,14 @@ static void processObjEvent(UAVObjEvent * ev)
 //	int32_t retries;
 //	int32_t success;
 
+	AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
+
 	if (ev->obj == 0) {
-		//updateTelemetryStats();
+		updateTelemetryStats();
 	} else if (ev->obj == GCSTelemetryStatsHandle()) {
-		//gcsTelemetryStatsUpdated();
+		gcsTelemetryStatsUpdated();
 	} else if (ev->obj == TelemetrySettingsHandle()) {
-		//updateSettings();
+		updateSettings();
 	} else {
 		mavlink_message_t msg;
 
@@ -615,15 +634,21 @@ static void telemetryRxTask(void *parameters)
 		// TODO: Currently we periodically check the buffer for data, update once the PIOS_COM is made blocking
 		len = PIOS_COM_ReceiveBufferUsed(inputPort);
 		for (int32_t n = 0; n < len; ++n) {
-			PIOS_LED_On(LED2);
-			PIOS_LED_On(LED1);
+//			PIOS_LED_On(LED2);
+//			PIOS_LED_On(LED1);
 			if (mavlink_parse_char(MAVLINK_COMM_0, PIOS_COM_ReceiveBuffer(inputPort), &rx_msg, &rx_status))
 			{
+
 				// Handle packet with waypoint component
 				mavlink_wpm_message_handler(&rx_msg);
 
 				switch (rx_msg.msgid)
 				{
+			case MAVLINK_MSG_ID_HEARTBEAT:
+			{
+				lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
+				break;
+			}
 				case MAVLINK_MSG_ID_SET_MODE:
 				{
 					mavlink_set_mode_t mode;
@@ -633,19 +658,19 @@ static void telemetryRxTask(void *parameters)
 					{
 						//sys_set_mode(mode.mode);
 
-						mavlink_system.mode = MAV_MODE_LOCKED;
-						mavlink_system.nav_mode = MAV_NAV_LOST;
 						mavlink_system.mode = mode.mode;
-						mavlink_system.state = MAV_STATE_ACTIVE;
-						uint16_t vbat = 11000;
-
-						// Emit current mode
-						mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mavlink_system.mode, mavlink_system.nav_mode,
-								mavlink_system.state, 0,vbat, 0, 0);
-						// Send message
-						uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
-						// Send buffer
-						PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+//						mavlink_system.nav_mode = MAV_NAV_LOST;
+//						mavlink_system.mode = mode.mode;
+//						mavlink_system.state = MAV_STATE_ACTIVE;
+//						uint16_t vbat = 11000;
+//
+//						// Emit current mode
+//						mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mavlink_system.mode, mavlink_system.nav_mode,
+//								mavlink_system.state, 0,vbat, 0, 0);
+//						// Send message
+//						uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
+//						// Send buffer
+//						PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 
 					}
 				}
@@ -732,74 +757,99 @@ static int32_t setUpdatePeriod(UAVObjHandle obj, int32_t updatePeriodMs)
 	return EventPeriodicQueueUpdate(&ev, queue, updatePeriodMs);
 }
 
-///**
-// * Called each time the GCS telemetry stats object is updated.
-// * Trigger a flight telemetry stats update if a connection is not
-// * yet established.
-// */
-//static void gcsTelemetryStatsUpdated()
-//{
-//	FlightTelemetryStatsData flightStats;
-//	GCSTelemetryStatsData gcsStats;
-//	FlightTelemetryStatsGet(&flightStats);
-//	GCSTelemetryStatsGet(&gcsStats);
-//	if (flightStats.Status != FLIGHTTELEMETRYSTATS_STATUS_CONNECTED || gcsStats.Status != GCSTELEMETRYSTATS_STATUS_CONNECTED) {
-//		updateTelemetryStats();
-//	}
-//}
-//
-///**
-// * Update telemetry statistics and handle connection handshake
-// */
-//static void updateTelemetryStats()
-//{
-//	UAVTalkStats utalkStats;
-//	FlightTelemetryStatsData flightStats;
-//	GCSTelemetryStatsData gcsStats;
-//	uint8_t forceUpdate;
-//	uint8_t connectionTimeout;
-//	uint32_t timeNow;
-//
-//	// Get stats
-//	UAVTalkGetStats(&utalkStats);
-//	UAVTalkResetStats();
-//
-//	// Get object data
-//	FlightTelemetryStatsGet(&flightStats);
-//	GCSTelemetryStatsGet(&gcsStats);
-//
-//	// Update stats object
-//	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
-//		flightStats.RxDataRate = (float)utalkStats.rxBytes / ((float)STATS_UPDATE_PERIOD_MS / 1000.0);
-//		flightStats.TxDataRate = (float)utalkStats.txBytes / ((float)STATS_UPDATE_PERIOD_MS / 1000.0);
-//		flightStats.RxFailures += utalkStats.rxErrors;
-//		flightStats.TxFailures += txErrors;
-//		flightStats.TxRetries += txRetries;
-//		txErrors = 0;
-//		txRetries = 0;
-//	} else {
-//		flightStats.RxDataRate = 0;
-//		flightStats.TxDataRate = 0;
-//		flightStats.RxFailures = 0;
-//		flightStats.TxFailures = 0;
-//		flightStats.TxRetries = 0;
-//		txErrors = 0;
-//		txRetries = 0;
-//	}
-//
-//	// Check for connection timeout
-//	timeNow = xTaskGetTickCount() * portTICK_RATE_MS;
-//	if (utalkStats.rxObjects > 0) {
-//		timeOfLastObjectUpdate = timeNow;
-//	}
-//	if ((timeNow - timeOfLastObjectUpdate) > CONNECTION_TIMEOUT_MS) {
-//		connectionTimeout = 1;
-//	} else {
-//		connectionTimeout = 0;
-//	}
-//
-//	// Update connection state
-//	forceUpdate = 1;
+/**
+ * Called each time the GCS telemetry stats object is updated.
+ * Trigger a flight telemetry stats update if a connection is not
+ * yet established.
+ */
+static void gcsTelemetryStatsUpdated()
+{
+	FlightTelemetryStatsData flightStats;
+	GCSTelemetryStatsData gcsStats;
+	FlightTelemetryStatsGet(&flightStats);
+	GCSTelemetryStatsGet(&gcsStats);
+	if (flightStats.Status != FLIGHTTELEMETRYSTATS_STATUS_CONNECTED || gcsStats.Status != GCSTELEMETRYSTATS_STATUS_CONNECTED) {
+		updateTelemetryStats();
+	}
+}
+
+/**
+ * Update telemetry statistics and handle connection handshake
+ */
+static void updateTelemetryStats()
+{
+//	flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+//	gcsStats.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
+
+	FlightTelemetryStatsData flightStats;
+	GCSTelemetryStatsData gcsStats;
+	uint8_t forceUpdate;
+	uint8_t connectionTimeout;
+	uint32_t timeNow;
+
+	// Get object data
+	FlightTelemetryStatsGet(&flightStats);
+	GCSTelemetryStatsGet(&gcsStats);
+
+	// Update stats object
+	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
+		//flightStats.RxDataRate = (float)utalkStats.rxBytes / ((float)STATS_UPDATE_PERIOD_MS / 1000.0);
+		//flightStats.TxDataRate = (float)utalkStats.txBytes / ((float)STATS_UPDATE_PERIOD_MS / 1000.0);
+		//flightStats.RxFailures += utalkStats.rxErrors;
+		flightStats.TxFailures += txErrors;
+		flightStats.TxRetries += txRetries;
+		txErrors = 0;
+		txRetries = 0;
+	} else {
+		flightStats.RxDataRate = 0;
+		flightStats.TxDataRate = 0;
+		flightStats.RxFailures = 0;
+		flightStats.TxFailures = 0;
+		flightStats.TxRetries = 0;
+		txErrors = 0;
+		txRetries = 0;
+	}
+
+	// Check for connection timeout
+	timeNow = xTaskGetTickCount() * portTICK_RATE_MS;
+	if ((timeNow - lastOperatorHeartbeat) > CONNECTION_TIMEOUT_MS) {
+		connectionTimeout = 1;
+	} else {
+		connectionTimeout = 0;
+	}
+
+	// Update connection state
+	forceUpdate = 1;
+
+	// FIXME Hardcode value for now
+//	connectionTimeout = 0;
+
+	// If the GCS heartbeat has been received in the last five seconds
+	// set as connected
+	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED) {
+		if (connectionTimeout == 0) {
+			// Switching from disconnected to connected
+			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+			gcsStats.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
+		} else {
+			// Not switching, no update needed
+			forceUpdate = 0;
+		}
+	} else {
+		// We were connected, checking if we're still connected
+		if (connectionTimeout == 1) {
+			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
+			gcsStats.Status = GCSTELEMETRYSTATS_STATUS_DISCONNECTED;
+		} else {
+			// We were connected and still are, no update needed
+			forceUpdate = 0;
+		}
+	}
+
+	// FIXME HARDCODED VALUES
+	flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+	forceUpdate = 1;
+
 //	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED) {
 //		// Wait for connection request
 //		if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_HANDSHAKEREQ) {
@@ -821,22 +871,22 @@ static int32_t setUpdatePeriod(UAVObjHandle obj, int32_t updatePeriodMs)
 //	} else {
 //		flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
 //	}
-//
-//	// Update the telemetry alarm
-//	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
-//		AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
-//	} else {
-//		AlarmsSet(SYSTEMALARMS_ALARM_TELEMETRY, SYSTEMALARMS_ALARM_ERROR);
-//	}
-//
-//	// Update object
-//	FlightTelemetryStatsSet(&flightStats);
-//
-//	// Force telemetry update if not connected
-//	if (forceUpdate) {
-//		FlightTelemetryStatsUpdated();
-//	}
-//}
+
+	// Update the telemetry alarm
+	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
+		AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
+	} else {
+		AlarmsSet(SYSTEMALARMS_ALARM_TELEMETRY, SYSTEMALARMS_ALARM_ERROR);
+	}
+
+	// Update object
+	FlightTelemetryStatsSet(&flightStats);
+
+	// Force telemetry update if not connected
+	if (forceUpdate) {
+		FlightTelemetryStatsUpdated();
+	}
+}
 
 /**
  * Update the telemetry settings, called on startup and

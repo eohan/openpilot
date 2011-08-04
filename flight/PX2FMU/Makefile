@@ -50,7 +50,7 @@ CODE_SOURCERY ?= NO
 ifeq ($(CODE_SOURCERY), YES)
 REMOVE_CMD = cs-rm
 else
-REMOVE_CMD = rm
+REMOVE_CMD = rm -rf
 endif
 
 FLASH_TOOL = OPENOCD

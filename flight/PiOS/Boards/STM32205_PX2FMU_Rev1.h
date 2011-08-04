@@ -71,6 +71,12 @@
 #define PIOS_TELEM_STACK_SIZE	624
 
 //------------------------
+// MAVLINK
+//------------------------
+#define MAVLINK_QUEUE_SIZE		20
+#define PIOS_MAVLINK_STACK_SIZE	1024
+
+//------------------------
 // PIOS_LED
 //------------------------
 #define PIOS_LED_LED1_GPIO_PORT                 GPIOB
