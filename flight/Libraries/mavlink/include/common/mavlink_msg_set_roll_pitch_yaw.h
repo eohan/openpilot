@@ -1,18 +1,18 @@
 // MESSAGE SET_ROLL_PITCH_YAW PACKING
 
 #define MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW 55
+#define MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_LEN 14
+#define MAVLINK_MSG_55_LEN 14
 
 typedef struct __mavlink_set_roll_pitch_yaw_t 
 {
-	uint8_t target_system; ///< System ID
-	uint8_t target_component; ///< Component ID
 	float roll; ///< Desired roll angle in radians
 	float pitch; ///< Desired pitch angle in radians
 	float yaw; ///< Desired yaw angle in radians
+	uint8_t target_system; ///< System ID
+	uint8_t target_component; ///< Component ID
 
 } mavlink_set_roll_pitch_yaw_t;
-
-
 
 /**
  * @brief Pack a set_roll_pitch_yaw message
@@ -29,16 +29,16 @@ typedef struct __mavlink_set_roll_pitch_yaw_t
  */
 static inline uint16_t mavlink_msg_set_roll_pitch_yaw_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, uint8_t target_system, uint8_t target_component, float roll, float pitch, float yaw)
 {
-	uint16_t i = 0;
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
 	msg->msgid = MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW;
 
-	i += put_uint8_t_by_index(target_system, i, msg->payload); // System ID
-	i += put_uint8_t_by_index(target_component, i, msg->payload); // Component ID
-	i += put_float_by_index(roll, i, msg->payload); // Desired roll angle in radians
-	i += put_float_by_index(pitch, i, msg->payload); // Desired pitch angle in radians
-	i += put_float_by_index(yaw, i, msg->payload); // Desired yaw angle in radians
+	p->target_system = target_system; // uint8_t:System ID
+	p->target_component = target_component; // uint8_t:Component ID
+	p->roll = roll; // float:Desired roll angle in radians
+	p->pitch = pitch; // float:Desired pitch angle in radians
+	p->yaw = yaw; // float:Desired yaw angle in radians
 
-	return mavlink_finalize_message(msg, system_id, component_id, i);
+	return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_LEN);
 }
 
 /**
@@ -56,16 +56,16 @@ static inline uint16_t mavlink_msg_set_roll_pitch_yaw_pack(uint8_t system_id, ui
  */
 static inline uint16_t mavlink_msg_set_roll_pitch_yaw_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, uint8_t target_system, uint8_t target_component, float roll, float pitch, float yaw)
 {
-	uint16_t i = 0;
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
 	msg->msgid = MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW;
 
-	i += put_uint8_t_by_index(target_system, i, msg->payload); // System ID
-	i += put_uint8_t_by_index(target_component, i, msg->payload); // Component ID
-	i += put_float_by_index(roll, i, msg->payload); // Desired roll angle in radians
-	i += put_float_by_index(pitch, i, msg->payload); // Desired pitch angle in radians
-	i += put_float_by_index(yaw, i, msg->payload); // Desired yaw angle in radians
+	p->target_system = target_system; // uint8_t:System ID
+	p->target_component = target_component; // uint8_t:Component ID
+	p->roll = roll; // float:Desired roll angle in radians
+	p->pitch = pitch; // float:Desired pitch angle in radians
+	p->yaw = yaw; // float:Desired yaw angle in radians
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, i);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_LEN);
 }
 
 /**
@@ -91,13 +91,39 @@ static inline uint16_t mavlink_msg_set_roll_pitch_yaw_encode(uint8_t system_id, 
  * @param pitch Desired pitch angle in radians
  * @param yaw Desired yaw angle in radians
  */
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
+
+#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 static inline void mavlink_msg_set_roll_pitch_yaw_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, float roll, float pitch, float yaw)
 {
-	mavlink_message_t msg;
-	mavlink_msg_set_roll_pitch_yaw_pack_chan(mavlink_system.sysid, mavlink_system.compid, chan, &msg, target_system, target_component, roll, pitch, yaw);
-	mavlink_send_uart(chan, &msg);
+	mavlink_header_t hdr;
+	mavlink_set_roll_pitch_yaw_t payload;
+	uint16_t checksum;
+	mavlink_set_roll_pitch_yaw_t *p = &payload;
+
+	p->target_system = target_system; // uint8_t:System ID
+	p->target_component = target_component; // uint8_t:Component ID
+	p->roll = roll; // float:Desired roll angle in radians
+	p->pitch = pitch; // float:Desired pitch angle in radians
+	p->yaw = yaw; // float:Desired yaw angle in radians
+
+	hdr.STX = MAVLINK_STX;
+	hdr.len = MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_LEN;
+	hdr.msgid = MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW;
+	hdr.sysid = mavlink_system.sysid;
+	hdr.compid = mavlink_system.compid;
+	hdr.seq = mavlink_get_channel_status(chan)->current_tx_seq;
+	mavlink_get_channel_status(chan)->current_tx_seq = hdr.seq + 1;
+	mavlink_send_mem(chan, (uint8_t *)&hdr.STX, MAVLINK_NUM_HEADER_BYTES );
+
+	crc_init(&checksum);
+	checksum = crc_calculate_mem((uint8_t *)&hdr.len, &checksum, MAVLINK_CORE_HEADER_LEN);
+	checksum = crc_calculate_mem((uint8_t *)&payload, &checksum, hdr.len );
+	hdr.ck_a = (uint8_t)(checksum & 0xFF); ///< Low byte
+	hdr.ck_b = (uint8_t)(checksum >> 8); ///< High byte
+
+	mavlink_send_mem(chan, (uint8_t *)&payload, hdr.len);
+	mavlink_send_mem(chan, (uint8_t *)&hdr.ck_a, MAVLINK_NUM_CHECKSUM_BYTES);
 }
 
 #endif
@@ -110,7 +136,8 @@ static inline void mavlink_msg_set_roll_pitch_yaw_send(mavlink_channel_t chan, u
  */
 static inline uint8_t mavlink_msg_set_roll_pitch_yaw_get_target_system(const mavlink_message_t* msg)
 {
-	return (uint8_t)(msg->payload)[0];
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
+	return (uint8_t)(p->target_system);
 }
 
 /**
@@ -120,7 +147,8 @@ static inline uint8_t mavlink_msg_set_roll_pitch_yaw_get_target_system(const mav
  */
 static inline uint8_t mavlink_msg_set_roll_pitch_yaw_get_target_component(const mavlink_message_t* msg)
 {
-	return (uint8_t)(msg->payload+sizeof(uint8_t))[0];
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
+	return (uint8_t)(p->target_component);
 }
 
 /**
@@ -130,12 +158,8 @@ static inline uint8_t mavlink_msg_set_roll_pitch_yaw_get_target_component(const 
  */
 static inline float mavlink_msg_set_roll_pitch_yaw_get_roll(const mavlink_message_t* msg)
 {
-	generic_32bit r;
-	r.b[3] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t))[0];
-	r.b[2] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t))[1];
-	r.b[1] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t))[2];
-	r.b[0] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t))[3];
-	return (float)r.f;
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
+	return (float)(p->roll);
 }
 
 /**
@@ -145,12 +169,8 @@ static inline float mavlink_msg_set_roll_pitch_yaw_get_roll(const mavlink_messag
  */
 static inline float mavlink_msg_set_roll_pitch_yaw_get_pitch(const mavlink_message_t* msg)
 {
-	generic_32bit r;
-	r.b[3] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float))[0];
-	r.b[2] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float))[1];
-	r.b[1] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float))[2];
-	r.b[0] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float))[3];
-	return (float)r.f;
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
+	return (float)(p->pitch);
 }
 
 /**
@@ -160,12 +180,8 @@ static inline float mavlink_msg_set_roll_pitch_yaw_get_pitch(const mavlink_messa
  */
 static inline float mavlink_msg_set_roll_pitch_yaw_get_yaw(const mavlink_message_t* msg)
 {
-	generic_32bit r;
-	r.b[3] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float)+sizeof(float))[0];
-	r.b[2] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float)+sizeof(float))[1];
-	r.b[1] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float)+sizeof(float))[2];
-	r.b[0] = (msg->payload+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(float)+sizeof(float))[3];
-	return (float)r.f;
+	mavlink_set_roll_pitch_yaw_t *p = (mavlink_set_roll_pitch_yaw_t *)&msg->payload[0];
+	return (float)(p->yaw);
 }
 
 /**
@@ -176,9 +192,5 @@ static inline float mavlink_msg_set_roll_pitch_yaw_get_yaw(const mavlink_message
  */
 static inline void mavlink_msg_set_roll_pitch_yaw_decode(const mavlink_message_t* msg, mavlink_set_roll_pitch_yaw_t* set_roll_pitch_yaw)
 {
-	set_roll_pitch_yaw->target_system = mavlink_msg_set_roll_pitch_yaw_get_target_system(msg);
-	set_roll_pitch_yaw->target_component = mavlink_msg_set_roll_pitch_yaw_get_target_component(msg);
-	set_roll_pitch_yaw->roll = mavlink_msg_set_roll_pitch_yaw_get_roll(msg);
-	set_roll_pitch_yaw->pitch = mavlink_msg_set_roll_pitch_yaw_get_pitch(msg);
-	set_roll_pitch_yaw->yaw = mavlink_msg_set_roll_pitch_yaw_get_yaw(msg);
+	memcpy( set_roll_pitch_yaw, msg->payload, sizeof(mavlink_set_roll_pitch_yaw_t));
 }

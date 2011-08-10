@@ -363,7 +363,7 @@ static void processObjEvent(UAVObjEvent * ev)
 
 		mavlink_system.sysid = 20;
 		mavlink_system.compid = MAV_COMP_ID_IMU;
-		mavlink_system.type = MAV_FIXED_WING;
+		mavlink_system.type = MAV_TYPE_FIXED_WING;
 		uint8_t mavClass = MAV_CLASS_OPENPILOT;
 
 
@@ -675,9 +675,9 @@ static void telemetryRxTask(void *parameters)
 					}
 				}
 				break;
-				case MAVLINK_MSG_ID_ACTION:
+				case MAVLINK_MSG_ID_COMMAND:
 				{
-					//									execute_action(mavlink_msg_action_get_action(msg));
+					//									execute_action(mavlink_msg_action_get_command(msg));
 					//
 					//									//Forwart actions from Xbee to Onboard Computer and vice versa
 					//									if (chan == MAVLINK_COMM_1)

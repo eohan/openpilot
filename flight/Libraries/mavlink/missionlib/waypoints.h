@@ -19,7 +19,7 @@
 
 /* This assumes you have the mavlink headers on your include path
  or in the same folder as this source file */
-#include <mavlink.h>
+#include <mavlink_types.h>
 #include <stdbool.h>
 
 // FIXME XXX - TO BE MOVED TO XML

@@ -31,15 +31,6 @@ extern void mavlink_wpm_send_gcs_string(const char* string);
 extern uint64_t mavlink_wpm_get_system_timestamp();
 
 
-// FIXME HACK FOR CURRENT MAVLINK VERSION
-#ifndef MAV_FRAME_LOCAL_NED
-#define MAV_FRAME_LOCAL_NED MAV_FRAME_LOCAL
-#endif
-#ifndef MAV_FRAME_LOCAL_ENU
-#define MAV_FRAME_LOCAL_ENU MAV_FRAME_LOCAL
-#endif
-
-
 #define MAVLINK_WPM_NO_PRINTF
 
 void mavlink_wpm_init(mavlink_wpm_storage* state)

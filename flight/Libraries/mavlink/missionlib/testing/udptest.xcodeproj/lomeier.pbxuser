@@ -74,23 +74,12 @@
 			PBXWorkspaceStateSaveDate = 334058732;
 		};
 		perUserProjectItems = {
-			349EAD8413E9573300CEFB96 /* PBXBookmark */ = 349EAD8413E9573300CEFB96 /* PBXBookmark */;
-			349EAD8F13E9581B00CEFB96 /* XCBuildMessageTextBookmark */ = 349EAD8F13E9581B00CEFB96 /* XCBuildMessageTextBookmark */;
-			349EAD9013E9581B00CEFB96 /* PBXTextBookmark */ = 349EAD9013E9581B00CEFB96 /* PBXTextBookmark */;
-			349EAD9613E9581B00CEFB96 /* PBXTextBookmark */ = 349EAD9613E9581B00CEFB96 /* PBXTextBookmark */;
-			349EAD9913E9581B00CEFB96 /* PBXTextBookmark */ = 349EAD9913E9581B00CEFB96 /* PBXTextBookmark */;
-			349EAD9A13E9581B00CEFB96 /* PBXTextBookmark */ = 349EAD9A13E9581B00CEFB96 /* PBXTextBookmark */;
-			349EAD9D13E9585000CEFB96 /* PBXTextBookmark */ = 349EAD9D13E9585000CEFB96 /* PBXTextBookmark */;
-			349EAD9E13E9585000CEFB96 /* PBXTextBookmark */ = 349EAD9E13E9585000CEFB96 /* PBXTextBookmark */;
-			349EAD9F13E9585000CEFB96 /* PBXTextBookmark */ = 349EAD9F13E9585000CEFB96 /* PBXTextBookmark */;
-			349EADA313E95B6000CEFB96 /* PBXTextBookmark */ = 349EADA313E95B6000CEFB96 /* PBXTextBookmark */;
-			349EADA413E95B6000CEFB96 /* PBXTextBookmark */ = 349EADA413E95B6000CEFB96 /* PBXTextBookmark */;
-			349EADA513E95B6000CEFB96 /* PBXTextBookmark */ = 349EADA513E95B6000CEFB96 /* PBXTextBookmark */;
-			349EADA613E95B6000CEFB96 /* PBXTextBookmark */ = 349EADA613E95B6000CEFB96 /* PBXTextBookmark */;
-			349EADA813E95BAC00CEFB96 /* PBXTextBookmark */ = 349EADA813E95BAC00CEFB96 /* PBXTextBookmark */;
-			349EADA913E95BAC00CEFB96 /* PBXTextBookmark */ = 349EADA913E95BAC00CEFB96 /* PBXTextBookmark */;
-			349EADAA13E95BAC00CEFB96 /* PBXTextBookmark */ = 349EADAA13E95BAC00CEFB96 /* PBXTextBookmark */;
-			349EADAB13E95BAC00CEFB96 /* PBXTextBookmark */ = 349EADAB13E95BAC00CEFB96 /* PBXTextBookmark */;
+			349EADB013EAA27F00CEFB96 /* PBXTextBookmark */ = 349EADB013EAA27F00CEFB96 /* PBXTextBookmark */;
+			349EADB513F00D1B00CEFB96 /* PBXTextBookmark */ = 349EADB513F00D1B00CEFB96 /* PBXTextBookmark */;
+			349EADB613F00D1B00CEFB96 /* PBXTextBookmark */ = 349EADB613F00D1B00CEFB96 /* PBXTextBookmark */;
+			349EADB813F00D1B00CEFB96 /* PBXTextBookmark */ = 349EADB813F00D1B00CEFB96 /* PBXTextBookmark */;
+			349EADBA13F00D1B00CEFB96 /* PBXTextBookmark */ = 349EADBA13F00D1B00CEFB96 /* PBXTextBookmark */;
+			349EADBC13F00D1B00CEFB96 /* PBXTextBookmark */ = 349EADBC13F00D1B00CEFB96 /* PBXTextBookmark */;
 		};
 		sourceControlManager = 349EAD5513E9550B00CEFB96 /* Source Control */;
 		userBuildSettings = {
@@ -98,10 +87,10 @@
 	};
 	08FB7796FE84155DC02AAC07 /* main.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1337, 3588}}";
-			sepNavSelRange = "{2140, 279}";
-			sepNavVisRange = "{1617, 1633}";
-			sepNavWindowFrame = "{{15, 385}, {1396, 1028}}";
+			sepNavIntBoundsRect = "{{0, 0}, {768, 3562}}";
+			sepNavSelRange = "{2058, 0}";
+			sepNavVisRange = "{1894, 442}";
+			sepNavWindowFrame = "{{493, 234}, {1396, 1028}}";
 		};
 	};
 	349EAD4E13E954EC00CEFB96 /* udptest */ = {
@@ -133,9 +122,10 @@
 	};
 	349EAD5313E9550B00CEFB96 /* waypoints.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1937, 11466}}";
-			sepNavSelRange = "{39650, 0}";
-			sepNavVisRange = "{17760, 3240}";
+			sepNavIntBoundsRect = "{{0, 0}, {761, 11544}}";
+			sepNavSelRange = "{39660, 0}";
+			sepNavVisRange = "{12409, 896}";
+			sepNavWindowFrame = "{{207, 141}, {1396, 1028}}";
 		};
 	};
 	349EAD5513E9550B00CEFB96 /* Source Control */ = {
@@ -152,20 +142,7 @@
 		isa = PBXCodeSenseManager;
 		indexTemplatePath = "";
 	};
-	349EAD8413E9573300CEFB96 /* PBXBookmark */ = {
-		isa = PBXBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-	};
-	349EAD8F13E9581B00CEFB96 /* XCBuildMessageTextBookmark */ = {
-		isa = PBXTextBookmark;
-		comments = "'buf' undeclared (first use in this function)";
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		fallbackIsa = XCBuildMessageTextBookmark;
-		rLen = 1;
-		rLoc = 106;
-		rType = 1;
-	};
-	349EAD9013E9581B00CEFB96 /* PBXTextBookmark */ = {
+	349EADB013EAA27F00CEFB96 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
 		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
 		name = "main.c: 96";
@@ -175,145 +152,92 @@
 		vrLen = 1123;
 		vrLoc = 1718;
 	};
-	349EAD9613E9581B00CEFB96 /* PBXTextBookmark */ = {
+	349EADB213EAA27F00CEFB96 /* STM32205_PX2FMU_Rev1.h */ = {
+		isa = PBXFileReference;
+		lastKnownFileType = sourcecode.c.h;
+		name = STM32205_PX2FMU_Rev1.h;
+		path = "/Users/lomeier/openpilot-pixhawk/flight/PiOS/Boards/STM32205_PX2FMU_Rev1.h";
+		sourceTree = "<absolute>";
+	};
+	349EADB513F00D1B00CEFB96 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 69";
+		fRef = 349EADB213EAA27F00CEFB96 /* STM32205_PX2FMU_Rev1.h */;
+		name = "STM32205_PX2FMU_Rev1.h: 71";
 		rLen = 0;
-		rLoc = 2371;
+		rLoc = 2575;
 		rType = 0;
-		vrLen = 1814;
-		vrLoc = 970;
+		vrLen = 2248;
+		vrLoc = 1629;
 	};
-	349EAD9913E9581B00CEFB96 /* PBXTextBookmark */ = {
+	349EADB613F00D1B00CEFB96 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 51";
+		fRef = 349EADB713F00D1B00CEFB96 /* px_imagecapture.cc */;
+		name = "px_imagecapture.cc: 1";
 		rLen = 0;
-		rLoc = 2453;
+		rLoc = 0;
 		rType = 0;
-		vrLen = 2401;
-		vrLoc = 765;
+		vrLen = 1576;
+		vrLoc = 10124;
 	};
-	349EAD9A13E9581B00CEFB96 /* PBXTextBookmark */ = {
+	349EADB713F00D1B00CEFB96 /* px_imagecapture.cc */ = {
+		isa = PBXFileReference;
+		name = px_imagecapture.cc;
+		path = /Users/lomeier/src/ai_vision/src/vision/cam_lcm_dc1394/px_imagecapture.cc;
+		sourceTree = "<absolute>";
+	};
+	349EADB813F00D1B00CEFB96 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 21";
+		fRef = 349EADB913F00D1B00CEFB96 /* px_replay.cc */;
+		name = "px_replay.cc: 199";
 		rLen = 0;
-		rLoc = 887;
+		rLoc = 6135;
 		rType = 0;
-		vrLen = 2503;
-		vrLoc = 0;
+		vrLen = 2193;
+		vrLoc = 5267;
 	};
-	349EAD9D13E9585000CEFB96 /* PBXTextBookmark */ = {
+	349EADB913F00D1B00CEFB96 /* px_replay.cc */ = {
+		isa = PBXFileReference;
+		name = px_replay.cc;
+		path = /Users/lomeier/src/ai_vision/src/vision/cam_lcm_dc1394/px_replay.cc;
+		sourceTree = "<absolute>";
+	};
+	349EADBA13F00D1B00CEFB96 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 96";
+		fRef = 349EADBB13F00D1B00CEFB96 /* eagleUp_import.rb */;
+		name = "eagleUp_import.rb: 14";
 		rLen = 0;
-		rLoc = 2838;
+		rLoc = 688;
 		rType = 0;
-		vrLen = 1123;
-		vrLoc = 1718;
+		vrLen = 1887;
+		vrLoc = 640;
 	};
-	349EAD9E13E9585000CEFB96 /* PBXTextBookmark */ = {
+	349EADBB13F00D1B00CEFB96 /* eagleUp_import.rb */ = {
+		isa = PBXFileReference;
+		lastKnownFileType = text.script.ruby;
+		name = eagleUp_import.rb;
+		path = "/Users/lomeier/src/hardware/eagle-plugins/eagleup-4.1/Sketchup Plugin/eagleUp_import.rb";
+		sourceTree = "<absolute>";
+	};
+	349EADBC13F00D1B00CEFB96 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 244";
+		fRef = 349EADBD13F00D1B00CEFB96 /* eagleUp_import.rb */;
+		name = "eagleUp_import.rb: 14";
 		rLen = 0;
-		rLoc = 7122;
+		rLoc = 688;
 		rType = 0;
-		vrLen = 2174;
-		vrLoc = 5316;
+		vrLen = 1576;
+		vrLoc = 3549;
 	};
-	349EAD9F13E9585000CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 21";
-		rLen = 0;
-		rLoc = 887;
-		rType = 0;
-		vrLen = 2503;
-		vrLoc = 0;
-	};
-	349EADA313E95B6000CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 96";
-		rLen = 0;
-		rLoc = 2838;
-		rType = 0;
-		vrLen = 1123;
-		vrLoc = 1718;
-	};
-	349EADA413E95B6000CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 34";
-		rLen = 0;
-		rLoc = 1221;
-		rType = 0;
-		vrLen = 2503;
-		vrLoc = 0;
-	};
-	349EADA513E95B6000CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 23";
-		rLen = 0;
-		rLoc = 907;
-		rType = 0;
-		vrLen = 2605;
-		vrLoc = 1672;
-	};
-	349EADA613E95B6000CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 64";
-		rLen = 279;
-		rLoc = 2140;
-		rType = 0;
-		vrLen = 1633;
-		vrLoc = 1617;
-	};
-	349EADA813E95BAC00CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 96";
-		rLen = 0;
-		rLoc = 2838;
-		rType = 0;
-		vrLen = 1123;
-		vrLoc = 1718;
-	};
-	349EADA913E95BAC00CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 23";
-		rLen = 0;
-		rLoc = 907;
-		rType = 0;
-		vrLen = 2605;
-		vrLoc = 1672;
-	};
-	349EADAA13E95BAC00CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 349EAD5313E9550B00CEFB96 /* waypoints.c */;
-		name = "waypoints.c: 873";
-		rLen = 0;
-		rLoc = 39650;
-		rType = 0;
-		vrLen = 3240;
-		vrLoc = 17760;
-	};
-	349EADAB13E95BAC00CEFB96 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = 08FB7796FE84155DC02AAC07 /* main.c */;
-		name = "main.c: 64";
-		rLen = 279;
-		rLoc = 2140;
-		rType = 0;
-		vrLen = 1633;
-		vrLoc = 1617;
+	349EADBD13F00D1B00CEFB96 /* eagleUp_import.rb */ = {
+		isa = PBXFileReference;
+		name = eagleUp_import.rb;
+		path = "/Users/lomeier/src/hardware/eagle-plugins/eagleup-4.1/Sketchup Plugin/eagleUp_import.rb";
+		sourceTree = "<absolute>";
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {922, 9750}}";
+			sepNavSelRange = "{688, 0}";
+			sepNavVisRange = "{3549, 1576}";
+		};
 	};
 	8DD76FA90486AB0100D96B5E /* udptest */ = {
 		activeExec = 0;
