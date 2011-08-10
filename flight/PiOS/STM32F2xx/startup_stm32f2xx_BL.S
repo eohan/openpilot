@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file      startup_stm32f100_MD_BL.s
   * @author    MCD Application Team / Angus Peart / Michael Smith
-  * @brief     STM32F100 Medium Density Devices startup - bootloader, no OS stack.
+  * @brief     STM32F2xx Devices startup - bootloader, no OS stack.
   *******************************************************************************
   * @copy
   *
@@ -96,4 +96,4 @@ Infinite_Loop:
   .size  Default_Handler, .-Default_Handler
 
 #define INITIAL_STACK_TOP	_estack
-#include "vectors_stm32f100.S"
+#include "vectors_stm32f2xx.S"

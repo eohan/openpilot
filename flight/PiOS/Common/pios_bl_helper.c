@@ -30,15 +30,15 @@
 
 /* Project Includes */
 #include "pios.h"
-#if defined(PIOS_INCLUDE_BL_HELPER)
-#if defined(STM32F2XX)
-#include "stm32f2xx_flash.h"
-#define FALSE	0
-#define TRUE	1
-#else
 #include <pios_board_info.h>
-#include "stm32f10x_flash.h"
-#endif
+#if defined(PIOS_INCLUDE_BL_HELPER)
+# if defined(STM32F2XX)
+#  include "stm32f2xx_flash.h"
+#  define FALSE	0
+#  define TRUE	1
+# else
+#  include "stm32f10x_flash.h"
+# endif
 #endif
 
 uint8_t *PIOS_BL_HELPER_FLASH_If_Read(uint32_t SectorAddress)
@@ -73,6 +73,7 @@ static struct {
 		{ 0xffff,          0x08100000 }
 };
 
+uint8_t
 PIOS_BL_HELPER_FLASH_Start()
 {
 	uint32_t		baseAddress = START_OF_USER_CODE;
@@ -113,7 +114,7 @@ uint8_t PIOS_BL_HELPER_FLASH_Start()
 
 #ifdef STM32F10X_HD
 		pageAdress += 2048;
-#elif defined (STM32F10X_MD)
+#else /* everything else */
 		pageAdress += 1024;
 #endif
 	}

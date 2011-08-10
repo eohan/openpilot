@@ -1,5 +1,5 @@
 /* XXX should be based on the SRAM definition */
-_estack = 0x20001ff0;
+_estack = 0x2001fff0;
 
 /* Section Definitions */
 SECTIONS
@@ -16,12 +16,12 @@ SECTIONS
     .ARM.extab :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
-    } > BL_FLASH
+    } > FLASH
 
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-    } > BL_FLASH
+    } > FLASH
 
     . = ALIGN(4);
     _etext = .;
@@ -41,8 +41,8 @@ SECTIONS
         _sbss = . ;
         *(.bss .bss.*)
         *(COMMON)
-        . = ALIGN(4);
         _ebss = . ;
+        
     } > SRAM
 
     . = ALIGN(4);
@@ -52,6 +52,6 @@ SECTIONS
     {
 		. = ALIGN(4);
 		KEEP(*(.boardinfo))
-		. = ALIGN(4);
-    } > BD_INFO
+	    } > BD_INFO
+
 }

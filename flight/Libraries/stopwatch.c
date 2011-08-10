@@ -29,7 +29,11 @@
 // Include files
 /////////////////////////////////////////////////////////////////////////////
 
-#include "stm32f10x_tim.h"
+#if defined(STM32F2XX)
+# include "stm32f2xx_tim.h"
+#else
+# include "stm32f10x_tim.h"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Local definitions
@@ -77,7 +81,7 @@ uint32_t STOPWATCH_Init(u32 resolution, TIM_TypeDef* TIM) {
 	// time base configuration
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_TimeBaseStructure.TIM_Period = 0xffff; // max period
-	TIM_TimeBaseStructure.TIM_Prescaler = (72 * resolution) - 1; // <resolution> uS accuracy @ 72 MHz
+	TIM_TimeBaseStructure.TIM_Prescaler = (72 * resolution) - 1; // <resolution> uS accuracy @ 72 MHz XXX should not hardcode clock here
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM, &TIM_TimeBaseStructure);

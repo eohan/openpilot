@@ -38,7 +38,6 @@
 //#define FUNC_ID				1
 //#define HW_VERSION			01
 
-#define BOOTLOADER_VERSION		0
 #define BOARD_TYPE				0x05	// PX2 FMU
 #define BOARD_REVISION			0x01 	// prototype (should be a strapping option... silly to hardcode it here)
 //#define HW_VERSION			(BOARD_TYPE << 8) | BOARD_REVISION
@@ -48,10 +47,8 @@
 #define START_OF_USER_CODE		(uint32_t)0x08010000 // NOTE: must match FLASH ORIGIN in link_STM32F2xx_application.ld
 #define SIZE_OF_CODE			(uint32_t) (MEM_SIZE-(START_OF_USER_CODE-0x08000000)-SIZE_OF_DESCRIPTION)
 
-#define HW_TYPE					0		// this is technically meaningless
-
 #define BOARD_READABLE			TRUE
-#define BOARD_WRITABLA			TRUE
+#define BOARD_WRITABLE			TRUE
 
 //------------------------
 // WATCHDOG_SETTINGS
@@ -191,7 +188,7 @@ extern uint32_t pios_com_control_id;
 extern uint32_t pios_com_aux_id;
 #define PIOS_COM_AUX                    (pios_com_aux_id)
 
-#define PIOS_COM_DEBUG                  PIOS_COM_CONTROL	/* due to the AUX channel missing drivers on early FMU boards */
+#define PIOS_COM_DEBUG                  PIOS_COM_AUX
 
 //-------------------------
 // Delay Timer

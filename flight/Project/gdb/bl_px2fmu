@@ -1,0 +1,5 @@
+define connect
+	do_connect ./build/bl_px2fmu/bl_px2fmu.elf
+end
+directory ./flight/project/gdb
+source CortexM3
