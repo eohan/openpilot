@@ -139,6 +139,8 @@ static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 
 #include "common/mavlink.h"
 
+#include "mavlink_data.h"
+
 /* 3: Define waypoint helper functions */
 void mavlink_wpm_send_message(mavlink_message_t* msg);
 void mavlink_wpm_send_gcs_string(const char* string);
@@ -177,6 +179,7 @@ void mavlink_wpm_send_gcs_string(const char* string)
 	mavlink_message_t msg;
 
 	mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &status);
+	mavlink_wpm_send_message(&msg);
 }
 
 uint64_t mavlink_wpm_get_system_timestamp()
