@@ -166,16 +166,15 @@ void mavlink_wpm_send_gcs_string(const char* string)
 {
 	const int len = 50;
 	mavlink_statustext_t status;
-	char* str = (char*)status.text;
 	int i = 0;
 	while (i < len - 1)
 	{
-		str[i] = string[i];
+		status.text[i] = string[i];
 		if (string[i] == '\0')
 			break;
 		i++;
 	}
-	str[i] = '\0'; // Enforce null termination
+	status.text[i] = '\0'; // Enforce null termination
 	mavlink_message_t msg;
 
 	mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &status);
