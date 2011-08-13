@@ -105,7 +105,6 @@ SRC += $(PIOSSTM32F2XX)/pios_led.c
 SRC += $(PIOSSTM32F2XX)/pios_delay.c
 SRC += $(PIOSSTM32F2XX)/pios_usart.c
 SRC += $(PIOSSTM32F2XX)/pios_irq.c
-SRC += $(PIOSSTM32F2XX)/pios_spi.c
 SRC += $(PIOSSTM32F2XX)/pios_debug.c
 SRC += $(PIOSSTM32F2XX)/pios_gpio.c
 
@@ -144,7 +143,6 @@ SRC += $(STMSPDSRCDIR)/stm32f2xx_gpio.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_pwr.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_rcc.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_rtc.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_spi.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_tim.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_usart.c
 SRC += $(STMSPDSRCDIR)/stm32f2xx_dbgmcu.c

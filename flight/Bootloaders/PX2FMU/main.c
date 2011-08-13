@@ -41,13 +41,7 @@ extern void PIOS_Board_Init(void);
 extern void FLASH_Download();
 #define BSL_HOLD_STATE ((PIOS_USB_DETECT_GPIO_PORT->IDR & PIOS_USB_DETECT_GPIO_PIN) ? 0 : 1)
 
-/* Private typedef -----------------------------------------------------------*/
-typedef void (*pFunction)(void);
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-pFunction Jump_To_Application;
-uint32_t JumpAddress;
+static void	do_jump(uint32_t stacktop, uint32_t entrypoint) __attribute__((noreturn));
 
 /// LEDs PWM
 uint32_t period1 = 50; // *100 uS -> 5 mS
@@ -214,22 +208,38 @@ int main() {
 	}
 }
 
-void jump_to_app() {
-	const struct pios_board_info * bdinfo = &pios_board_info_blob;
 
-	if (((*(__IO uint32_t*) bdinfo->fw_base) & 0x2FFE0000) == 0x20000000) { /* Jump to user application */
+
+static void
+do_jump(uint32_t stacktop, uint32_t entrypoint)
+{
+	asm volatile(
+			"msr msp, %0	\n"
+			"bx	%1			\n"
+			: : "r" (stacktop), "r" (entrypoint) : );
+	/* just to keep noreturn happy */
+	for (;;) ;
+}
+
+void
+jump_to_app()
+{
+	const uint32_t *fw_vec = (uint32_t *)(pios_board_info_blob.fw_base);
+
+	if ((pios_board_info_blob.magic == PIOS_BOARD_INFO_BLOB_MAGIC) &&
+		((fw_vec[0] & 0x2FF00000) == 0x20000000)) {
+
 		FLASH_Lock();
-		// XXX reset all peripherals here
-		JumpAddress = *(__IO uint32_t*) (START_OF_USER_CODE + 4);
-		Jump_To_Application = (pFunction) JumpAddress;
-		/* Initialize user application's Stack Pointer */
-		__set_MSP(*(__IO uint32_t*) bdinfo->fw_base);
-		Jump_To_Application();
+
+		// XXX reset all peripherals here?
+		do_jump(fw_vec[0], fw_vec[1]);
+
 	} else {
 		DeviceState = failed_jump;
 		return;
 	}
 }
+
 uint32_t LedPWM(uint32_t pwm_period, uint32_t pwm_sweep_steps, uint32_t count) {
 	uint32_t pwm_duty = ((count / pwm_period) % pwm_sweep_steps)
 			/ (pwm_sweep_steps / pwm_period);
