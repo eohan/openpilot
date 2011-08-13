@@ -201,11 +201,6 @@ extern uint32_t pios_com_aux_id;
 //-------------------------
 #define PIOS_MASTER_CLOCK				120000000					// XXX should really get this from the BSP
 #define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)		// XXX should really get this from the BSP
-#if defined(USE_BOOTLOADER)
-#define PIOS_NVIC_VECTTAB_FLASH			(START_OF_USER_CODE)		// XXX should be getting this from the symbol table
-#else
-#define PIOS_NVIC_VECTTAB_FLASH			((uint32_t)0x08000000)		// XXX should be getting this from the symbol table
-#endif
 
 //-------------------------
 // Interrupt Priorities
