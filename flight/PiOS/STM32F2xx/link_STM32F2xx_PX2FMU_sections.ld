@@ -7,7 +7,8 @@ SECTIONS
     .text :
     {
         PROVIDE (pios_isr_vector_table_base = .);
-        KEEP(*(.isr_vector .isr_vector.*))
+        KEEP(*(.cpu_vectors))	/* CPU exception vectors */
+        KEEP(*(.io_vectors))	/* I/O interrupt vectors */
         *(.text .text.* .gnu.linkonce.t.*)
         *(.glue_7t) *(.glue_7)
         *(.rodata .rodata* .gnu.linkonce.r.*)
@@ -17,20 +18,20 @@ SECTIONS
     .initcalluavobj.init :
     {
         . = ALIGN(4);
-	__uavobj_initcall_start = .;
+		__uavobj_initcall_start = .;
         KEEP(*(.initcalluavobj.init))
-	. = ALIGN(4);
-	__uavobj_initcall_end   = .;
+		. = ALIGN(4);
+		__uavobj_initcall_end   = .;
     } >FLASH
 
     /* module sections */
     .initcallmodule.init :
     {
         . = ALIGN(4);
-	__module_initcall_start = .;
+		__module_initcall_start = .;
         KEEP(*(.initcallmodule.init))
-	. = ALIGN(4);
-	__module_initcall_end   = .;
+		. = ALIGN(4);
+		__module_initcall_end   = .;
     } >FLASH
 
     .ARM.extab :
@@ -104,13 +105,6 @@ SECTIONS
         /* extend the heap up to the top of SRAM */
         _eheap = . ;
     } > SRAM
-
-/*
-    .free_ram (NOLOAD) :
-    {
-		_eram = . ;
-    } > SRAM
-*/
 
     /* Stabs debugging sections.  */
     .stab          0 : { *(.stab) }

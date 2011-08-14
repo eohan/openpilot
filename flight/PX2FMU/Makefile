@@ -160,6 +160,7 @@ endif
 
 ## PIOS Hardware (STM32F2xx)
 SRC += $(PIOSSTM32F2XX)/startup.c
+SRC += $(PIOSSTM32F2XX)/vectors_stm32f2xx.c
 SRC += $(PIOSSTM32F2XX)/pios_sys.c
 SRC += $(PIOSSTM32F2XX)/pios_led.c
 SRC += $(PIOSSTM32F2XX)/pios_delay.c
@@ -259,7 +260,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F2XX)/startup_stm32f2xx.S
+ASRC	=
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM =

@@ -256,10 +256,10 @@ int32_t PIOS_SYS_SerialNumberGet(char *str)
 */
 static void NVIC_Configuration(void)
 {
-	extern uint32_t g_pfnVectors;	// XXX might be nice to have this architected...
+	extern char pios_isr_vector_table_base;
 
 	/* Set the Vector Table base address */
-	NVIC_SetVectorTable((uintptr_t) &g_pfnVectors, 0x0);
+	NVIC_SetVectorTable((uintptr_t)&pios_isr_vector_table_base, 0x0);
 
 	/* 4 bits for Interrupt priorities so no sub priorities */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
