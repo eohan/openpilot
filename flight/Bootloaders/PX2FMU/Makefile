@@ -37,12 +37,6 @@ OUTDIR := $(TOP)/build/$(TARGET)
 # Set to YES to compile for debugging
 DEBUG ?= YES
 
-# Set to YES to use the Servo output pins for debugging via scope or logic analyser
-ENABLE_DEBUG_PINS ?= NO
-
-# Set to Yes to enable the AUX UART which is mapped on the S1 (Tx) and S2 (Rx) servo outputs  
-ENABLE_AUX_UART ?= NO
-
 # Set to YES when using Code Sourcery toolchain
 CODE_SOURCERY ?= NO
 
@@ -255,12 +249,6 @@ CDEFS = -DSTM32F2XX
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER
 CDEFS += -DUSE_$(BOARD)
-ifeq ($(ENABLE_DEBUG_PINS), YES)
-CDEFS += -DPIOS_ENABLE_DEBUG_PINS
-endif
-ifeq ($(ENABLE_AUX_UART), YES)
-CDEFS += -DPIOS_ENABLE_AUX_UART
-endif
 
 # Provide (only) the bootloader with board-specific defines
 BLONLY_CDEFS += -DBOARD_TYPE=$(BOARD_TYPE)
@@ -352,7 +340,7 @@ LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
 # Hardcoded linker script names for now
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_sections.ld
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_BL_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f

@@ -1,9 +1,9 @@
  #####
- # Project: OpenPilot
+ # Project: PX2 OpenPilot
  #
+ # Makefile for the OpenPilot flight application on the PX2 FMU
  #
- # Makefile for the flight application on the PX2 FMU
- #
+ # (c) 2011 Michael Smith
  # The OpenPilot Team, http://www.openpilot.org, Copyright (C) 2009.
  #
  # 
@@ -35,10 +35,6 @@ OUTDIR := $(TOP)/build/$(TARGET)
 
 # Debugging (YES/NO) ?
 DEBUG ?= YES
-
-# Set to YES to enable the AUX UART which is mapped on the S1 (Tx) and S2 (Rx) servo outputs
-# XXX remove this, all UARTs are supported always
-ENABLE_AUX_UART ?= NO
 
 # Use the mavlink instead of the UAVTalk protocol
 USE_MAVLINK ?= NO
@@ -344,16 +340,9 @@ CDEFS += -D__ARM_ARCH_7M__
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER
 CDEFS += -DUSE_$(BOARD)
-ifeq ($(ENABLE_DEBUG_PINS), YES)
-CDEFS += -DPIOS_ENABLE_DEBUG_PINS
-endif
-ifeq ($(ENABLE_AUX_UART), YES)
-CDEFS += -DPIOS_ENABLE_AUX_UART
-endif
 
 # Place project-specific -D and/or -U options for
 # Assembler with preprocessor here.
-#ADEFS = -DUSE_IRQ_ASM_WRAPPER
 ADEFS = -D__ASSEMBLY__
 
 # Compiler flag to set the C Standard level.
@@ -367,15 +356,7 @@ CSTANDARD = -std=gnu99
 
 # Compiler flags.
 
-#  -g*:          generate debugging information
-#  -O*:          optimization level
-#  -f...:        tuning, see GCC manual and avr-libc documentation
-#  -Wall...:     warning level
-#  -Wa,...:      tell GCC to pass this to the assembler.
-#    -adhlns...: create assembler listing
-#
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
-
 ifeq ($(DEBUG),YES)
 CFLAGS = -g$(DEBUGF) -DDEBUG
 endif
@@ -399,7 +380,6 @@ CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basen
 CFLAGS += -MD -MP -MF $(OUTDIR)/dep/$(@F).d
 
 # flags only for C
-#CONLYFLAGS += -Wnested-externs
 CONLYFLAGS += $(CSTANDARD)
 
 # Assembler flags.
@@ -424,7 +404,7 @@ LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
 # Hardcoded linker script names for now
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_sections.ld
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_OP_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f
