@@ -16,8 +16,8 @@ extern char		_sbss, _ebss;
 /* DATA symbols XXX should have a header that defines all of these */
 extern char		_sidata, _sdata, _edata;
 
-/* STACK symbols XXX should have a header that defines all of these */
-extern char		_irq_stack_end, _irq_stack_top;
+/* The bootstrap/IRQ stack XXX should define size somewhere else */
+char			irq_stack[1024] __attribute__((section(".irqstack"))) __attribute__((used));
 
 void
 _main(void)
@@ -28,8 +28,8 @@ _main(void)
 	/* zero the BSS */
 	memset(&_sbss, 0, &_ebss - &_sbss);
 
-	/* fill the IRQ stack with a watermark pattern */
-	memset(&_irq_stack_end, 0xa5, &_irq_stack_top - &_irq_stack_end);
+	/* fill the IRQ/bootstrap stack with a watermark pattern so we can measure how much is used */
+	memset(&irq_stack, 0xa5, sizeof(irq_stack));
 
 	/* call main */
 	(void)main();

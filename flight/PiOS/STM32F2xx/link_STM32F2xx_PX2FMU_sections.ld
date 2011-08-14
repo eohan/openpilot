@@ -1,8 +1,3 @@
-/* This is the size of the stack for all FreeRTOS IRQs */
-_irq_stack_size = 0x400;
-/* This is the size of the stack for early init: life span is until scheduler starts */
-_init_stack_size = 0x400;
-
 
 PROVIDE(pios_board_info_blob = ORIGIN(BD_INFO));
 
@@ -53,22 +48,19 @@ SECTIONS
     _sidata = .;
 
     /*
-     * This stack is used both as the initial sp during early init as well as ultimately
-     * being used as the STM32's MSP (Main Stack Pointer) which is the same stack that
-     * is used for _all_ interrupt handlers.  The end of this stack should be placed
-     * against the lowest address in RAM so that a stack overrun results in a hard fault
-     * at the first access beyond the end of the stack.
+     * Place the IRQ/bootstrap stack at the bottom of SRAM so that an overflow
+     * results in a hard fault.
      */
     .irq_stack :
     {
-         . = ALIGN(4);
-         _irq_stack_end = . ;
-         . = . + _irq_stack_size ;
-         . = ALIGN(4);
-         _irq_stack_top = . - 4 ;
-         . = ALIGN(4);
+    	_irq_stack_end = . ;
+    	*(.irqstack)
+    	_irq_stack_top = . ;
     } > SRAM
 
+	/*
+	 * Non-const initialised data.
+	 */
     .data : AT (_sidata)
     {
         _sdata = .;
@@ -77,48 +69,48 @@ SECTIONS
         _edata = . ;
     } > SRAM
 
-
-
-    /* .bss section which is used for uninitialized data */
+    /*
+     * Uninitialised data (BSS + commons).
+     */
     .bss (NOLOAD) :
     {
         _sbss = . ;
         *(.bss .bss.*)
         *(COMMON)
         _ebss = . ;
-        
+	    PROVIDE ( _end = _ebss ) ;    
     } > SRAM
 
+	/*
+	 * The heap consumes the remainder of the SRAM.
+	 */
     .heap (NOLOAD) :
     {
         . = ALIGN(4);
         _heap = ABSOLUTE(.);
         _sheap = . ;
+        
+        /*
+         * This allows us to declare an object or objects up to the minimum acceptable
+         * heap size and receive a linker error if the space available for the heap is
+         * not sufficient.
+         */
         *(.heap)
         
         /* fill to the end of SRAM */
         . = ORIGIN(SRAM) + LENGTH(SRAM) - _heap ;
         . = ALIGN(4) ;
         
-        /* place the init stack at the end of SRAM */
-        _init_stack_top = . - 4 ;
-        _init_stack_end = . - _init_stack_size ;
-        
-        /* extend the heap up to the base of the init stack */
-        _eheap = _init_stack_end ;
+        /* extend the heap up to the top of SRAM */
+        _eheap = . ;
     } > SRAM
 
+/*
     .free_ram (NOLOAD) :
     {
 		_eram = . ;
     } > SRAM
-
-    /* keep the heap section at the end of the SRAM
-     * this will allow to claim the remaining bytes not used
-     * at run time! (done by the reset vector).
-     */
-
-    PROVIDE ( _end = _ebss ) ;
+*/
 
     /* Stabs debugging sections.  */
     .stab          0 : { *(.stab) }
