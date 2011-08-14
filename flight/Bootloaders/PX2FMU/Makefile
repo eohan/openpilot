@@ -100,6 +100,8 @@ SRC += $(OPSYSTEM)/cm3_fault_handlers.c
 
 ## PIOS Hardware (STM32F2xx)
 # XXX  should just link with a .a
+SRC += $(PIOSSTM32F2XX)/startup.c
+SRC += $(PIOSSTM32F2XX)/vectors_stm32f2xx.c
 SRC += $(PIOSSTM32F2XX)/pios_sys.c
 SRC += $(PIOSSTM32F2XX)/pios_led.c
 SRC += $(PIOSSTM32F2XX)/pios_delay.c
@@ -179,7 +181,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F2XX)/startup_stm32f2xx_BL.S
+ASRC =
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM = 
@@ -350,7 +352,7 @@ LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
 # Hardcoded linker script names for now
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_BL_sections.ld
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f
