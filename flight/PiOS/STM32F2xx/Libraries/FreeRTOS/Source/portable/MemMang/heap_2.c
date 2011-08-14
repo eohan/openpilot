@@ -257,13 +257,6 @@ void vPortFree( void *pv )
 unsigned char *puc = ( unsigned char * ) pv;
 xBlockLink *pxLink;
 
-	/* if this is the init stack being cleaned up on termination of the init task, sacrifice it to the heap */
-	if( ( pv == (void *)&_init_stack_end ) && ( pv == &xHeap.ucHeap[currentTOTAL_HEAP_SIZE]) )
-	{
-		xPortIncreaseHeapSize(&_init_stack_top - &_init_stack_end);
-		return;
-	}
-
 	if( pv )
 	{
 		/* The memory being freed will have an xBlockLink structure immediately
