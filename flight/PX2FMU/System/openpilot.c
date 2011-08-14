@@ -77,7 +77,7 @@ main()
 	vPortInitialiseBlocks();
 
 	/* swap to the interrupt stack so that when xTaskGenericCreate clears the init stack we aren't clobbered */
-	Stack_Change();
+	//Stack_Change();
 
 	/* create the init thread */
 	result = xTaskGenericCreate(mainTask,

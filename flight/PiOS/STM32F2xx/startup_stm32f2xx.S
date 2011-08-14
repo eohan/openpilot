@@ -169,20 +169,6 @@ SystemInit_ExtMemCtl_Dummy:
   bx  lr
   .size  SystemInit_ExtMemCtl_Dummy, .-SystemInit_ExtMemCtl_Dummy
 
-/**
- * @brief  This is the code that gets called when the processor receives an
- *         unexpected interrupt.  This simply enters an infinite loop, preserving
- *         the system state for examination by a debugger.
- *
- * @param  None
- * @retval : None
-*/
-    .section  .text.Default_Handler,"ax",%progbits
-Default_Handler:
-Infinite_Loop:
-  b  Infinite_Loop
-  .size  Default_Handler, .-Default_Handler
-
 /* grab the vectors from the standard file */
 #define INITIAL_STACK_TOP _irq_stack_top
 #include "vectors_stm32f2xx.S"

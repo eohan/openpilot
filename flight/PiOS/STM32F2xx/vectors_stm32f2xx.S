@@ -11,6 +11,20 @@
 	.fpu		softvfp
 	.thumb
 
+/**
+ * @brief  This is the code that gets called when the processor receives an
+ *         unexpected interrupt.  This simply enters an infinite loop, preserving
+ *         the system state for examination by a debugger.
+ *
+ * @param  None
+ * @retval : None
+*/
+    .section  .text.Default_Handler,"ax",%progbits
+Default_Handler:
+Infinite_Loop:
+  b  Infinite_Loop
+  .size  Default_Handler, .-Default_Handler
+
 	.section .isr_vector,"a",%progbits
 	.type	 g_pfnVectors, %object
 	.size	 g_pfnVectors, .-g_pfnVectors
@@ -19,7 +33,7 @@
 g_pfnVectors:
 	// standard CM3 vectors
 	.word  INITIAL_STACK_TOP
-	.word  Reset_Handler
+	.word  _main
 	.word  NMI_Handler
 	.word  HardFault_Handler
 	.word  MemManage_Handler

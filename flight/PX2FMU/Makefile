@@ -159,6 +159,7 @@ SRC += $(UAVOBJSRC)
 endif
 
 ## PIOS Hardware (STM32F2xx)
+SRC += $(PIOSSTM32F2XX)/startup.c
 SRC += $(PIOSSTM32F2XX)/pios_sys.c
 SRC += $(PIOSSTM32F2XX)/pios_led.c
 SRC += $(PIOSSTM32F2XX)/pios_delay.c

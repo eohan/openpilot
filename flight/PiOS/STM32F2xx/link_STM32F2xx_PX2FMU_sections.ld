@@ -69,7 +69,7 @@ SECTIONS
          . = ALIGN(4);
     } > SRAM
 
-    .data : AT (_etext)
+    .data : AT (_sidata)
     {
         _sdata = .;
         *(.data .data.*)
