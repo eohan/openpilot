@@ -25,9 +25,9 @@ typedef struct Guard {
 #define GAMAGIC		0x55FF44FD
 
 /** end guard magic */
-#define EGAMAGIC	-2
+#define EGAMAGIC	0x5e
 
 /** non-magic value */
-#define NOMAGIC		-1
+#define NOMAGIC		0xff
 
 #endif // __MALLOC_PRIVATE_H

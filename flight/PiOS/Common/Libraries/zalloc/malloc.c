@@ -31,7 +31,7 @@ _malloc_check(void *ptr, int clear)
 	if (clear)
 		res->ga_Magic = NOMAGIC;
 #ifdef USEENDGUARD
-	char *eg = ((char *)res + res->ga_Bytes - 1);
+	unsigned char *eg = ((unsigned char *)res + res->ga_Bytes - 1);
 	if (*eg != EGAMAGIC) {
 		MallocPool.mp_Panic("free: guard2 fail @ %p", ptr);
 	}
@@ -57,9 +57,9 @@ malloc(size_t bytes)
 	res->ga_Magic = GAMAGIC;
 	res->ga_Bytes = bytes;
 #ifdef USEENDGUARD
-	*((char *)res + bytes - 1) = EGAMAGIC;
+	*((unsigned char *)res + bytes - 1) = EGAMAGIC;
 #endif
-	return (char *)(res + 1);
+	return res + 1;
 }
 
 void
