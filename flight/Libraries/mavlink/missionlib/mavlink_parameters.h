@@ -21,31 +21,18 @@
  or in the same folder as this source file */
 
 // Disable auto-data structures
+#ifndef MAVLINK_NO_DATA
 #define MAVLINK_NO_DATA
+#endif
 
 #include "mavlink.h"
 #include <stdbool.h>
 
-/* WAYPOINT MANAGER - MISSION LIB */
-
-#ifndef MAVLINK_PM_MAX_PARAM_COUNT
-#define MAVLINK_PM_MAX_PARAM_COUNT 20
-#endif
+/* PARAMETER MANAGER - MISSION LIB */
 
 #ifndef MAVLINK_PM_TEXT_FEEDBACK
 #define MAVLINK_PM_TEXT_FEEDBACK 1						  ///< Report back status information as text
 #endif
 
-#define MAVLINK_PM_MAX_PARAM_NAME_LEN 16
-
-struct mavlink_pm_storage {
-	char param_names[MAVLINK_PM_MAX_PARAM_COUNT][MAVLINK_PM_MAX_PARAM_NAME_LEN];      ///< Parameter names
-	float param_values[MAVLINK_PM_MAX_PARAM_COUNT];    ///< Parameter values
-	uint16_t next_param;
-};
-
-typedef struct mavlink_pm_storage mavlink_pm_storage;
-
-void mavlink_pm_init(mavlink_pm_storage* state);
-
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t* msg);
+void mavlink_pm_queued_send(void);

@@ -7,6 +7,7 @@
 #ifndef  _MAVLINK_PROTOCOL_H_
 #define  _MAVLINK_PROTOCOL_H_
 
+#include "string.h" /* memcpy */
 #include "mavlink_types.h"
 
 #include "mavlink_checksum.h"
@@ -17,8 +18,9 @@ extern const uint8_t MAVLINK_CONST mavlink_msg_lengths[256];
 
 extern const uint8_t MAVLINK_CONST mavlink_msg_keys[256];
 
-extern mavlink_status_t m_mavlink_status[MAVLINK_COMM_NB];
-extern mavlink_message_t m_mavlink_message[MAVLINK_COMM_NB];
+extern mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
+extern mavlink_message_t m_mavlink_message[MAVLINK_COMM_NUM_BUFFERS];
+extern mavlink_system_t mavlink_system;
 
 
 /**
@@ -76,17 +78,16 @@ static inline mavlink_status_t* mavlink_get_channel_status(uint8_t chan)
 static inline uint16_t mavlink_finalize_message(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id, uint16_t length)
 {
 	// This code part is the same for all messages;
-	uint16_t checksum;
+	uint8_t key;
 	msg->len = length;
 	msg->sysid = system_id;
 	msg->compid = component_id;
 	// One sequence number per component
 	msg->seq = mavlink_get_channel_status(MAVLINK_COMM_0)->current_tx_seq;
         mavlink_get_channel_status(MAVLINK_COMM_0)->current_tx_seq = mavlink_get_channel_status(MAVLINK_COMM_0)->current_tx_seq+1;
-//	checksum = crc_calculate((uint8_t*)((void*)msg), length + MAVLINK_CORE_HEADER_LEN);
-	checksum = crc_calculate_msg(msg, length + MAVLINK_CORE_HEADER_LEN);
-	msg->ck_a = (uint8_t)(checksum & 0xFF); ///< High byte
-	msg->ck_b = (uint8_t)(checksum >> 8); ///< Low byte
+	msg->ck = crc_calculate_msg(msg, length + MAVLINK_CORE_HEADER_LEN);
+	key = MAVLINK_CONST_READ( mavlink_msg_keys[msg->msgid] );
+	crc_accumulate( key, &msg->ck ); /// include key in X25 checksum
 
 	return length + MAVLINK_NUM_NON_STX_PAYLOAD_BYTES;
 }
@@ -106,17 +107,16 @@ static inline uint16_t mavlink_finalize_message(mavlink_message_t* msg, uint8_t 
 static inline uint16_t mavlink_finalize_message_chan(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id, uint8_t chan, uint16_t length)
 {
 	// This code part is the same for all messages;
-	uint16_t checksum;
+	uint8_t key;
 	msg->len = length;
 	msg->sysid = system_id;
 	msg->compid = component_id;
 	// One sequence number per component
 	msg->seq = mavlink_get_channel_status(chan)->current_tx_seq;
 	mavlink_get_channel_status(chan)->current_tx_seq = mavlink_get_channel_status(chan)->current_tx_seq+1;
-//	checksum = crc_calculate((uint8_t*)((void*)msg), length + MAVLINK_CORE_HEADER_LEN);
-	checksum = crc_calculate_msg(msg, length + MAVLINK_CORE_HEADER_LEN);
-	msg->ck_a = (uint8_t)(checksum & 0xFF); ///< High byte
-	msg->ck_b = (uint8_t)(checksum >> 8);   ///< Low byte
+	msg->ck = crc_calculate_msg(msg, length + MAVLINK_CORE_HEADER_LEN);
+	key = MAVLINK_CONST_READ( mavlink_msg_keys[msg->msgid] );
+	crc_accumulate( key, &msg->ck ); /// include key in X25 checksum
 
 	return length + MAVLINK_NUM_NON_STX_PAYLOAD_BYTES;
 }
@@ -151,20 +151,12 @@ union checksum_ {
 
 static inline void mavlink_start_checksum(mavlink_message_t* msg)
 {
-	union checksum_ ck;
-	crc_init(&(ck.s));
-	msg->ck_a = ck.c[0];
-	msg->ck_b = ck.c[1];
+	crc_init(&msg->ck);
 }
 
 static inline void mavlink_update_checksum(mavlink_message_t* msg, uint8_t c)
 {
-	union checksum_ ck;
-	ck.c[0] = msg->ck_a;
-	ck.c[1] = msg->ck_b;
-	crc_accumulate(c, &(ck.s));
-	msg->ck_a = ck.c[0];
-	msg->ck_b = ck.c[1];
+	crc_accumulate(c, &msg->ck);
 }
 
 /**
@@ -270,8 +262,10 @@ static inline int16_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messag
 		mavlink_update_checksum(rxmsg, c);
 #ifdef MAVLINK_CHECK_LENGTH
 		if (rxmsg->len != MAVLINK_CONST_READ( mavlink_msg_lengths[c] ) )
+		{
 			status->parse_state = MAVLINK_PARSE_STATE_IDLE; // abort, not going to understand it anyway
-		else ;
+			break;
+		} else ;
 #endif
 		if (rxmsg->len == 0)
 		{
@@ -290,7 +284,7 @@ static inline int16_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messag
 		{
 			status->parse_state = MAVLINK_PARSE_STATE_GOT_PAYLOAD;
 			mavlink_update_checksum(rxmsg, 
-				MAVLINK_CONST_READ( mavlink_msg_lengths[rxmsg->msgid] ) );
+				MAVLINK_CONST_READ( mavlink_msg_keys[rxmsg->msgid] ));
 		}
 		break;
 
@@ -330,9 +324,10 @@ static inline int16_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messag
 			// Successfully got message
 			status->msg_received = 1;
 			status->parse_state = MAVLINK_PARSE_STATE_IDLE;
-			if ( r_message != NULL )
+			if ( r_message != 0 )
+                        {
 				memcpy(r_message, rxmsg, sizeof(mavlink_message_t));
-			else ;
+                        }
 		}
 		break;
 	}
@@ -357,12 +352,18 @@ static inline int16_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messag
 	r_mavlink_status->packet_rx_success_count = status->packet_rx_success_count;
 	r_mavlink_status->packet_rx_drop_count = status->parse_error;
 	status->parse_error = 0;
+#ifdef MAVLINK_STATIC_BUFFER
 	if (status->msg_received == 1)
 	{
 		if ( r_message != NULL )
 			return r_message;
 		else return rxmsg;
 	} else return NULL;
+#else
+	if (status->msg_received == 1)
+		return 1;
+	else return 0;
+#endif
 }
 
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
@@ -417,7 +418,7 @@ static inline void mavlink_send_mem(mavlink_channel_t chan, (uint8_t *)mem, uint
 }
  */
 static inline void mavlink_send_uart(mavlink_channel_t chan, mavlink_message_t* msg);
-static inline void mavlink_send_mem(mavlink_channel_t chan, (uint8_t *)mem, uint8_t num);
+static inline void mavlink_send_mem(mavlink_channel_t chan, uint8_t *mem, uint16_t num);
 #define mavlink_send_msg( a, b ) mavlink_send_uart( a, b )
 #endif
 

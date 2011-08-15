@@ -142,27 +142,47 @@ static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 #include "mavlink_data.h"
 
 /* 3: Define waypoint helper functions */
-void mavlink_wpm_send_message(mavlink_message_t* msg);
-void mavlink_wpm_send_gcs_string(const char* string);
-uint64_t mavlink_wpm_get_system_timestamp();
+void mavlink_missionlib_send_message(mavlink_message_t* msg);
+void mavlink_missionlib_send_gcs_string(const char* string);
+uint64_t mavlink_missionlib_get_system_timestamp();
 
 /* 4: Include waypoint protocol */
 #include <waypoints.h>
 mavlink_wpm_storage wpm;
+
+#include "mavlink_missionlib_data.h"
+#include "mavlink_parameters.h"
+
+mavlink_pm_storage pm;
+
+/**
+ * @brief reset all parameters to default
+ * @warning DO NOT USE THIS IN FLIGHT!
+ */
+void mavlink_pm_reset_params(mavlink_pm_storage* pm)
+{
+	pm->size = MAVLINK_PM_MAX_PARAM_COUNT;
+	// 1) MAVLINK_PM_PARAM_SYSTEM_ID
+	pm->param_values[MAVLINK_PM_PARAM_SYSTEM_ID] = 12;
+	strcpy(pm->param_names[MAVLINK_PM_PARAM_SYSTEM_ID], "SYS_ID");
+	// 2) MAVLINK_PM_PARAM_ATT_K_D
+	pm->param_values[MAVLINK_PM_PARAM_ATT_K_D] = 0.3f;
+	strcpy(pm->param_names[MAVLINK_PM_PARAM_ATT_K_D], "ATT_K_D");
+}
 
 /* Provide the interface functions for the waypoint manager */
 
 /*
  *  @brief Sends a MAVLink message over UDP
  */
-void mavlink_wpm_send_message(mavlink_message_t* msg)
+void mavlink_missionlib_send_message(mavlink_message_t* msg)
 {
 	uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, msg);
 	// Send buffer
 	PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 }
 
-void mavlink_wpm_send_gcs_string(const char* string)
+void mavlink_missionlib_send_gcs_string(const char* string)
 {
 	const int len = 50;
 	mavlink_statustext_t status;
@@ -178,10 +198,10 @@ void mavlink_wpm_send_gcs_string(const char* string)
 	mavlink_message_t msg;
 
 	mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &status);
-	mavlink_wpm_send_message(&msg);
+	mavlink_missionlib_send_message(&msg);
 }
 
-uint64_t mavlink_wpm_get_system_timestamp()
+uint64_t mavlink_missionlib_get_system_timestamp()
 {
 //	struct timeval tv;
 //	gettimeofday(&tv, NULL);
@@ -238,6 +258,7 @@ int32_t MAVLinkInitialize(void)
 	mavlink_wpm_init(&wpm);
 
 	// Initialize parameter protocol
+	mavlink_pm_reset_params(&pm);
 
 	// Process all registered objects and connect queue for updates
 	UAVObjIterate(&registerObject);
@@ -589,6 +610,9 @@ static void telemetryTxTask(void *parameters)
 		if (xQueueReceive(queue, &ev, portMAX_DELAY) == pdTRUE) {
 			// Process event
 			processObjEvent(&ev);
+			
+			// Send one param
+			mavlink_pm_queued_send();
 		}
 	}
 }
@@ -631,6 +655,8 @@ static void telemetryRxTask(void *parameters)
 		{
 			inputPort = telemetryPort;
 		}
+		
+		mavlink_channel_t mavlink_chan = MAVLINK_COMM_0;
 
 		// Block until data are available
 		// TODO: Currently we periodically check the buffer for data, update once the PIOS_COM is made blocking
@@ -638,11 +664,14 @@ static void telemetryRxTask(void *parameters)
 		for (int32_t n = 0; n < len; ++n) {
 //			PIOS_LED_On(LED2);
 //			PIOS_LED_On(LED1);
-			if (mavlink_parse_char(MAVLINK_COMM_0, PIOS_COM_ReceiveBuffer(inputPort), &rx_msg, &rx_status))
+			if (mavlink_parse_char(mavlink_chan, PIOS_COM_ReceiveBuffer(inputPort), &rx_msg, &rx_status))
 			{
 
 				// Handle packet with waypoint component
 				mavlink_wpm_message_handler(&rx_msg);
+				
+				// Handle packet with parameter component
+				mavlink_pm_message_handler(mavlink_chan, &rx_msg);
 
 				switch (rx_msg.msgid)
 				{
