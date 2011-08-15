@@ -4,6 +4,7 @@
  #  
  # Makefile PX2 FMU bootloader.
  #
+ # (c) 2011 Michael Smith
  # The OpenPilot Team, http://www.openpilot.org, Copyright (C) 2009.
  #    
  # 

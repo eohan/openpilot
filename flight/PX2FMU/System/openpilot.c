@@ -70,11 +70,11 @@ main()
 {
 	int	result;
 
-	/* core PIOS init */
-	PIOS_SYS_Init();
-
 	/* initialise the heap */
 	vPortInitialiseBlocks();
+
+	/* core PIOS init */
+	PIOS_SYS_Init();
 
 	/* swap to the interrupt stack so that when xTaskGenericCreate clears the init stack we aren't clobbered */
 	//Stack_Change();

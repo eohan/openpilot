@@ -1,92 +1,77 @@
-
-/*
- * MALLOC.C - malloc equivalent, runs on top of zalloc and uses sbrk
+/**
+ * @file	malloc.c
+ * @brief	malloc equivalents, runs on top of zalloc
+ *
+ * This is a lightly modified version of the Dillon malloc/zalloc as documented
+ * in zalloc.c
+ *
+ * Modifications (c) 2011 Michael Smith
  */
 
-#include "zalloc_defs.h"
+#include "malloc_private.h"
 #include <string.h>
 
-MemPool MallocPool;
+MemPool		MallocPool;
 
-#ifdef DMALLOCDEBUG
-static int MallocMax;
-static int MallocCount;
-static int DidAtExit;
-static int DoneAtExit;
+static size_t
+_malloc_size(void *ptr)
+{
+	Guard *res = (Guard *)ptr - 1;
 
-void mallocstats(void);
+	return res->ga_Bytes;
+}
+
+static void
+_malloc_check(void *ptr, int clear)
+{
+	Guard *res = (Guard *)ptr - 1;
+
+	if (res->ga_Magic != GAMAGIC)
+		MallocPool.mp_Panic("malloc: guard1 fail @ %p", ptr);
+	if (clear)
+		res->ga_Magic = NOMAGIC;
+#ifdef USEENDGUARD
+	char *eg = ((char *)res + res->ga_Bytes - 1);
+	if (*eg != EGAMAGIC) {
+		MallocPool.mp_Panic("free: guard2 fail @ %p", ptr);
+	}
+	if (clear)
+		*eg = NOMAGIC;
 #endif
+}
 
 void *
 malloc(size_t bytes)
 {
 	Guard *res;
 
+	bytes += sizeof(Guard);
 #ifdef USEENDGUARD
-	bytes += MALLOCALIGN + 1;
-#else
-	bytes += MALLOCALIGN;
+	bytes += 1;
 #endif
 
 	res = znalloc(&MallocPool, bytes);
 	if (res == NULL)
 		return(NULL);
 
-#ifdef DMALLOCDEBUG
-	if (++MallocCount > MallocMax)
-		MallocMax = MallocCount;
-	if (DidAtExit == 0) {
-		DidAtExit = 1;
-		atexit(mallocstats);
-	}
-#endif
-#ifdef USEGUARD
 	res->ga_Magic = GAMAGIC;
-#endif
 	res->ga_Bytes = bytes;
 #ifdef USEENDGUARD
-	*((char *)res + bytes - 1) = -2;
+	*((char *)res + bytes - 1) = EGAMAGIC;
 #endif
-	return((char *)res + MALLOCALIGN);
+	return (char *)(res + 1);
 }
 
 void
 free(void *ptr)
 {
-	size_t bytes;
-
 	if (ptr != NULL) {
-		Guard *res = (void *)((char *)ptr - MALLOCALIGN);
+		/* check and clear validity */
+		_malloc_check(ptr, 1);
 
-#ifdef USEGUARD
-		if (res->ga_Magic != GAMAGIC) {
-#ifdef USEPANIC
-			panic("free(): guard1 fail @ %08lx\n", ptr);
-#else
-			*(char *)0 = 1;
-#endif
-		}
-		res->ga_Magic = -1;
-#endif
-#ifdef USEENDGUARD
-		if (*((char *)res + res->ga_Bytes - 1) != -2) {
-#ifdef USEPANIC
-			panic("free(): guard2 fail @ %08lx + %d\n", ptr, res->ga_Bytes - MALLOCALIGN);
-#else
-			*(char *)0 = 1;
-#endif
-		}
-		*((char *)res + res->ga_Bytes - 1) = -1;
-#endif
-
-		bytes = res->ga_Bytes;
-		zfree(&MallocPool, res, bytes);
-#ifdef DMALLOCDEBUG
-		--MallocCount;
-#endif
+		zfree(&MallocPool, ptr, _malloc_size(ptr));
 	}
 }
-
 
 void *
 calloc(size_t n1, size_t n2)
@@ -96,23 +81,9 @@ calloc(size_t n1, size_t n2)
 
 	if ((res = malloc(bytes)) != NULL) {
 		memset(res, 0, bytes);
-#ifdef DMALLOCDEBUG
-		if (++MallocCount > MallocMax)
-			MallocMax = MallocCount;
-		if (DidAtExit == 0) {
-			DidAtExit = 1;
-			atexit(mallocstats);
-		}
-#endif
 	}
 	return(res);
 }
-
-/*
- * realloc() - I could be fancier here and free the old buffer before
- * 	       allocating the new one (saving potential fragmentation
- *	       and potential buffer copies).  But I don't bother.
- */
 
 void *
 realloc(void *ptr, size_t size)
@@ -122,21 +93,12 @@ realloc(void *ptr, size_t size)
 
 	if ((res = malloc(size)) != NULL) {
 		if (ptr) {
-			old = *(size_t *)((char *)ptr - MALLOCALIGN) - MALLOCALIGN;
+			old = _malloc_size(ptr);
 			if (old < size)
-				bcopy(ptr, res, old);
+				memcpy(res, ptr, old);
 			else
-				bcopy(ptr, res, size);
+				memcpy(res, ptr, size);
 			free(ptr);
-		} else {
-#ifdef DMALLOCDEBUG
-			if (++MallocCount > MallocMax)
-				MallocMax = MallocCount;
-			if (DidAtExit == 0) {
-				DidAtExit = 1;
-				atexit(mallocstats);
-			}
-#endif
 		}
 	}
 	return(res);
@@ -151,21 +113,4 @@ reallocf(void *ptr, size_t size)
 		free(ptr);
 	return(res);
 }
-
-#ifdef DMALLOCDEBUG
-
-void
-mallocstats(void)
-{
-	if (DoneAtExit == 0) {
-		++DoneAtExit;
-		fprintf(stderr, "Active Allocations: %d/%d\n", MallocCount, MallocMax);
-#ifdef ZALLOCDEBUG
-		zallocstats(&MallocPool);
-		fflush(stderr);
-#endif
-	}
-}
-
-#endif
 

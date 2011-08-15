@@ -224,12 +224,12 @@ SRC += $(RTOSSRCDIR)/timers.c
 
 ## RTOS Portable
 SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
-SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+#SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
 
 ## Better malloc/free
-#SRC += $(ZALLOCLIB)/malloc.c
-#SRC += $(ZALLOCLIB)/zalloc.c
-#SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
+SRC += $(ZALLOCLIB)/malloc.c
+SRC += $(ZALLOCLIB)/zalloc.c
+SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
 
 ## Dosfs file system
 SRC += $(DOSFSDIR)/dosfs.c
