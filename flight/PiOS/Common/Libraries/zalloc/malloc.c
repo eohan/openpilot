@@ -56,6 +56,7 @@ malloc(size_t bytes)
 
 	res->ga_Magic = GAMAGIC;
 	res->ga_Bytes = bytes;
+
 #ifdef USEENDGUARD
 	*((unsigned char *)res + bytes - 1) = EGAMAGIC;
 #endif
@@ -66,10 +67,12 @@ void
 free(void *ptr)
 {
 	if (ptr != NULL) {
+		Guard *res = (Guard *)ptr - 1;
+
 		/* check and clear validity */
 		_malloc_check(ptr, 1);
 
-		zfree(&MallocPool, ptr, _malloc_size(ptr));
+		zfree(&MallocPool, res, _malloc_size(ptr));
 	}
 }
 
