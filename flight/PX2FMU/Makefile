@@ -36,9 +36,6 @@ OUTDIR := $(TOP)/build/$(TARGET)
 # Debugging (YES/NO) ?
 DEBUG ?= YES
 
-# Use the mavlink instead of the UAVTalk protocol
-USE_MAVLINK ?= NO
-
 # Set to YES when using Code Sourcery toolchain on Windows
 CODE_SOURCERY ?= NO
 
@@ -333,9 +330,6 @@ DEBUGF = dwarf-2
 # Place project-specific -D (define) and/or
 # -U options for C here.
 CDEFS = -DSTM32F2XX
-ifeq ($(USE_MAVLINK), YES)
-CDEFS += -DUSE_MAVLINK # Selects MAVLink as protocol
-endif
 CDEFS += -D__ARM_ARCH_7M__
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER

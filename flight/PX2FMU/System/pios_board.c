@@ -39,6 +39,16 @@
 #include <pios_i2c_priv.h>
 #include <pios_rcvr_priv.h>
 
+/* XXX these should be somewhere else */
+#define PIOS_COM_TELEM_RF_RX_BUF_LEN	192
+#define PIOS_COM_TELEM_RF_TX_BUF_LEN	192
+#define PIOS_COM_GPS_RX_BUF_LEN			96
+#define PIOS_COM_GPS_TX_BUF_LEN			0
+#define PIOS_COM_AUX_RX_BUF_LEN			32
+#define PIOS_COM_AUX_TX_BUF_LEN			32
+#define PIOS_COM_CONTROL_RX_BUF_LEN		32
+#define PIOS_COM_CONTROL_TX_BUF_LEN		32
+
 
 /* XXX this should be more comprehensively abstracted */
 void PIOS_SPI_main_irq_handler(void);
@@ -62,7 +72,6 @@ const struct pios_spi_cfg pios_spi_main_cfg = {
     .dma     = {
         /* .ahb_clk - not required */
         .irq = {
-            .handler = NULL,
             .flags   = (DMA_IT_TCIF3 | DMA_IT_TEIF3 | DMA_IT_HTIF3),
             .init    = {
                 .NVIC_IRQChannel                   = DMA2_Stream0_IRQn,
@@ -187,7 +196,6 @@ void DMA2_Stream4_IRQHandler() __attribute__ ((alias("PIOS_ADC_handler")));
 const struct pios_adc_cfg pios_adc_cfg = {
 	.dma = {
 		.irq = {
-			.handler = NULL,
 			.flags   = (DMA_FLAG_TCIF4 | DMA_FLAG_TEIF4 | DMA_FLAG_HTIF4),
 			.init    = {
 				.NVIC_IRQChannel		= DMA2_Stream4_IRQn
@@ -268,7 +276,6 @@ const struct pios_ppm_cfg pios_ppm_cfg = {
 			.GPIO_PuPd  = GPIO_PuPd_UP
 	},
 	.irq = {
-		.handler = NULL,
 		.init    = {
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
 			.NVIC_IRQChannelSubPriority        = 0,
@@ -371,6 +378,23 @@ uint32_t pios_com_gps_id;
 uint32_t pios_com_aux_id;
 uint32_t pios_com_control_id;
 
+/*
+ * Do the allocation work that PIOS_COM_Init is too lazy to do for itself.
+ */
+static void
+usart_init(uint32_t *id, const struct pios_usart_cfg * cfg, size_t rx_buffer, size_t tx_buffer)
+{
+	uint32_t	usart_id;
+	void		*rx = NULL, *tx = NULL;
+
+	PIOS_Assert(!PIOS_USART_Init(&usart_id, cfg));
+	if (rx_buffer)
+		PIOS_Assert(!(rx = pvPortMalloc(rx_buffer)));
+	if (tx_buffer)
+		PIOS_Assert(!(tx = pvPortMalloc(tx_buffer)));
+	PIOS_Assert(!PIOS_COM_Init(id, &pios_usart_com_driver, usart_id, rx, rx_buffer, tx, tx_buffer));
+}
+
 
 /**
  * PIOS_Board_Init()
@@ -379,26 +403,14 @@ uint32_t pios_com_control_id;
  */
 void PIOS_Board_Init(void)
 {
-	uint32_t	usart_id;
 	uint32_t	rcvr_id;
 
 	/* Initialise USARTs */
-	if (PIOS_USART_Init(&usart_id, &pios_usart_telem_cfg) ||
-		PIOS_COM_Init(&pios_com_telem_rf_id, &pios_usart_com_driver, usart_id)) {
-		PIOS_DEBUG_Assert(0);
-	}
-	if (PIOS_USART_Init(&usart_id, &pios_usart_gps_cfg) ||
-		PIOS_COM_Init(&pios_com_gps_id, &pios_usart_com_driver, usart_id)) {
-		PIOS_DEBUG_Assert(0);
-	}
-	if (PIOS_USART_Init(&usart_id, &pios_usart_aux_cfg) ||
-		PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, usart_id)) {
-		PIOS_DEBUG_Assert(0);
-	}
-	if (PIOS_USART_Init(&usart_id, &pios_usart_control_cfg) ||
-		PIOS_COM_Init(&pios_com_control_id, &pios_usart_com_driver, usart_id)) {
-		PIOS_DEBUG_Assert(0);
-	}
+	usart_init(&pios_com_telem_rf_id, &pios_usart_telem_cfg,   PIOS_COM_TELEM_RF_RX_BUF_LEN, PIOS_COM_TELEM_RF_TX_BUF_LEN);
+	usart_init(&pios_com_gps_id,      &pios_usart_gps_cfg,     PIOS_COM_GPS_RX_BUF_LEN,      PIOS_COM_GPS_TX_BUF_LEN);
+	usart_init(&pios_com_aux_id,      &pios_usart_aux_cfg,     PIOS_COM_AUX_RX_BUF_LEN,      PIOS_COM_AUX_TX_BUF_LEN);
+	usart_init(&pios_com_control_id,  &pios_usart_control_cfg, PIOS_COM_CONTROL_RX_BUF_LEN,  PIOS_COM_CONTROL_TX_BUF_LEN);
+
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "\r\n\r\nFMU starting: USART ");
 
 	/* Internal settings support - must come up before UAVO */

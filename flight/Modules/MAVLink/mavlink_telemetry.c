@@ -530,7 +530,7 @@ static void telemetryTxPriTask(void *parameters)
 static void telemetryRxTask(void *parameters)
 {
 	uint32_t inputPort;
-	int32_t len;
+	uint8_t	c;
 
 	// Task loop
 	while (1) {
@@ -544,62 +544,57 @@ static void telemetryRxTask(void *parameters)
 			inputPort = telemetryPort;
 		}
 
-		// Block until data are available
-		// TODO: Currently we periodically check the buffer for data, update once the PIOS_COM is made blocking
-		len = PIOS_COM_ReceiveBufferUsed(inputPort);
-		for (int32_t n = 0; n < len; ++n) {
-			if (mavlink_parse_char(MAVLINK_COMM_0, PIOS_COM_ReceiveBuffer(inputPort), &rx_msg, &rx_status))
+		// Block until a byte is available
+		PIOS_COM_ReceiveBuffer(inputPort, &c, 1, portMAX_DELAY);
+
+		// And process it
+		if (mavlink_parse_char(MAVLINK_COMM_0, c, &rx_msg, &rx_status)) {
+
+			switch (rx_msg.msgid)
 			{
-
-				switch (rx_msg.msgid)
+			case MAVLINK_MSG_ID_SET_MODE:
+			{
+				mavlink_set_mode_t mode;
+				mavlink_msg_set_mode_decode(&rx_msg, &mode);
+				// Check if this system should change the mode
+				if (mode.target == mavlink_system.sysid)
 				{
-				case MAVLINK_MSG_ID_SET_MODE:
-				{
-					mavlink_set_mode_t mode;
-					mavlink_msg_set_mode_decode(&rx_msg, &mode);
-					// Check if this system should change the mode
-					if (mode.target == mavlink_system.sysid)
-					{
-						//sys_set_mode(mode.mode);
+					//sys_set_mode(mode.mode);
 
-						mavlink_system.mode = MAV_MODE_LOCKED;
-						mavlink_system.nav_mode = MAV_NAV_LOST;
-						mavlink_system.mode = mode.mode;
-						mavlink_system.state = MAV_STATE_ACTIVE;
-						uint16_t vbat = 11000;
+					mavlink_system.mode = MAV_MODE_LOCKED;
+					mavlink_system.nav_mode = MAV_NAV_LOST;
+					mavlink_system.mode = mode.mode;
+					mavlink_system.state = MAV_STATE_ACTIVE;
+					uint16_t vbat = 11000;
 
-						// Emit current mode
-						mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mavlink_system.mode, mavlink_system.nav_mode,
-								mavlink_system.state, 0,vbat, 0, 0);
-						// Send message
-						uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
-						// Send buffer
-						PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+					// Emit current mode
+					mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mavlink_system.mode, mavlink_system.nav_mode,
+							mavlink_system.state, 0,vbat, 0, 0);
+					// Send message
+					uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
+					// Send buffer
+					PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
 
-					}
 				}
-				break;
-				case MAVLINK_MSG_ID_ACTION:
-				{
-					//									execute_action(mavlink_msg_action_get_action(msg));
-					//
-					//									//Forwart actions from Xbee to Onboard Computer and vice versa
-					//									if (chan == MAVLINK_COMM_1)
-					//									{
-					//										mavlink_send_uart(MAVLINK_COMM_0, msg);
-					//									}
-					//									else if (chan == MAVLINK_COMM_0)
-					//									{
-					//										mavlink_send_uart(MAVLINK_COMM_1, msg);
-					//									}
-				}
-				break;
-				}
-
+			}
+			break;
+			case MAVLINK_MSG_ID_ACTION:
+			{
+				//									execute_action(mavlink_msg_action_get_action(msg));
+				//
+				//									//Forwart actions from Xbee to Onboard Computer and vice versa
+				//									if (chan == MAVLINK_COMM_1)
+				//									{
+				//										mavlink_send_uart(MAVLINK_COMM_0, msg);
+				//									}
+				//									else if (chan == MAVLINK_COMM_0)
+				//									{
+				//										mavlink_send_uart(MAVLINK_COMM_1, msg);
+				//									}
+			}
+			break;
 			}
 		}
-		vTaskDelay(5);	// <- remove when blocking calls are implemented
-
 	}
 }
 
