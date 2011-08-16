@@ -204,10 +204,10 @@ void mavlink_missionlib_send_gcs_string(const char* string)
 
 uint64_t mavlink_missionlib_get_system_timestamp()
 {
-//	struct timeval tv;
-//	gettimeofday(&tv, NULL);
-//	return ((uint64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
-	return xTaskGetTickCount() * portTICK_RATE_MS * 1000;
+	//	struct timeval tv;
+	//	gettimeofday(&tv, NULL);
+	//	return ((uint64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
+	return xTaskGetTickCount() * portTICK_RATE_MS;
 }
 
 
@@ -251,7 +251,7 @@ int32_t MAVLinkInitialize(void)
 #if defined(PIOS_TELEM_PRIORITY_QUEUE)
 	priorityQueue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
 #endif
-	
+
 	// Get telemetry settings object
 	updateSettings();
 
@@ -368,11 +368,11 @@ static uint32_t lastOperatorHeartbeat = 0;
  */
 static void processObjEvent(UAVObjEvent * ev)
 {
-//	UAVObjMetadata metadata;
-//	FlightTelemetryStatsData flightStats;
-//	GCSTelemetryStatsData gcsTelemetryStatsData;
-//	int32_t retries;
-//	int32_t success;
+	//	UAVObjMetadata metadata;
+	//	FlightTelemetryStatsData flightStats;
+	//	GCSTelemetryStatsData gcsTelemetryStatsData;
+	//	int32_t retries;
+	//	int32_t success;
 
 	if (ev->obj == 0) {
 		updateTelemetryStats();
@@ -396,171 +396,171 @@ static void processObjEvent(UAVObjEvent * ev)
 		// Setup type and object id fields
 		objId = UAVObjGetID(ev->obj);
 
-//		uint64_t timeStamp = 0;
+		//		uint64_t timeStamp = 0;
 		switch(objId) {
-			case ATTITUDEACTUAL_OBJID:
+		case ATTITUDEACTUAL_OBJID:
+		{
+			AttitudeActualGet(&attitudeActual);
+			AttitudeRawGet(&attitudeRaw);
+
+			// Copy data
+			attitude_raw.xacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_X];
+			attitude_raw.yacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Y];
+			attitude_raw.zacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Z];
+			attitude_raw.xgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_X];
+			attitude_raw.ygyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Y];
+			attitude_raw.zgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Z];
+			attitude_raw.xmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_X];
+			attitude_raw.ymag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Y];
+			attitude_raw.zmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Z];
+
+			mavlink_msg_raw_imu_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude_raw);
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+
+			attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
+			attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
+			attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
+
+			attitude.rollspeed  = (attitudeActual.RollSpeed/180.0f)*3.14159265f;
+			attitude.pitchspeed = (attitudeActual.PitchSpeed/180.0f)*3.14159265f;
+			attitude.yawspeed   = (attitudeActual.YawSpeed/180.0f)*3.14159265f;
+
+			mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
+			// Copy the message to the send buffer
+			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			//
+			//				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
+			//						attitudeActual.Pitch,attitudeActual.Yaw,
+			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
+			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
+			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
+			break;
+		}
+		case BAROALTITUDE_OBJID:
+		{
+			BaroAltitudeGet(&baroAltitude);
+			pressure.press_abs = baroAltitude.Pressure*10.0f;
+			pressure.temperature = baroAltitude.Temperature*100.0f;
+			mavlink_msg_scaled_pressure_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &pressure);
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			break;
+		}
+		case FLIGHTTELEMETRYSTATS_OBJID:
+		{
+			//				FlightTelemetryStatsData flightTelemetryStats;
+			FlightTelemetryStatsGet(&flightStats);
+
+			// XXX this is a hack to make it think it got a confirmed
+			// connection
+			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+			GCSTelemetryStatsGet(&gcsTelemetryStatsData);
+			gcsTelemetryStatsData.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
+			//
+			//
+			//				//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
+			//				mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass);
+			//				// Copy the message to the send buffer
+			//				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			//				// Send buffer
+			//				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			break;
+		}
+		case SYSTEMSTATS_OBJID:
+		{
+			//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
+			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass);
+			//mavlink_msg_cpu_load_pack(mavlink_system.sysid, mavlink_system.compid, &msg,ucCpuLoad,ucCpuLoad,0);
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+
+			uint8_t ucCpuLoad;
+			SystemStatsCPULoadGet(&ucCpuLoad);
+			uint16_t vbat = 11000;
+
+			FlightStatusData flightStatus;
+			FlightStatusGet(&flightStatus);
+			uint8_t mode = MAV_MODE_UNINIT;
+			uint8_t state = MAV_STATE_UNINIT;
+			switch (flightStatus.FlightMode)
 			{
-				AttitudeActualGet(&attitudeActual);
-				AttitudeRawGet(&attitudeRaw);
-
-				// Copy data
-				attitude_raw.xacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_X];
-				attitude_raw.yacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Y];
-				attitude_raw.zacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Z];
-				attitude_raw.xgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_X];
-				attitude_raw.ygyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Y];
-				attitude_raw.zgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Z];
-				attitude_raw.xmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_X];
-				attitude_raw.ymag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Y];
-				attitude_raw.zmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Z];
-
-				mavlink_msg_raw_imu_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude_raw);
-				// Copy the message to the send buffer
-				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-
-				attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
-				attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
-				attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
-
-				attitude.rollspeed  = (attitudeActual.RollSpeed/180.0f)*3.14159265f;
-				attitude.pitchspeed = (attitudeActual.PitchSpeed/180.0f)*3.14159265f;
-				attitude.yawspeed   = (attitudeActual.YawSpeed/180.0f)*3.14159265f;
-
-				mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
-				// Copy the message to the send buffer
-				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-//
-//				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
-//						attitudeActual.Pitch,attitudeActual.Yaw,
-//						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
-				//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
-				//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
+			case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
+				mode = MAV_MODE_MANUAL;
 				break;
 			}
-			case BAROALTITUDE_OBJID:
+
+			switch (flightStatus.Armed)
 			{
-				BaroAltitudeGet(&baroAltitude);
-				pressure.press_abs = baroAltitude.Pressure*10.0f;
-				pressure.temperature = baroAltitude.Temperature*100.0f;
-				mavlink_msg_scaled_pressure_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &pressure);
-				// Copy the message to the send buffer
-				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			case FLIGHTSTATUS_ARMED_ARMING:
+			case FLIGHTSTATUS_ARMED_ARMED:
+				state = MAV_STATE_ACTIVE;
+				break;
+			case FLIGHTSTATUS_ARMED_DISARMED:
+				state = MAV_STATE_STANDBY;
 				break;
 			}
-			case FLIGHTTELEMETRYSTATS_OBJID:
-			{
-//				FlightTelemetryStatsData flightTelemetryStats;
-				FlightTelemetryStatsGet(&flightStats);
 
-				// XXX this is a hack to make it think it got a confirmed
-				// connection
-				flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
-				GCSTelemetryStatsGet(&gcsTelemetryStatsData);
-				gcsTelemetryStatsData.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
-//
-//
-//				//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
-//				mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass);
-//				// Copy the message to the send buffer
-//				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-//				// Send buffer
-//				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-				break;
-			}
-			case SYSTEMSTATS_OBJID:
-			{
-				//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
-				mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass);
-				//mavlink_msg_cpu_load_pack(mavlink_system.sysid, mavlink_system.compid, &msg,ucCpuLoad,ucCpuLoad,0);
-				// Copy the message to the send buffer
-				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, mavlink_system.nav_mode, mavlink_system.state, ucCpuLoad*4, vbat, 0, 0);
+			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
+			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			break;
+		}
+		case GPSPOSITION_OBJID:
+		{
+			GPSPositionGet(&gpsPosition);
+			gps_raw.lat = gpsPosition.Latitude;
+			gps_raw.lon = gpsPosition.Longitude;
+			gps_raw.alt = gpsPosition.Altitude;
+			gps_raw.eph = gpsPosition.HDOP*100;
+			gps_raw.epv = gpsPosition.VDOP*100;
+			gps_raw.hdg = gpsPosition.Heading*100;
+			gps_raw.satellites_visible = gpsPosition.Satellites;
+			gps_raw.fix_type = gpsPosition.Status;
+			mavlink_msg_gps_raw_int_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &gps_raw);
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			break;
+		}
+		case MANUALCONTROLCOMMAND_OBJID:
+		{
+			mavlink_rc_channels_scaled_t rc;
+			float val;
+			ManualControlCommandRollGet(&val);
+			rc.chan1_scaled = val*1000;
+			ManualControlCommandPitchGet(&val);
+			rc.chan2_scaled = val*1000;
+			ManualControlCommandYawGet(&val);
+			rc.chan3_scaled = val*1000;
+			ManualControlCommandThrottleGet(&val);
+			rc.chan4_scaled = val*1000;
 
-				uint8_t ucCpuLoad;
-				SystemStatsCPULoadGet(&ucCpuLoad);
-				uint16_t vbat = 11000;
-
-				FlightStatusData flightStatus;
-				FlightStatusGet(&flightStatus);
-				uint8_t mode = MAV_MODE_UNINIT;
-				uint8_t state = MAV_STATE_UNINIT;
-				switch (flightStatus.FlightMode)
-				{
-				case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
-					mode = MAV_MODE_MANUAL;
-					break;
-				}
-
-				switch (flightStatus.Armed)
-								{
-				case FLIGHTSTATUS_ARMED_ARMING:
-								case FLIGHTSTATUS_ARMED_ARMED:
-									state = MAV_STATE_ACTIVE;
-									break;
-								case FLIGHTSTATUS_ARMED_DISARMED:
-									state = MAV_STATE_STANDBY;
-									break;
-								}
-
-				mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, mavlink_system.nav_mode, mavlink_system.state, ucCpuLoad*4, vbat, 0, 0);
-				//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
-				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-				break;
-			}
-			case GPSPOSITION_OBJID:
-			{
-				GPSPositionGet(&gpsPosition);
-				gps_raw.lat = gpsPosition.Latitude;
-				gps_raw.lon = gpsPosition.Longitude;
-				gps_raw.alt = gpsPosition.Altitude;
-				gps_raw.eph = gpsPosition.HDOP*100;
-				gps_raw.epv = gpsPosition.VDOP*100;
-				gps_raw.hdg = gpsPosition.Heading*100;
-				gps_raw.satellites_visible = gpsPosition.Satellites;
-				gps_raw.fix_type = gpsPosition.Status;
-				mavlink_msg_gps_raw_int_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &gps_raw);
-				// Copy the message to the send buffer
-				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-				break;
-			}
-			case MANUALCONTROLCOMMAND_OBJID:
-			{
-				mavlink_rc_channels_scaled_t rc;
-				float val;
-				ManualControlCommandRollGet(&val);
-				rc.chan1_scaled = val*1000;
-				ManualControlCommandPitchGet(&val);
-				rc.chan2_scaled = val*1000;
-				ManualControlCommandYawGet(&val);
-				rc.chan3_scaled = val*1000;
-				ManualControlCommandThrottleGet(&val);
-				rc.chan4_scaled = val*1000;
-
-				mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
+			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
 
 
-				// Copy the message to the send buffer
-				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-				// Send buffer
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
-				break;
-			}
-			default:
-			{
-				//printf("unknown object: %x\n",(unsigned int)objId);
-				break;
-			}
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+			break;
+		}
+		default:
+		{
+			//printf("unknown object: %x\n",(unsigned int)objId);
+			break;
+		}
 		}
 
 
@@ -569,52 +569,52 @@ static void processObjEvent(UAVObjEvent * ev)
 
 
 
-//		if (ev->obj == AttitudeRawHandle()) {
-//			// Get object data
-//			mavlink_raw_imu_t imu;
-//			imu.xacc =
-//		}
+		//		if (ev->obj == AttitudeRawHandle()) {
+		//			// Get object data
+		//			mavlink_raw_imu_t imu;
+		//			imu.xacc =
+		//		}
 
 		// Send buffer
 		//transmitData(buf, len);
 		//if (outStream!=NULL) (*outStream)(txBuffer, dataOffset+length+CHECKSUM_LENGTH);
 
-//		// Only process event if connected to GCS or if object FlightTelemetryStats is updated
-//		FlightTelemetryStatsGet(&flightStats);
-//		if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED || ev->obj == FlightTelemetryStatsHandle()) {
-//			// Get object metadata
-//			UAVObjGetMetadata(ev->obj, &metadata);
-//			// Act on event
-//			retries = 0;
-//			success = -1;
-//			if (ev->event == EV_UPDATED || ev->event == EV_UPDATED_MANUAL) {
-//				// Send update to GCS (with retries)
-//				while (retries < MAX_RETRIES && success == -1) {
-//					success = UAVTalkSendObject(ev->obj, ev->instId, metadata.telemetryAcked, REQ_TIMEOUT_MS);	// call blocks until ack is received or timeout
-//					++retries;
-//				}
-//				// Update stats
-//				txRetries += (retries - 1);
-//				if (success == -1) {
-//					++txErrors;
-//				}
-//			} else if (ev->event == EV_UPDATE_REQ) {
-//				// Request object update from GCS (with retries)
-//				while (retries < MAX_RETRIES && success == -1) {
-//					success = UAVTalkSendObjectRequest(ev->obj, ev->instId, REQ_TIMEOUT_MS);	// call blocks until update is received or timeout
-//					++retries;
-//				}
-//				// Update stats
-//				txRetries += (retries - 1);
-//				if (success == -1) {
-//					++txErrors;
-//				}
-//			}
-//			// If this is a metaobject then make necessary telemetry updates
-//			if (UAVObjIsMetaobject(ev->obj)) {
-//				updateObject(UAVObjGetLinkedObj(ev->obj));	// linked object will be the actual object the metadata are for
-//			}
-//		}
+		//		// Only process event if connected to GCS or if object FlightTelemetryStats is updated
+		//		FlightTelemetryStatsGet(&flightStats);
+		//		if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED || ev->obj == FlightTelemetryStatsHandle()) {
+		//			// Get object metadata
+		//			UAVObjGetMetadata(ev->obj, &metadata);
+		//			// Act on event
+		//			retries = 0;
+		//			success = -1;
+		//			if (ev->event == EV_UPDATED || ev->event == EV_UPDATED_MANUAL) {
+		//				// Send update to GCS (with retries)
+		//				while (retries < MAX_RETRIES && success == -1) {
+		//					success = UAVTalkSendObject(ev->obj, ev->instId, metadata.telemetryAcked, REQ_TIMEOUT_MS);	// call blocks until ack is received or timeout
+		//					++retries;
+		//				}
+		//				// Update stats
+		//				txRetries += (retries - 1);
+		//				if (success == -1) {
+		//					++txErrors;
+		//				}
+		//			} else if (ev->event == EV_UPDATE_REQ) {
+		//				// Request object update from GCS (with retries)
+		//				while (retries < MAX_RETRIES && success == -1) {
+		//					success = UAVTalkSendObjectRequest(ev->obj, ev->instId, REQ_TIMEOUT_MS);	// call blocks until update is received or timeout
+		//					++retries;
+		//				}
+		//				// Update stats
+		//				txRetries += (retries - 1);
+		//				if (success == -1) {
+		//					++txErrors;
+		//				}
+		//			}
+		//			// If this is a metaobject then make necessary telemetry updates
+		//			if (UAVObjIsMetaobject(ev->obj)) {
+		//				updateObject(UAVObjGetLinkedObj(ev->obj));	// linked object will be the actual object the metadata are for
+		//			}
+		//		}
 	}
 }
 
@@ -631,7 +631,7 @@ static void telemetryTxTask(void *parameters)
 		if (xQueueReceive(queue, &ev, portMAX_DELAY) == pdTRUE) {
 			// Process event
 			processObjEvent(&ev);
-			
+
 			// Send one param
 			mavlink_pm_queued_send();
 		}
@@ -693,56 +693,62 @@ static void telemetryRxTask(void *parameters)
 			// Handle packet with parameter component
 			mavlink_pm_message_handler(mavlink_chan, &rx_msg);
 
-			switch (rx_msg.msgid)
-			{
-			case MAVLINK_MSG_ID_HEARTBEAT:
-			{
-				// Check if this is the gcs
-				mavlink_heartbeat_t beat;
-				mavlink_msg_heartbeat_decode(&rx_msg, &beat);
-				if (beat.type == MAV_TYPE_OCU)
-				{
-					// Got heartbeat from the GCS, we're good!
-					lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
-				}
-				break;
-			}
-			case MAVLINK_MSG_ID_SET_MODE:
-			{
-				mavlink_set_mode_t mode;
-				mavlink_msg_set_mode_decode(&rx_msg, &mode);
-				// Check if this system should change the mode
-				if (mode.target == mavlink_system.sysid)
-				{
-					mavlink_system.mode = mode.mode;
-					FlightStatusData flightStatus;
-					FlightStatusGet(&flightStatus);
-
-					switch (mode.mode)
-					{
-					case MAV_MODE_MANUAL:
-						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
-						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
-						break;
-					case MAV_MODE_LOCKED:
-											flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
-											break;
-					case MAV_MODE_GUIDED:
-						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED1;
-						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
-						break;
-					}
-
-					FlightStatusSet(&flightStatus);
-				}
-			}
-			break;
-			case MAVLINK_MSG_ID_COMMAND:
-			{
-				// FIXME Implement
-			}
-			break;
-			}
+//			switch (rx_msg.msgid)
+//			{
+//			case MAVLINK_MSG_ID_HEARTBEAT:
+//			{
+//				// Check if this is the gcs
+//				mavlink_heartbeat_t beat;
+//				mavlink_msg_heartbeat_decode(&rx_msg, &beat);
+//				if (beat.type == MAV_TYPE_OCU)
+//				{
+//					// Got heartbeat from the GCS, we're good!
+//					lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
+//				}
+//			}
+//			break;
+//			case MAVLINK_MSG_ID_SET_MODE:
+//			{
+//				mavlink_set_mode_t mode;
+//				mavlink_msg_set_mode_decode(&rx_msg, &mode);
+//				// Check if this system should change the mode
+//				if (mode.target == mavlink_system.sysid)
+//				{
+//					mavlink_system.mode = mode.mode;
+//					FlightStatusData flightStatus;
+//					FlightStatusGet(&flightStatus);
+//
+//					switch (mode.mode)
+//					{
+//					case MAV_MODE_MANUAL:
+//					{
+//						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
+//						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+//					}
+//					break;
+//					case MAV_MODE_LOCKED:
+//					{
+//						flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
+//					}
+//					break;
+//					case MAV_MODE_GUIDED:
+//					{
+//						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED1;
+//						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+//					}
+//					break;
+//					}
+//
+//					FlightStatusSet(&flightStatus);
+//				}
+//			}
+//			break;
+//			case MAVLINK_MSG_ID_COMMAND:
+//			{
+//				// FIXME Implement
+//			}
+//			break;
+//			}
 		}
 	}
 }
@@ -826,8 +832,8 @@ static void gcsTelemetryStatsUpdated()
  */
 static void updateTelemetryStats()
 {
-//	flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
-//	gcsStats.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
+	//	flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+	//	gcsStats.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
 
 	FlightTelemetryStatsData flightStats;
 	GCSTelemetryStatsData gcsStats;
@@ -870,7 +876,7 @@ static void updateTelemetryStats()
 	forceUpdate = 1;
 
 	// FIXME Hardcode value for now
-//	connectionTimeout = 0;
+	//	connectionTimeout = 0;
 
 	// If the GCS heartbeat has been received in the last five seconds
 	// set as connected
@@ -899,27 +905,27 @@ static void updateTelemetryStats()
 	gcsStats.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
 	forceUpdate = 1;
 
-//	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED) {
-//		// Wait for connection request
-//		if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_HANDSHAKEREQ) {
-//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_HANDSHAKEACK;
-//		}
-//	} else if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_HANDSHAKEACK) {
-//		// Wait for connection
-//		if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_CONNECTED) {
-//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
-//		} else if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_DISCONNECTED) {
-//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
-//		}
-//	} else if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
-//		if (gcsStats.Status != GCSTELEMETRYSTATS_STATUS_CONNECTED || connectionTimeout) {
-//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
-//		} else {
-//			forceUpdate = 0;
-//		}
-//	} else {
-//		flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
-//	}
+	//	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED) {
+	//		// Wait for connection request
+	//		if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_HANDSHAKEREQ) {
+	//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_HANDSHAKEACK;
+	//		}
+	//	} else if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_HANDSHAKEACK) {
+	//		// Wait for connection
+	//		if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_CONNECTED) {
+	//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+	//		} else if (gcsStats.Status == GCSTELEMETRYSTATS_STATUS_DISCONNECTED) {
+	//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
+	//		}
+	//	} else if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
+	//		if (gcsStats.Status != GCSTELEMETRYSTATS_STATUS_CONNECTED || connectionTimeout) {
+	//			flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
+	//		} else {
+	//			forceUpdate = 0;
+	//		}
+	//	} else {
+	//		flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED;
+	//	}
 
 	// Update the telemetry alarm
 	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED) {
@@ -943,29 +949,29 @@ static void updateTelemetryStats()
  */
 static void updateSettings()
 {
-    // Set port
-    telemetryPort = PIOS_COM_TELEM_RF;
+	// Set port
+	telemetryPort = PIOS_COM_TELEM_RF;
 
-    // Retrieve settings
-    TelemetrySettingsGet(&settings);
+	// Retrieve settings
+	TelemetrySettingsGet(&settings);
 
-    // Set port speed
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_2400) PIOS_COM_ChangeBaud(telemetryPort, 2400);
-    else
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_4800) PIOS_COM_ChangeBaud(telemetryPort, 4800);
-    else
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_9600) PIOS_COM_ChangeBaud(telemetryPort, 9600);
-    else
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_19200) PIOS_COM_ChangeBaud(telemetryPort, 19200);
-    else
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_38400) PIOS_COM_ChangeBaud(telemetryPort, 38400);
-    else
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_57600) PIOS_COM_ChangeBaud(telemetryPort, 57600);
-    else
-    if (settings.Speed == TELEMETRYSETTINGS_SPEED_115200) PIOS_COM_ChangeBaud(telemetryPort, 115200);
+	// Set port speed
+	if (settings.Speed == TELEMETRYSETTINGS_SPEED_2400) PIOS_COM_ChangeBaud(telemetryPort, 2400);
+	else
+		if (settings.Speed == TELEMETRYSETTINGS_SPEED_4800) PIOS_COM_ChangeBaud(telemetryPort, 4800);
+		else
+			if (settings.Speed == TELEMETRYSETTINGS_SPEED_9600) PIOS_COM_ChangeBaud(telemetryPort, 9600);
+			else
+				if (settings.Speed == TELEMETRYSETTINGS_SPEED_19200) PIOS_COM_ChangeBaud(telemetryPort, 19200);
+				else
+					if (settings.Speed == TELEMETRYSETTINGS_SPEED_38400) PIOS_COM_ChangeBaud(telemetryPort, 38400);
+					else
+						if (settings.Speed == TELEMETRYSETTINGS_SPEED_57600) PIOS_COM_ChangeBaud(telemetryPort, 57600);
+						else
+							if (settings.Speed == TELEMETRYSETTINGS_SPEED_115200) PIOS_COM_ChangeBaud(telemetryPort, 115200);
 }
 
 /**
-  * @}
-  * @}
-  */
+ * @}
+ * @}
+ */
