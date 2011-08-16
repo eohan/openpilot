@@ -469,6 +469,8 @@ zinitPool(
 		void *pBase,
 		iaddr_t pSize
 ) {
+	iaddr_t	adjust;
+
 	if (fpanic == NULL)
 		fpanic = znop;
 	if (freclaim == NULL)
@@ -476,10 +478,12 @@ zinitPool(
 
 	if (id != (const char *)-1)
 		mp->mp_Ident = id;
-	mp->mp_Base = pBase;
-	mp->mp_End  = (char *)pBase + pSize;
+	adjust = (iaddr_t)pBase;
+	mp->mp_Base = (void *)((adjust + MEMNODE_SIZE_MASK) & ~MEMNODE_SIZE_MASK);
+	adjust = (iaddr_t)pBase + pSize;
+	mp->mp_End = (void *)(adjust & ~MEMNODE_SIZE_MASK);
 	mp->mp_First = NULL;
-	mp->mp_Size = pSize;
+	mp->mp_Size = (iaddr_t)mp->mp_End - (iaddr_t)mp->mp_Base;
 	mp->mp_Used = pSize;
 	mp->mp_Panic = fpanic;
 	mp->mp_Reclaim = freclaim;
