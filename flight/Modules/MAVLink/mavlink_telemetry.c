@@ -43,6 +43,7 @@
 #include "attituderaw.h"           /* Raw attitude sensor measurements */
 #include "gpsposition.h"		   /* GPS position */
 #include "gpssatellites.h"		   /* GPS satellites */
+#include "flightstatus.h"          /* Main system state machine */
 
 // Private constants
 #define MAX_QUEUE_SIZE   MAVLINK_QUEUE_SIZE
@@ -387,6 +388,8 @@ static void processObjEvent(UAVObjEvent * ev)
 		mavlink_system.type = MAV_TYPE_FIXED_WING;
 		uint8_t mavClass = MAV_CLASS_OPENPILOT;
 
+		AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
+
 
 		uint32_t objId;
 
@@ -483,6 +486,29 @@ static void processObjEvent(UAVObjEvent * ev)
 				uint8_t ucCpuLoad;
 				SystemStatsCPULoadGet(&ucCpuLoad);
 				uint16_t vbat = 11000;
+
+				FlightStatusData flightStatus;
+				FlightStatusGet(&flightStatus);
+				uint8_t mode = MAV_MODE_UNINIT;
+				uint8_t state = MAV_STATE_UNINIT;
+				switch (flightStatus.FlightMode)
+				{
+				case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
+					mode = MAV_MODE_MANUAL;
+					break;
+				}
+
+				switch (flightStatus.Armed)
+								{
+				case FLIGHTSTATUS_ARMED_ARMING:
+								case FLIGHTSTATUS_ARMED_ARMED:
+									state = MAV_STATE_ACTIVE;
+									break;
+								case FLIGHTSTATUS_ARMED_DISARMED:
+									state = MAV_STATE_STANDBY;
+									break;
+								}
+
 				mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, mavlink_system.nav_mode, mavlink_system.state, ucCpuLoad*4, vbat, 0, 0);
 				//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
 				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
@@ -671,7 +697,14 @@ static void telemetryRxTask(void *parameters)
 			{
 			case MAVLINK_MSG_ID_HEARTBEAT:
 			{
-				lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
+				// Check if this is the gcs
+				mavlink_heartbeat_t beat;
+				mavlink_msg_heartbeat_decode(&rx_msg, &beat);
+				if (beat.type == MAV_TYPE_OCU)
+				{
+					// Got heartbeat from the GCS, we're good!
+					lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
+				}
 				break;
 			}
 			case MAVLINK_MSG_ID_SET_MODE:
@@ -682,6 +715,25 @@ static void telemetryRxTask(void *parameters)
 				if (mode.target == mavlink_system.sysid)
 				{
 					mavlink_system.mode = mode.mode;
+					FlightStatusData flightStatus;
+					FlightStatusGet(&flightStatus);
+
+					switch (mode.mode)
+					{
+					case MAV_MODE_MANUAL:
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+						break;
+					case MAV_MODE_LOCKED:
+											flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
+											break;
+					case MAV_MODE_GUIDED:
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED1;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+						break;
+					}
+
+					FlightStatusSet(&flightStatus);
 				}
 			}
 			break;
