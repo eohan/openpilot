@@ -50,6 +50,7 @@
 #define STACK_SIZE_BYTES PIOS_MAVLINK_STACK_SIZE
 #define TASK_PRIORITY_RX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_TX (tskIDLE_PRIORITY + 2)
+#define TASK_PRIORITY_STATE_MACHINE (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_TXPRI (tskIDLE_PRIORITY + 2)
 #define REQ_TIMEOUT_MS 250
 #define MAX_RETRIES 2
@@ -72,6 +73,7 @@ static void telemetryTxPriTask(void *parameters);
 
 static xTaskHandle telemetryTxTaskHandle;
 static xTaskHandle telemetryRxTaskHandle;
+static xTaskHandle mavlinkStateMachineTaskHandle;
 static uint32_t txErrors;
 static uint32_t txRetries;
 static TelemetrySettingsData settings;
@@ -80,6 +82,7 @@ static uint32_t timeOfLastObjectUpdate;
 // Private functions
 static void telemetryTxTask(void *parameters);
 static void telemetryRxTask(void *parameters);
+static void mavlinkStateMachineTask(void *parameters);
 //static int32_t transmitData(uint8_t * data, int32_t length);
 static void registerObject(UAVObjHandle obj);
 static void updateObject(UAVObjHandle obj);
@@ -223,6 +226,7 @@ int32_t MAVLinkStart(void)
 	// Start telemetry tasks
 	xTaskCreate(telemetryTxTask, (signed char *)"MAVLinkTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
 	xTaskCreate(telemetryRxTask, (signed char *)"MAVLinkRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
+	xTaskCreate(mavlinkStateMachineTask, (signed char*) "MAVLinkSM", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_STATE_MACHINE, &mavlinkStateMachineTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTX, telemetryTxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYRX, telemetryRxTaskHandle);
 
@@ -631,9 +635,6 @@ static void telemetryTxTask(void *parameters)
 		if (xQueueReceive(queue, &ev, portMAX_DELAY) == pdTRUE) {
 			// Process event
 			processObjEvent(&ev);
-
-			// Send one param
-			mavlink_pm_queued_send();
 		}
 	}
 }
@@ -656,6 +657,20 @@ static void telemetryTxPriTask(void *parameters)
 	}
 }
 #endif
+
+static void mavlinkStateMachineTask(void* parameters)
+{
+	// MAVLink protocol state machine
+	while (1) {
+		// Run handlers, sleep for 20 ms
+		// Send one param
+		mavlink_pm_queued_send();
+		// Send setpoints, time out
+		mavlink_wpm_loop();
+		// Wait 20 ms
+		vTaskDelay(20);
+	}
+}
 
 /**
  * Telemetry transmit task. Processes queue events and periodic updates.
