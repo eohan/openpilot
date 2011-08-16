@@ -389,9 +389,9 @@ usart_init(uint32_t *id, const struct pios_usart_cfg * cfg, size_t rx_buffer, si
 
 	PIOS_Assert(!PIOS_USART_Init(&usart_id, cfg));
 	if (rx_buffer)
-		PIOS_Assert((rx = pvPortMalloc(rx_buffer)));
+		PIOS_Assert(!(rx = pvPortMalloc(rx_buffer)));
 	if (tx_buffer)
-		PIOS_Assert((tx = pvPortMalloc(tx_buffer)));
+		PIOS_Assert(!(tx = pvPortMalloc(tx_buffer)));
 	PIOS_Assert(!PIOS_COM_Init(id, &pios_usart_com_driver, usart_id, rx, rx_buffer, tx, tx_buffer));
 }
 
