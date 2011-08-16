@@ -53,8 +53,6 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-#MODULES =  Actuator Telemetry GPS ManualControl Altitude AHRSComms Stabilization Guidance FirmwareIAP FlightPlan
-
 #MODULES = MAVLink PX2Attitude Altitude Stabilization GPS FlightPlan ManualControl Guidance
 MODULES = MAVLink PX2Attitude Actuator Stabilization ManualControl GPS Altitude Guidance # Batt module is crashing: Battery
 PYMODULES = FlightPlan

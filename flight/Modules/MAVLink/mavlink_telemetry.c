@@ -500,7 +500,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				gps_raw.epv = gpsPosition.VDOP*100;
 				gps_raw.hdg = gpsPosition.Heading*100;
 				gps_raw.satellites_visible = gpsPosition.Satellites;
-				gps_raw.fix_type = 3;//gpsPosition.Status;
+				gps_raw.fix_type = gpsPosition.Status;
 				mavlink_msg_gps_raw_int_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &gps_raw);
 				// Copy the message to the send buffer
 				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
@@ -510,32 +510,24 @@ static void processObjEvent(UAVObjEvent * ev)
 			}
 			case MANUALCONTROLCOMMAND_OBJID:
 			{
-//				Manu
-//				manualControl.Channel[0] = PIOS_PPM_Get(0);
-//				manualControl.Channel[1] = PIOS_PPM_Get(1);
-//
-//				rc_channels.chan1_raw = manualControl.Channel[0];
-//				rc_channels.chan2_raw = manualControl.Channel[1];
-//
-//				debug.x = PIOS_PPM_Get(0);
-//				debug.y = PIOS_PPM_Get(1);
-//				debug.z = PIOS_PPM_Get(2);
-//				debug.name[0] = 'R';
-//				debug.name[1] = 'C';
-//				debug.name[2] = 0;
-//				debug.usec = 0;
-//
-//				mavlink_msg_debug_vect_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &debug);
+				mavlink_rc_channels_scaled_t rc;
+				float val;
+				ManualControlCommandRollGet(&val);
+				rc.chan1_scaled = val*1000;
+				ManualControlCommandPitchGet(&val);
+				rc.chan2_scaled = val*1000;
+				ManualControlCommandYawGet(&val);
+				rc.chan3_scaled = val*1000;
+				ManualControlCommandThrottleGet(&val);
+				rc.chan4_scaled = val*1000;
 
-
-
-//				mavlink_msg_rc_channels_raw_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc_channels);
+				mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
 
 
 				// Copy the message to the send buffer
-//				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-//				// Send buffer
-//				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+				// Send buffer
+				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
 				break;
 			}
 			default:
