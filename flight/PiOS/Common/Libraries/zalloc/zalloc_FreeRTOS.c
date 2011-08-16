@@ -1,6 +1,6 @@
-/*
- * Implementation of pvPortMalloc and friends that uses the
- * Dillon zalloc/malloc allocator.
+/**
+ * @file	zalloc_FreeRTOS.c
+ * @brief	Implementation of pvPortMalloc and friends that uses the Dillon zalloc/malloc allocator.
  *
  * (c) 2011 Michael Smith, All Rights Reserved
  */
@@ -20,9 +20,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include <stdlib.h>
-
-#include "zalloc_defs.h"
+#include "malloc_private.h"
 
 /*
  * Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
@@ -35,81 +33,15 @@
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 /*
- * Symbols exported by the linker script telling us where the heap
- * and init stack are.
+ * Symbols exported by the linker script telling us where the heap is.
  */
 extern char	_sheap;
 extern char	_eheap;
-extern char	_init_stack_end;
-extern char	_init_stack_top;
 
-extern void vApplicationMallocFailedHook(void);
-
-void *
-pvPortMalloc(size_t s)
-{
-	void *p;
-
-	p = malloc(s);
-
-#if (configUSE_MALLOC_FAILED_HOOK == 1)
-	if (p == NULL) {
-		vApplicationMallocFailedHook();
-	}
-#endif
-	
-	return p;
-}
-
-void
-vPortFree(void *p)
-{
-	/* this is the init stack being freed */
-	if (p == (void *)&_init_stack_end) {
-		zfree(&MallocPool, (void *)&_init_stack_end, (&_init_stack_top - &_init_stack_end));
-	} else {
-		free(p);
-	}
-}
-
-size_t
-xPortGetFreeHeapSize(void)
-{
-	/* XXX this can easily be implemented by tweaking zallocstats */
-	return 1;
-}
-
-void
-vPortInitialiseBlocks(void)
-{
-	uint32_t	initial_heap_size, final_heap_size;
-
-	/*
-	 * If the init stack is immediately adjacent to the zalloc pool then we can absorb it if/when it is freed,
-	 * so we should account for it in the sizing of the heap.
-	 */
-	initial_heap_size = &_eheap - &_sheap;
-	if (&_init_stack_end == &_eheap) {
-		final_heap_size = &_init_stack_top - &_sheap;
-	} else {
-		final_heap_size = initial_heap_size;
-	}
-
-	/* assign all of the heap space to the zalloc pool */
-	/* XXX might be nice to have better panic hooks here */
-	zinitPool(&MallocPool, "Malloc", znop, znot, (void *)&_sheap, final_heap_size);
-
-	/* free back all of the heap except for the init stack; this will be given back when the init task terminates */
-	zfree(&MallocPool, (void *)&_sheap, initial_heap_size);
-}
-
-void
-xPortIncreaseHeapSize(size_t bytes)
-{
-	/* can't implement this as-is due to zalloc supporting non-contiguous extensions */
-	/* might want to implement an extended version to deal with that at some point */
-}
-
+/*
+ * Optional callback for allocation failures.
+ */
+extern void vApplicationMallocFailedHook(void) __attribute__((weak));
 
 /*
  * Mutual exclusion support for the allocator.
@@ -127,3 +59,49 @@ zunlock(void)
 {
 	xTaskResumeAll();
 }
+
+void *
+pvPortMalloc(size_t s)
+{
+	void *p;
+
+	p = malloc(s);
+
+	if (p == NULL && &vApplicationMallocFailedHook != NULL)
+		vApplicationMallocFailedHook();
+	
+	return p;
+}
+
+void
+vPortFree(void *p)
+{
+	free(p);
+}
+
+size_t
+xPortGetFreeHeapSize(void)
+{
+	return MallocPool.mp_Size - MallocPool.mp_Used;
+}
+
+void
+vPortInitialiseBlocks(void)
+{
+	uint32_t	heap_size;
+
+	heap_size = &_eheap - &_sheap;
+
+	/* assign all of the heap space to the zalloc pool */
+	/* XXX might be nice to have better panic hooks here */
+	zinitPool(&MallocPool, "Malloc", znop, znot, (void *)&_sheap, heap_size);
+	zclearPool(&MallocPool);
+}
+
+void
+xPortIncreaseHeapSize(size_t bytes)
+{
+	/* can't implement this as-is due to zalloc supporting non-contiguous extensions */
+	/* might want to implement an extended version to deal with that at some point */
+}
+

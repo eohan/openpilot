@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
             cout<<"| -r                   : resets the device                               |\n";
             cout<<"| -j                   : exits bootloader and jumps to user FW           |\n";
             cout<<"| -debug               : prints debug information                        |\n";
-            cout<<"| -t <port>            : uses serial port(requires:-ur)                  |\n";
+            cout<<"| -t <port>            : uses serial port                                |\n";
             cout<<"| -ur <port>           : user mode reset*                                |\n";
             cout<<"|                                                                        |\n";
             cout<<"| examples:                                                              |\n";
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
         }
         else if(action==OP_DFU::actionStatusReq)
         {
-            cout<<"Current device status="<<dfu.StatusToString(dfu.StatusRequest()).toLatin1().data()<<"\n";
+            cout<<"Current device status="<<dfu.StatusToString(dfu.StatusRequest()).toLatin1().data()<< endl;
         }
         else if(action==OP_DFU::actionReset)
         {

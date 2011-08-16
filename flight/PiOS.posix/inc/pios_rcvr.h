@@ -1,9 +1,14 @@
 /**
  ******************************************************************************
+ * @addtogroup PIOS PIOS Core hardware abstraction layer
+ * @{
+ * @addtogroup PIOS_RCVR RCVR layer functions
+ * @brief Hardware communication layer
+ * @{
  *
- * @file       link_STM32F2xx_application_no_bootloader.ld   
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2009.   
- * @brief      PiOS linker for the OpenPilot board
+ * @file       pios_rcvr.h  
+ * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @brief      RCVR layer functions header
  * @see        The GNU Public License (GPL) Version 3
  *
  *****************************************************************************/
@@ -23,10 +28,27 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-/* Memory Spaces Definitions */
-MEMORY
-{
-	SRAM (xrw) :    ORIGIN = 0x20000000, LENGTH = 128K
-	FLASH (rx) :    ORIGIN = 0x08000000, LENGTH = 1020K
-	BD_INFO(r) :	ORIGIN = 0x080ff000, LENGTH = 4K	/* XXX just to make the linker happy, move once we have a bootloader */
-}
+#ifndef PIOS_RCVR_H
+#define PIOS_RCVR_H
+
+struct pios_rcvr_channel_map {
+	uint32_t id;
+	uint8_t  channel;
+};
+
+extern struct pios_rcvr_channel_map pios_rcvr_channel_to_id_map[];
+
+struct pios_rcvr_driver {
+  void    (*init)(uint32_t id);
+  int32_t (*read)(uint32_t id, uint8_t channel);
+};
+
+/* Public Functions */
+extern int32_t PIOS_RCVR_Read(uint32_t rcvr_id, uint8_t channel);
+
+#endif /* PIOS_RCVR_H */
+
+/**
+  * @}
+  * @}
+  */

@@ -1,9 +1,9 @@
  #####
- # Project: OpenPilot
+ # Project: PX2 OpenPilot
  #
+ # Makefile for the OpenPilot flight application on the PX2 FMU
  #
- # Makefile for the flight application on the PX2 FMU
- #
+ # (c) 2011 Michael Smith
  # The OpenPilot Team, http://www.openpilot.org, Copyright (C) 2009.
  #
  # 
@@ -36,10 +36,6 @@ OUTDIR := $(TOP)/build/$(TARGET)
 # Debugging (YES/NO) ?
 DEBUG ?= YES
 
-# Set to YES to enable the AUX UART which is mapped on the S1 (Tx) and S2 (Rx) servo outputs
-# XXX remove this, all UARTs are supported always
-ENABLE_AUX_UART ?= NO
-
 # Set to YES when using Code Sourcery toolchain on Windows
 CODE_SOURCERY ?= NO
 
@@ -53,8 +49,8 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-#MODULES = MAVLink PX2Attitude Altitude Stabilization GPS FlightPlan ManualControl Guidance
 MODULES = MAVLink PX2Attitude Actuator Stabilization ManualControl GPS Altitude Guidance # Batt module is crashing: Battery
+#MODULES = Telemetry Actuator Stabilization ManualControl Altitude Guidance GPS
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
@@ -159,6 +155,8 @@ SRC += $(MAVLINKMISSIONLIB)/waypoints.c
 SRC += $(MAVLINKMISSIONLIB)/mavlink_parameters.c
 
 ## PIOS Hardware (STM32F2xx)
+SRC += $(PIOSSTM32F2XX)/startup.c
+SRC += $(PIOSSTM32F2XX)/vectors_stm32f2xx.c
 SRC += $(PIOSSTM32F2XX)/pios_sys.c
 SRC += $(PIOSSTM32F2XX)/pios_led.c
 SRC += $(PIOSSTM32F2XX)/pios_delay.c
@@ -226,12 +224,12 @@ SRC += $(RTOSSRCDIR)/timers.c
 
 ## RTOS Portable
 SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
-SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+#SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
 
 ## Better malloc/free
-#SRC += $(ZALLOCLIB)/malloc.c
-#SRC += $(ZALLOCLIB)/zalloc.c
-#SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
+SRC += $(ZALLOCLIB)/malloc.c
+SRC += $(ZALLOCLIB)/zalloc.c
+SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
 
 ## Dosfs file system
 SRC += $(DOSFSDIR)/dosfs.c
@@ -258,7 +256,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F2XX)/startup_stm32f2xx.S
+ASRC	=
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM =
@@ -341,16 +339,9 @@ CDEFS += -D__ARM_ARCH_7M__
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER
 CDEFS += -DUSE_$(BOARD)
-ifeq ($(ENABLE_DEBUG_PINS), YES)
-CDEFS += -DPIOS_ENABLE_DEBUG_PINS
-endif
-ifeq ($(ENABLE_AUX_UART), YES)
-CDEFS += -DPIOS_ENABLE_AUX_UART
-endif
 
 # Place project-specific -D and/or -U options for
 # Assembler with preprocessor here.
-#ADEFS = -DUSE_IRQ_ASM_WRAPPER
 ADEFS = -D__ASSEMBLY__
 
 # Compiler flag to set the C Standard level.
@@ -364,15 +355,7 @@ CSTANDARD = -std=gnu99
 
 # Compiler flags.
 
-#  -g*:          generate debugging information
-#  -O*:          optimization level
-#  -f...:        tuning, see GCC manual and avr-libc documentation
-#  -Wall...:     warning level
-#  -Wa,...:      tell GCC to pass this to the assembler.
-#    -adhlns...: create assembler listing
-#
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
-
 ifeq ($(DEBUG),YES)
 CFLAGS = -g$(DEBUGF) -DDEBUG
 endif
@@ -396,7 +379,6 @@ CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basen
 CFLAGS += -MD -MP -MF $(OUTDIR)/dep/$(@F).d
 
 # flags only for C
-#CONLYFLAGS += -Wnested-externs
 CONLYFLAGS += $(CSTANDARD)
 
 # Assembler flags.
@@ -420,8 +402,8 @@ LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc
 
-# Set linker-script name depending on selected submodel name
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_PX2FMU_sections.ld
+# Hardcoded linker script names for now
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_OP_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f

@@ -21,7 +21,6 @@
   .fpu softvfp
   .thumb
 
-.global  g_pfnVectors
 .global  Default_Handler
 
 /* start address for the initialization values of the .data section. 

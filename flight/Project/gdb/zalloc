@@ -1,0 +1,60 @@
+#
+# Debug macros for zalloc
+#
+
+define showzheap
+	set $heap = (struct MemPool *)$arg0
+	printf "Heap '%s' range 0x%x/0x%x  size 0x%x  used 0x%x  free 0x%x\n", $heap->mp_Ident, $heap->mp_Base, $heap->mp_End, $heap->mp_Size, $heap->mp_Used, $heap->mp_Size - $heap->mp_Used
+	printf "Freelist:\n"
+	set $node = $heap->mp_First
+	while $node
+		printf "  %p: 0x%x\n", $node, $node->mr_Bytes
+		set $node = $node->mr_Next
+	end
+end
+document showzheap
+	showzheap heap_ptr
+	Print details of a zalloc heap
+end
+
+define showzmalloc
+	set $heap = (struct MemPool *)&MallocPool
+	showzheap $heap
+
+	# rounding factor for zalloc heap allocations
+	set $round = sizeof(struct MemNode) - 1
+
+	# first allocation may be here
+	set $alloc = (char *)$heap->mp_Base
+
+	# first free hole is here
+	set $hole = (struct MemNode *)$heap->mp_First
+
+	# iterate allocations
+	printf "Allocations:\n"
+	set $allocations = 0
+	while $alloc < $heap->mp_End
+		# skip over free space
+		if $alloc == $hole
+			set $alloc = $alloc + $hole->mr_Bytes
+			set $hole = $hole->mr_Next
+		else
+			set $guard = (Guard *)$alloc
+			printf "  %p: 0x%08x", $guard, $guard->ga_Bytes
+			if $guard->ga_Magic != 0x55ff44fd
+				printf " [HEAD GUARD CORRUPT]"
+			end
+			if *(char *)($alloc + $guard->ga_Bytes - 1) != 0x5e
+				printf " [TAIL GUARD CORRUPT]"
+			end
+			printf "\n"
+
+			# move to next allocation
+			set $alloc = $alloc + $guard->ga_Bytes + $round 
+			set $alloc = (char *)((uint32_t)$alloc & ~$round)
+
+			set $allocations = $allocations + 1
+		end
+	end
+	printf "%d allocations\n", $allocations
+end

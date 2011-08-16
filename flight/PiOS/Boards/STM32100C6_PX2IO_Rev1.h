@@ -220,4 +220,6 @@ extern uint32_t pios_com_spektrum_id;
 #define PIOS_GPIO_CLKS					{ PIOS_GPIO_1_GPIO_CLK, PIOS_GPIO_2_GPIO_CLK, PIOS_GPIO_3_GPIO_CLK, PIOS_GPIO_4_GPIO_CLK, }
 #define PIOS_GPIO_NUM					4
 
+#define GPIO_PORT_SafetySwitch			GPIOB
+#define GPIO_PIN_SafetySwitch			GPIO_Pin_5
 #endif /* STM32100C6_PX2IO_H_ */

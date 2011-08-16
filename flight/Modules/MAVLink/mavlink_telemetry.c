@@ -220,13 +220,13 @@ int32_t MAVLinkStart(void)
 {
 
 	// Start telemetry tasks
-	xTaskCreate(telemetryTxTask, (signed char *)"TelTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
-	xTaskCreate(telemetryRxTask, (signed char *)"TelRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
+	xTaskCreate(telemetryTxTask, (signed char *)"MAVLinkTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
+	xTaskCreate(telemetryRxTask, (signed char *)"MAVLinkRx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_RX, &telemetryRxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTX, telemetryTxTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYRX, telemetryRxTaskHandle);
 
 #if defined(PIOS_TELEM_PRIORITY_QUEUE)
-	xTaskCreate(telemetryTxPriTask, (signed char *)"TelPriTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TXPRI, &telemetryTxPriTaskHandle);
+	xTaskCreate(telemetryTxPriTask, (signed char *)"MAVLPriTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TXPRI, &telemetryTxPriTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_TELEMETRYTXPRI, telemetryTxPriTaskHandle);
 #endif
 
@@ -637,7 +637,7 @@ static void telemetryTxPriTask(void *parameters)
 static void telemetryRxTask(void *parameters)
 {
 	uint32_t inputPort;
-	int32_t len;
+	uint8_t	c;
 
 	// Task loop
 	while (1) {
@@ -650,78 +650,48 @@ static void telemetryRxTask(void *parameters)
 		{
 			inputPort = telemetryPort;
 		}
-		
+
 		mavlink_channel_t mavlink_chan = MAVLINK_COMM_0;
 
-		// Block until data are available
-		// TODO: Currently we periodically check the buffer for data, update once the PIOS_COM is made blocking
-		len = PIOS_COM_ReceiveBufferUsed(inputPort);
-		for (int32_t n = 0; n < len; ++n) {
-//			PIOS_LED_On(LED2);
-//			PIOS_LED_On(LED1);
-			if (mavlink_parse_char(mavlink_chan, PIOS_COM_ReceiveBuffer(inputPort), &rx_msg, &rx_status))
+		// Block until a byte is available
+		PIOS_COM_ReceiveBuffer(inputPort, &c, 1, portMAX_DELAY);
+
+		// And process it
+
+		if (mavlink_parse_char(mavlink_chan, c, &rx_msg, &rx_status))
+		{
+
+			// Handle packet with waypoint component
+			mavlink_wpm_message_handler(&rx_msg);
+
+			// Handle packet with parameter component
+			mavlink_pm_message_handler(mavlink_chan, &rx_msg);
+
+			switch (rx_msg.msgid)
 			{
-
-				// Handle packet with waypoint component
-				mavlink_wpm_message_handler(&rx_msg);
-				
-				// Handle packet with parameter component
-				mavlink_pm_message_handler(mavlink_chan, &rx_msg);
-
-				switch (rx_msg.msgid)
-				{
 			case MAVLINK_MSG_ID_HEARTBEAT:
 			{
 				lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
 				break;
 			}
-				case MAVLINK_MSG_ID_SET_MODE:
+			case MAVLINK_MSG_ID_SET_MODE:
+			{
+				mavlink_set_mode_t mode;
+				mavlink_msg_set_mode_decode(&rx_msg, &mode);
+				// Check if this system should change the mode
+				if (mode.target == mavlink_system.sysid)
 				{
-					mavlink_set_mode_t mode;
-					mavlink_msg_set_mode_decode(&rx_msg, &mode);
-					// Check if this system should change the mode
-					if (mode.target == mavlink_system.sysid)
-					{
-						//sys_set_mode(mode.mode);
-
-						mavlink_system.mode = mode.mode;
-//						mavlink_system.nav_mode = MAV_NAV_LOST;
-//						mavlink_system.mode = mode.mode;
-//						mavlink_system.state = MAV_STATE_ACTIVE;
-//						uint16_t vbat = 11000;
-//
-//						// Emit current mode
-//						mavlink_msg_sys_status_pack_chan(mavlink_system.sysid, mavlink_system.compid, MAVLINK_COMM_0, &tx_msg, mavlink_system.mode, mavlink_system.nav_mode,
-//								mavlink_system.state, 0,vbat, 0, 0);
-//						// Send message
-//						uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &tx_msg);
-//						// Send buffer
-//						PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-
-					}
+					mavlink_system.mode = mode.mode;
 				}
-				break;
-				case MAVLINK_MSG_ID_COMMAND:
-				{
-					//									execute_action(mavlink_msg_action_get_command(msg));
-					//
-					//									//Forwart actions from Xbee to Onboard Computer and vice versa
-					//									if (chan == MAVLINK_COMM_1)
-					//									{
-					//										mavlink_send_uart(MAVLINK_COMM_0, msg);
-					//									}
-					//									else if (chan == MAVLINK_COMM_0)
-					//									{
-					//										mavlink_send_uart(MAVLINK_COMM_1, msg);
-					//									}
-				}
-				break;
-				}
-
+			}
+			break;
+			case MAVLINK_MSG_ID_COMMAND:
+			{
+				// FIXME Implement
+			}
+			break;
 			}
 		}
-		vTaskDelay(5);	// <- remove when blocking calls are implemented
-
 	}
 }
 

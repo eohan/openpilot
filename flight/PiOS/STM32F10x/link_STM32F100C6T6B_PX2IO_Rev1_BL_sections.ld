@@ -1,6 +1,5 @@
 /* XXX should be based on the SRAM definition */
-/* XXX becomes 0x20001ff0 with MD parts */
-_estack = 0x20000ff0;
+_estack = 0x20001ff0;
 
 /* Section Definitions */
 SECTIONS
