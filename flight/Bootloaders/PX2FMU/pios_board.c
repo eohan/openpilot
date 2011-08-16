@@ -33,11 +33,23 @@
  * Telemetry USART
  */
 const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_BAUDRATE);
+#define PIOS_COM_TELEM_RF_RX_BUF_LEN 192
+#define PIOS_COM_TELEM_RF_TX_BUF_LEN 192
+
+static uint8_t pios_com_telem_rf_rx_buffer[PIOS_COM_TELEM_RF_RX_BUF_LEN];
+static uint8_t pios_com_telem_rf_tx_buffer[PIOS_COM_TELEM_RF_TX_BUF_LEN];
+
 
 /*
  * Debug USART
  */
 const struct pios_usart_cfg pios_usart_aux_cfg = USART1_CONFIG(PIOS_COM_AUX_BAUDRATE);
+#define PIOS_COM_AUX_RX_BUF_LEN 64
+#define PIOS_COM_AUX_TX_BUF_LEN 64
+
+static uint8_t pios_com_aux_rx_buffer[PIOS_COM_AUX_RX_BUF_LEN];
+static uint8_t pios_com_aux_tx_buffer[PIOS_COM_AUX_TX_BUF_LEN];
+
 
 uint32_t pios_com_telem_rf_id;
 uint32_t pios_com_aux_id;
@@ -67,11 +79,17 @@ void PIOS_Board_Init(void)
 
 	/* configure the USARTs */
 	if (PIOS_USART_Init(&usart_id, &pios_usart_telem_cfg) ||
-		PIOS_COM_Init(&pios_com_telem_rf_id, &pios_usart_com_driver, usart_id)) {
+		PIOS_COM_Init(&pios_com_telem_rf_id, &pios_usart_com_driver, 
+			      usart_id,
+			      pios_com_telem_rf_rx_buffer, sizeof(pios_com_telem_rf_rx_buffer), 
+			      pios_com_telem_rf_tx_buffer, sizeof(pios_com_telem_rf_tx_buffer))) {
 		PIOS_DEBUG_Assert(0);
 	}
 	if (PIOS_USART_Init(&usart_id, &pios_usart_aux_cfg) ||
-		PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, usart_id)) {
+		PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver,
+			      usart_id,
+			      pios_com_aux_rx_buffer, sizeof(pios_com_aux_rx_buffer),
+			      pios_com_aux_tx_buffer, sizeof(pios_com_aux_tx_buffer))) {
 		PIOS_DEBUG_Assert(0);
 	}
 

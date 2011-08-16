@@ -274,7 +274,12 @@ void SSP_CallBack(uint8_t *buf, uint16_t len) {
 }
 int16_t SSP_SerialRead(void) {
 	if (PIOS_COM_ReceiveBufferUsed(PIOS_COM_TELEM_RF) > 0) {
-		return PIOS_COM_ReceiveBuffer(PIOS_COM_TELEM_RF);
+		uint8_t byte;
+		if (PIOS_COM_ReceiveBuffer(PIOS_COM_TELEM_RF, &byte, 1, 0) == 1) {
+			return byte;
+		} else {
+			return -1;
+		}	    
 	} else
 		return -1;
 }
