@@ -179,14 +179,14 @@ extern uint32_t pios_i2c_external_adapter_id;
 extern uint32_t pios_com_telem_rf_id;
 #define PIOS_COM_TELEM_RF               (pios_com_telem_rf_id)
 
-#define PIOS_COM_GPS_BAUDRATE           57600
+#define PIOS_COM_GPS_BAUDRATE           38400
 extern uint32_t pios_com_gps_id;
 #define PIOS_COM_GPS                    (pios_com_gps_id)
 
 extern uint32_t pios_com_telem_usb_id;
 #define PIOS_COM_TELEM_USB              (pios_com_telem_usb_id)
 
-#define PIOS_COM_CONTROL_BAUDRATE		115200
+#define PIOS_COM_CONTROL_BAUDRATE		921600
 extern uint32_t pios_com_control_id;
 #define PIOS_COM_CONTROL				(pios_com_control_id)
 
