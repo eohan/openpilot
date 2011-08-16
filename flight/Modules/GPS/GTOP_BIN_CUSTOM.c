@@ -120,7 +120,8 @@ static int16_t gps_rx_buffer_wr = 0;
 int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors, volatile uint32_t *parsing_errors)
 {
 	// TESTING
-	//	static uint8_t last = b;
+	uint8_t last = b;
+	PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &last, 1);
 
 	if (b == 0xD0 || b == 0xDD || b == 0xB5 || b == 0x62)
 	{
@@ -132,8 +133,8 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 		GpsData.GeoidSeparation = 5000;                                 // meters
 		GpsData.Heading         = 200;                                 // degrees
 		GpsData.Groundspeed     = 5;                                  // m/s
-		GpsData.Satellites      = 5;                                                  //
-		GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
+		GpsData.Satellites      = 10;                                                  //
+		GpsData.PDOP            = 0.2;                                                                            // not available in binary mode
 		GpsData.HDOP            = 10 / 100;                                                //
 		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
 
@@ -143,20 +144,20 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 	else
 	{
 		GPSPositionData	GpsData;
-		GpsData.Status = GPSPOSITION_STATUS_NOFIX;
-		GpsData.Latitude        = 1000;   // degrees * 10e6
-		GpsData.Longitude       = 200000;	// degrees * 10e6
-		GpsData.Altitude        = 500;                                       // meters
+		GpsData.Status = GPSPOSITION_STATUS_FIX3D;
+		GpsData.Latitude        = 2000000;   // degrees * 10e6
+		GpsData.Longitude       = 300000;	// degrees * 10e6
+		GpsData.Altitude        = 400;                                       // meters
 		GpsData.GeoidSeparation = 5000;                                 // meters
-		GpsData.Heading         = 200;                                 // degrees
-		GpsData.Groundspeed     = 5;                                  // m/s
-		GpsData.Satellites      = 5;                                                  //
-		GpsData.PDOP            = 99.99;                                                                            // not available in binary mode
+		GpsData.Heading         = 600;                                 // degrees
+		GpsData.Groundspeed     = 7;                                  // m/s
+		GpsData.Satellites      = 8;                                                  //
+		GpsData.PDOP            = 0.4;                                                                            // not available in binary mode
 		GpsData.HDOP            = 10 / 100;                                                //
 		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
 
 		GPSPositionSet(&GpsData);
-		return -1;
+		return 0;
 	}
 
 

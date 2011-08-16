@@ -179,6 +179,14 @@ static void gpsTask(void *parameters)
 	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,21,1*6F\r\n");
 #endif
 	
+#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
+	// set 38400 baud
+	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
+	// Set 10 Hz
+	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+#endif
+
 #ifdef ENABLE_GPS_ONESENTENCE_GTOP
 	// switch to single sentence mode
 	PIOS_COM_SendStringNonBlocking(gpsPort, "$PGCMD,21,2*6C\r\n");
@@ -204,7 +212,9 @@ static void gpsTask(void *parameters)
 
 			while (PIOS_COM_ReceiveBufferUsed(gpsPort) > 0)
 			{
-				int res = GTOP_BIN_CUSTOM_update_position(PIOS_COM_ReceiveBuffer(gpsPort), &numChecksumErrors, &numParsingErrors);
+				uint8_t c = PIOS_COM_ReceiveBuffer(gpsPort);
+				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &c, 1);
+				int res = GTOP_BIN_CUSTOM_update_position(c, &numChecksumErrors, &numParsingErrors);
 				if (res >= 0)
 				{
 					numUpdates++;

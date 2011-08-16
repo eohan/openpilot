@@ -373,8 +373,6 @@ static void processObjEvent(UAVObjEvent * ev)
 //	int32_t retries;
 //	int32_t success;
 
-	AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
-
 	if (ev->obj == 0) {
 		updateTelemetryStats();
 	} else if (ev->obj == GCSTelemetryStatsHandle()) {
@@ -497,7 +495,12 @@ static void processObjEvent(UAVObjEvent * ev)
 				GPSPositionGet(&gpsPosition);
 				gps_raw.lat = gpsPosition.Latitude;
 				gps_raw.lon = gpsPosition.Longitude;
-				gps_raw.fix_type = gpsPosition.Status;
+				gps_raw.alt = gpsPosition.Altitude;
+				gps_raw.eph = gpsPosition.HDOP*100;
+				gps_raw.epv = gpsPosition.VDOP*100;
+				gps_raw.hdg = gpsPosition.Heading*100;
+				gps_raw.satellites_visible = gpsPosition.Satellites;
+				gps_raw.fix_type = 3;//gpsPosition.Status;
 				mavlink_msg_gps_raw_int_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &gps_raw);
 				// Copy the message to the send buffer
 				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
@@ -879,6 +882,7 @@ static void updateTelemetryStats()
 
 	// FIXME HARDCODED VALUES
 	flightStats.Status = FLIGHTTELEMETRYSTATS_STATUS_CONNECTED;
+	gcsStats.Status = GCSTELEMETRYSTATS_STATUS_CONNECTED;
 	forceUpdate = 1;
 
 //	if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_DISCONNECTED) {

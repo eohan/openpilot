@@ -74,7 +74,7 @@
 // MAVLINK
 //------------------------
 #define MAVLINK_QUEUE_SIZE		20
-#define PIOS_MAVLINK_STACK_SIZE	1024
+#define PIOS_MAVLINK_STACK_SIZE	1400
 
 //------------------------
 // PIOS_LED
