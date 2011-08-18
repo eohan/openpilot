@@ -36,6 +36,7 @@
 #include "gpssatellites.h"
 
 #include <string.h>	// memmove
+#include <stdbool.h> /* Boolean variables */
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 
@@ -44,55 +45,50 @@
 
 typedef struct
 {
-	uint32_t  utc_time;
+	uint8_t payload; ///< Number of payload bytes
+	int32_t latitude;  ///< Latitude in degrees * 10^7
+	int32_t longitude; ///< Longitude in degrees * 10^7
+	int32_t msl_altitude;  ///< MSL altitude in meters * 10^2
+	uint32_t ground_speed; ///< FIXME SPEC UNCLEAR
+	int32_t heading;
+	uint8_t satellites;
+	uint8_t fix_type;
+	uint32_t date;
+	uint32_t utc_time;
+	uint16_t hdop;
+	uint8_t ck_a;
+	uint8_t ck_b;
+}  __attribute__((__packed__)) t_gps_bin_custom_packet_data;
 
-	int32_t   latitude;
-	uint8_t   ns_indicator;
-
-	int32_t   longitude;
-	uint8_t   ew_indicator;
-
-	uint8_t   fix_quality;
-
-	uint8_t   satellites_used;
-
-	uint16_t  hdop;
-
-	int32_t   msl_altitude;
-
-	int32_t   geoidal_seperation;
-
-	uint8_t   fix_type;
-
-	int32_t   course_over_ground;
-
-	int32_t   speed_over_ground;
-
-	uint8_t   day;
-	uint8_t   month;
-	uint16_t  year;
-}  __attribute__((__packed__)) t_gps_bin_packet_data;
+enum MTK_DECODE_STATES
+{
+	MTK_DECODE_UNINIT = 0,
+	MTK_DECODE_GOT_CK_A = 1,
+	MTK_DECODE_GOT_CK_B = 2
+};
 
 typedef struct
 {
-	uint16_t              header;
-	t_gps_bin_packet_data data;
-	uint8_t               asterisk;
-	uint8_t               checksum;
-	uint16_t              end_word;
-}  __attribute__((__packed__)) t_gps_bin_packet;
+    uint8_t ck_a;
+    uint8_t ck_b;
+    uint8_t decode_step;
+    bool new_data;
+    uint8_t fix;
+    bool print_errors;
+}  __attribute__((__packed__)) t_gps_bin_custom_packet;
 
 // ************
 
-// buffer that holds the incoming binary packet
-//static uint8_t gps_rx_buffer[sizeof(t_gps_bin_packet)] __attribute__ ((aligned(4)));
-
-// number of bytes currently in the rx buffer
-static int16_t gps_rx_buffer_wr = 0;
-
-// ************
-// endian swapping functions
-
+//// buffer that holds the incoming binary packet
+//static uint8_t gps_rx_buffer[sizeof(t_gps_bin_custom_packet)] __attribute__ ((aligned(4)));
+//
+//// number of bytes currently in the rx buffer
+//static int16_t gps_rx_buffer_wr = 0;
+//struct t_gps_bin_custom_packet mtk_packet;
+//
+//// ************
+//// endian swapping functions
+//
 //static uint16_t swap2Bytes(uint16_t data)
 //{
 //	return (((data >> 8) & 0x00ff) |
@@ -106,6 +102,32 @@ static int16_t gps_rx_buffer_wr = 0;
 //			((data <<  8) & 0x00ff0000) |
 //			((data << 24) & 0xff000000));
 //}
+//
+///****************************************************************
+// *
+// ****************************************************************/
+// // Join 4 bytes into a long
+//long join_4_bytes(unsigned char Buffer[])
+//{
+//  union long_union {
+//        int32_t dword;
+//        uint8_t  byte[4];
+//} longUnion;
+//
+//  longUnion.byte[3] = *Buffer;
+//  longUnion.byte[2] = *(Buffer+1);
+//  longUnion.byte[1] = *(Buffer+2);
+//  longUnion.byte[0] = *(Buffer+3);
+//  return(longUnion.dword);
+//}
+//
+//
+//void mtk_checksum(uint8_t b, uint8_t* ck_a, uint8t* ck_b)
+//{
+//  *(ck_a)+=b;
+//  *(ck_b)+=*(ck_a);
+//}
+
 
 // ************
 /**
@@ -122,6 +144,39 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 	// TESTING
 	uint8_t last = b;
 	PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &last, 1);
+
+//	switch (decode_step)
+//	{
+//	case MTK_DECODE_UNINIT:
+//	{
+//		if (b == 0xd0) mtk_packet.decode_state = MTK_DECODE_GOT_CK_A;
+//
+//	}
+//	break;
+//	case MTK_DECODE_GOT_CK_A:
+//	{
+//		if (b == 0xdd)
+//		{
+//			mtk_packet.decode_state = MTK_DECODE_GOT_CK_B;
+//		}
+//		else
+//		{
+//			mtk_packet.decode_state = MTK_DECODE_UNINIT;
+//			gps_rx_buffer_wr = 0;
+//		}
+//	}
+//	break;
+//	case MTK_DECODE_GOT_CK_B:
+//	{
+//		// Add to checksum
+//		mtk_checksum(b, &(mtk_packet.ck_a), &(mtk_packet.ck_b));
+//		// Fill packet buffer
+//		gps_rx_buffer[gps_rx_buffer_wr] = b;
+//	}
+//	break;
+//
+//	}
+
 
 	if (b == 0xD0 || b == 0xDD || b == 0xB5 || b == 0x62)
 	{
@@ -311,7 +366,13 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 
 void GTOP_BIN_CUSTOM_init(void)
 {
-	gps_rx_buffer_wr = 0;
+//	gps_rx_buffer_wr = 0;
+//    mtk_packet.ck_a=0;
+//    mtk_packet.ck_b=0;
+//    mtk_packet.decode_step=0;
+//    mtk_packet.new_data = false;
+//    mtk_packet.fix=0;
+//    mtk_packet.print_errors = false;
 }
 
 // ************

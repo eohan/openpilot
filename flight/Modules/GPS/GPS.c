@@ -178,14 +178,6 @@ static void gpsTask(void *parameters)
 	// switch to GTOP binary mode
 	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,21,1*6F\r\n");
 #endif
-	
-#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
-	// set 38400 baud
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-	// Set 10 Hz
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-#endif
 
 #ifdef ENABLE_GPS_ONESENTENCE_GTOP
 	// switch to single sentence mode
@@ -195,6 +187,15 @@ static void gpsTask(void *parameters)
 #ifdef ENABLE_GPS_NMEA
 	// switch to NMEA mode
 	PIOS_COM_SendStringNonBlocking(gpsPort, "$PGCMD,21,3*6D\r\n");
+#endif
+
+#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+//	// set 38400 baud
+//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
+	// Set 10 Hz
+	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+	// Enable binary mode
+	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
 #endif
 
 	numUpdates = 0;
@@ -214,7 +215,6 @@ static void gpsTask(void *parameters)
 			{
 				uint8_t c;
 				PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, 0);
-				PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &c, 1);
 				int res = GTOP_BIN_CUSTOM_update_position(c, &numChecksumErrors, &numParsingErrors);
 				if (res >= 0)
 				{
@@ -346,8 +346,12 @@ static void gpsTask(void *parameters)
 
 				#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 					GTOP_BIN_CUSTOM_init();
-					// Module is configured fixed for this mode, do nothing
-					//PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,1*6F\r\n");
+//					// set 38400 baud
+//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
+					// Set 10 Hz
+					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+					// Enable custom binary mode
+					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
 				#endif
 				#ifdef ENABLE_GPS_BINARY_GTOP
 					GTOP_BIN_init();
