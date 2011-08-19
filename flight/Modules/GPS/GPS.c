@@ -41,6 +41,12 @@
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 	#include "GTOP_BIN_CUSTOM.h"
+	#ifdef FULL_COLD_RESTART
+#undef FULL_COLD_RESTART
+#endif
+#ifdef DISABLE_GPS_TRESHOLD
+#undef DISABLE_GPS_TRESHOLD
+#endif
 #endif
 
 #if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
@@ -80,11 +86,15 @@ static float GravityAccel(float latitude, float longitude, float altitude);
 		#define STACK_SIZE_BYTES            800
 	#endif
 #else
-	#ifdef ENABLE_GPS_BINARY_GTOP
+	#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+		#define STACK_SIZE_BYTES 440
+	#else
+	#if ENABLE_GPS_BINARY_GTOP
 		#define STACK_SIZE_BYTES            440
 	#else
 		#define STACK_SIZE_BYTES            440
 	#endif
+#endif
 #endif
 
 #define TASK_PRIORITY                   (tskIDLE_PRIORITY + 1)
@@ -190,10 +200,12 @@ static void gpsTask(void *parameters)
 #endif
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-//	// set 38400 baud
-//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
 	// Set 10 Hz
 	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+//	// set 38400 baud
+//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
+//	// Enable 4 Hz
+//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
 	// Enable binary mode
 	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
 #endif
@@ -346,10 +358,12 @@ static void gpsTask(void *parameters)
 
 				#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 					GTOP_BIN_CUSTOM_init();
-//					// set 38400 baud
-//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
 					// Set 10 Hz
 					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+//					// set 38400 baud
+//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
+//				    // Set 4 Hz
+//				    PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
 					// Enable custom binary mode
 					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
 				#endif

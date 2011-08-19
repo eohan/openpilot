@@ -523,9 +523,9 @@ static void processObjEvent(UAVObjEvent * ev)
 		case GPSPOSITION_OBJID:
 		{
 			GPSPositionGet(&gpsPosition);
-			gps_raw.lat = gpsPosition.Latitude;
-			gps_raw.lon = gpsPosition.Longitude;
-			gps_raw.alt = gpsPosition.Altitude;
+			gps_raw.lat = gpsPosition.Latitude*10;
+			gps_raw.lon = gpsPosition.Longitude*10;
+			gps_raw.alt = gpsPosition.Altitude*10;
 			gps_raw.eph = gpsPosition.HDOP*100;
 			gps_raw.epv = gpsPosition.VDOP*100;
 			gps_raw.hdg = gpsPosition.Heading*100;

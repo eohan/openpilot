@@ -58,7 +58,9 @@ typedef struct
 	uint16_t hdop;
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) t_gps_bin_custom_packet_data;
+}  __attribute__((__packed__)) type_gps_bin_custom_packet;
+
+typedef type_gps_bin_custom_packet gps_bin_custom_packet_t;
 
 enum MTK_DECODE_STATES
 {
@@ -69,26 +71,33 @@ enum MTK_DECODE_STATES
 
 typedef struct
 {
-    uint8_t ck_a;
-    uint8_t ck_b;
-    uint8_t decode_step;
-    bool new_data;
-    uint8_t fix;
+	union {
+		uint16_t ck;
+		struct {
+		    uint8_t ck_a;
+		    uint8_t ck_b;
+		};
+	};
+    uint8_t decode_state;
+//    bool new_data;
+//    uint8_t fix;
     bool print_errors;
-}  __attribute__((__packed__)) t_gps_bin_custom_packet;
+    int16_t rx_count;
+}  __attribute__((__packed__)) type_gps_bin_custom_state;
+
+typedef type_gps_bin_custom_state gps_bin_custom_state_t;
 
 // ************
 
-//// buffer that holds the incoming binary packet
-//static uint8_t gps_rx_buffer[sizeof(t_gps_bin_custom_packet)] __attribute__ ((aligned(4)));
-//
-//// number of bytes currently in the rx buffer
-//static int16_t gps_rx_buffer_wr = 0;
-//struct t_gps_bin_custom_packet mtk_packet;
-//
-//// ************
-//// endian swapping functions
-//
+// buffer that holds the incoming binary packet
+static uint8_t gps_rx_buffer[sizeof(gps_bin_custom_packet_t)] __attribute__ ((aligned(4)));
+
+// number of bytes currently in the rx buffer
+static gps_bin_custom_state_t mtk_state;
+
+// ************
+// endian swapping functions
+
 //static uint16_t swap2Bytes(uint16_t data)
 //{
 //	return (((data >> 8) & 0x00ff) |
@@ -102,31 +111,31 @@ typedef struct
 //			((data <<  8) & 0x00ff0000) |
 //			((data << 24) & 0xff000000));
 //}
-//
-///****************************************************************
-// *
-// ****************************************************************/
-// // Join 4 bytes into a long
-//long join_4_bytes(unsigned char Buffer[])
-//{
-//  union long_union {
-//        int32_t dword;
-//        uint8_t  byte[4];
-//} longUnion;
-//
-//  longUnion.byte[3] = *Buffer;
-//  longUnion.byte[2] = *(Buffer+1);
-//  longUnion.byte[1] = *(Buffer+2);
-//  longUnion.byte[0] = *(Buffer+3);
-//  return(longUnion.dword);
-//}
-//
-//
-//void mtk_checksum(uint8_t b, uint8_t* ck_a, uint8t* ck_b)
-//{
-//  *(ck_a)+=b;
-//  *(ck_b)+=*(ck_a);
-//}
+
+/****************************************************************
+ *
+ ****************************************************************/
+ // Join 4 bytes into a long
+long join_4_bytes(unsigned char Buffer[])
+{
+  union long_union {
+        int32_t dword;
+        uint8_t  byte[4];
+} longUnion;
+
+  longUnion.byte[3] = *Buffer;
+  longUnion.byte[2] = *(Buffer+1);
+  longUnion.byte[1] = *(Buffer+2);
+  longUnion.byte[0] = *(Buffer+3);
+  return(longUnion.dword);
+}
+
+
+void mtk_checksum(uint8_t b, uint8_t* ck_a, uint8_t* ck_b)
+{
+  *(ck_a)+=b;
+  *(ck_b)+=*(ck_a);
+}
 
 
 // ************
@@ -142,78 +151,109 @@ typedef struct
 int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors, volatile uint32_t *parsing_errors)
 {
 	// TESTING
-	uint8_t last = b;
-	PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &last, 1);
+	//PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &b, 1);
+	//PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &mtk_state.decode_state, 1);
+	// END TESTING
 
-//	switch (decode_step)
-//	{
-//	case MTK_DECODE_UNINIT:
-//	{
-//		if (b == 0xd0) mtk_packet.decode_state = MTK_DECODE_GOT_CK_A;
-//
-//	}
-//	break;
-//	case MTK_DECODE_GOT_CK_A:
-//	{
-//		if (b == 0xdd)
-//		{
-//			mtk_packet.decode_state = MTK_DECODE_GOT_CK_B;
-//		}
-//		else
-//		{
-//			mtk_packet.decode_state = MTK_DECODE_UNINIT;
-//			gps_rx_buffer_wr = 0;
-//		}
-//	}
-//	break;
-//	case MTK_DECODE_GOT_CK_B:
-//	{
-//		// Add to checksum
-//		mtk_checksum(b, &(mtk_packet.ck_a), &(mtk_packet.ck_b));
-//		// Fill packet buffer
-//		gps_rx_buffer[gps_rx_buffer_wr] = b;
-//	}
-//	break;
-//
-//	}
-
-
-	if (b == 0xD0 || b == 0xDD || b == 0xB5 || b == 0x62)
+	if (mtk_state.decode_state == MTK_DECODE_UNINIT)
 	{
-		GPSPositionData	GpsData;
-		GpsData.Status = GPSPOSITION_STATUS_FIX3D;
-		GpsData.Latitude        = 1000;   // degrees * 10e6
-		GpsData.Longitude       = 200000;	// degrees * 10e6
-		GpsData.Altitude        = 500;                                       // meters
-		GpsData.GeoidSeparation = 5000;                                 // meters
-		GpsData.Heading         = 200;                                 // degrees
-		GpsData.Groundspeed     = 5;                                  // m/s
-		GpsData.Satellites      = 10;                                                  //
-		GpsData.PDOP            = 0.2;                                                                            // not available in binary mode
-		GpsData.HDOP            = 10 / 100;                                                //
-		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
-
-		GPSPositionSet(&GpsData);
-		return 0;
+		if (b == 0xd0) mtk_state.decode_state = MTK_DECODE_GOT_CK_A;
 	}
-	else
+	else if (mtk_state.decode_state == MTK_DECODE_GOT_CK_A)
 	{
-		GPSPositionData	GpsData;
-		GpsData.Status = GPSPOSITION_STATUS_FIX3D;
-		GpsData.Latitude        = 2000000;   // degrees * 10e6
-		GpsData.Longitude       = 300000;	// degrees * 10e6
-		GpsData.Altitude        = 400;                                       // meters
-		GpsData.GeoidSeparation = 5000;                                 // meters
-		GpsData.Heading         = 600;                                 // degrees
-		GpsData.Groundspeed     = 7;                                  // m/s
-		GpsData.Satellites      = 8;                                                  //
-		GpsData.PDOP            = 0.4;                                                                            // not available in binary mode
-		GpsData.HDOP            = 10 / 100;                                                //
-		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
-
-		GPSPositionSet(&GpsData);
-		return 0;
+		if (b == 0xdd)
+		{
+			mtk_state.decode_state = MTK_DECODE_GOT_CK_B;
+		}
+		else
+		{
+			// Second start symbol was wrong, reset state machine
+			mtk_state.decode_state = MTK_DECODE_UNINIT;
+			mtk_state.rx_count = 0;
+		}
 	}
+	else if (mtk_state.decode_state == MTK_DECODE_GOT_CK_B)
+	{
+		// Add to checksum
+		mtk_checksum(b, &(mtk_state.ck_a), &(mtk_state.ck_b));
+		// Fill packet buffer
+		gps_rx_buffer[mtk_state.rx_count] = b;
+		mtk_state.rx_count++;
+
+		if (mtk_state.rx_count >= sizeof(gps_bin_custom_packet_t))
+		{
+			gps_bin_custom_packet_t* packet = (gps_bin_custom_packet_t*) gps_rx_buffer;
+			// Check if checksum is valid
+			if (1 == 1) //(mtk_state.ck_a == packet->ck_a && mtk_state.ck_b == packet->ck_b)
+			{
+				GPSPositionData	GpsData;
+				switch (packet->fix_type)
+				{
+				case 1: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
+				case 2: GpsData.Status = GPSPOSITION_STATUS_FIX2D; break;
+				case 3: GpsData.Status = GPSPOSITION_STATUS_FIX3D; break;
+				default: GpsData.Status = GPSPOSITION_STATUS_NOGPS; break;
+				}
+				GpsData.Latitude        = packet->latitude;   // degrees * 10e6
+				GpsData.Longitude       = packet->longitude;	// degrees * 10e6
+				GpsData.Altitude        = packet->msl_altitude;                                       // meters
+				GpsData.GeoidSeparation = 5000;                                 // meters
+				GpsData.Heading         = packet->heading / 1000;                                 // degrees
+				GpsData.Groundspeed     = packet->ground_speed / 3600;                                  // m/s
+				GpsData.Satellites      = packet->satellites;                                                  //
+				GpsData.PDOP            = packet->hdop / 100.0f;                                                                            // not available in binary mode
+				GpsData.HDOP            = packet->hdop / 100.0f;                                                //
+				GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
+				//				mtk_state.new_data = true;
+				GPSPositionSet(&GpsData);
+				return 0;
+			}
+			else
+			{
+				return -1;
+			}
+			// Reset state machine to decode next packet
+			mtk_state.decode_state = MTK_DECODE_UNINIT;
+			mtk_state.rx_count = 0;
+		}
+	}
+
+//	if (b == 0xD0 || b == 0xDD || b == 0xB5 || b == 0x62)
+//	{
+//		GPSPositionData	GpsData;
+//		GpsData.Status = GPSPOSITION_STATUS_FIX3D;
+//		GpsData.Latitude        = 1000;   // degrees * 10e6
+//		GpsData.Longitude       = 200000;	// degrees * 10e6
+//		GpsData.Altitude        = 500;                                       // meters
+//		GpsData.GeoidSeparation = 5000;                                 // meters
+//		GpsData.Heading         = 200;                                 // degrees
+//		GpsData.Groundspeed     = 5;                                  // m/s
+//		GpsData.Satellites      = 10;                                                  //
+//		GpsData.PDOP            = 0.2;                                                                            // not available in binary mode
+//		GpsData.HDOP            = 10 / 100;                                                //
+//		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
+//
+//		GPSPositionSet(&GpsData);
+//		return 0;
+//	}
+//	else
+//	{
+//		GPSPositionData	GpsData;
+//		GpsData.Status = GPSPOSITION_STATUS_FIX3D;
+//		GpsData.Latitude        = 2000000;   // degrees * 10e6
+//		GpsData.Longitude       = 300000;	// degrees * 10e6
+//		GpsData.Altitude        = 400;                                       // meters
+//		GpsData.GeoidSeparation = 5000;                                 // meters
+//		GpsData.Heading         = 600;                                 // degrees
+//		GpsData.Groundspeed     = 7;                                  // m/s
+//		GpsData.Satellites      = 8;                                                  //
+//		GpsData.PDOP            = 0.4;                                                                            // not available in binary mode
+//		GpsData.HDOP            = 10 / 100;                                                //
+//		GpsData.VDOP            = 99.99;                                                                            // not available in binary mode
+//
+//		GPSPositionSet(&GpsData);
+//		return 0;
+//	}
 
 
 //	if (gps_rx_buffer_wr >= sizeof(gps_rx_buffer))
@@ -366,13 +406,13 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 
 void GTOP_BIN_CUSTOM_init(void)
 {
-//	gps_rx_buffer_wr = 0;
-//    mtk_packet.ck_a=0;
-//    mtk_packet.ck_b=0;
-//    mtk_packet.decode_step=0;
-//    mtk_packet.new_data = false;
-//    mtk_packet.fix=0;
-//    mtk_packet.print_errors = false;
+	mtk_state.rx_count = 0;
+    mtk_state.ck_a = 0;
+    mtk_state.ck_b = 0;
+    mtk_state.decode_state = MTK_DECODE_UNINIT;
+//    mtk_state.new_data = false;
+//    mtk_state.fix = 0;
+    mtk_state.print_errors = false;
 }
 
 // ************
