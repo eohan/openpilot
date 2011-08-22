@@ -1,9 +1,13 @@
 /**
  ******************************************************************************
+ * @addtogroup OpenPilotModules OpenPilot Modules
+ * @{ 
+ * @addtogroup BatteryModule Battery Module
+ * @{ 
  *
- * @file       uavobjectgeneratorflight.h
+ * @file       battery.h
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @brief      produce flight code for uavobjects
+ * @brief      Module to read the battery Voltage and Current periodically and set alarms appropriately.
  *
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -23,25 +27,16 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+#ifndef BATTERY_H
+#define BATTERY_H
 
-#ifndef UAVOBJECTGENERATORFLIGHT_H
-#define UAVOBJECTGENERATORFLIGHT_H
+#include "openpilot.h"
 
-#include "../generator_common.h"
+int32_t CameraStabInitialize(void);
 
-class UAVObjectGeneratorFlight
-{
-public:
-    bool generate(UAVObjectParser* gen,QString templatepath,QString outputpath);
-    QStringList fieldTypeStrC;
-    QString flightCodeTemplate, flightIncludeTemplate, flightInitTemplate, flightInitIncludeTemplate, flightMakeTemplate;
-    QDir flightCodePath;
-    QDir flightOutputPath;
+#endif // BATTERY_H
 
-private:
-    bool process_object(ObjectInfo* info);
-
-};
-
-#endif
-
+/**
+  * @}
+  * @}
+  */

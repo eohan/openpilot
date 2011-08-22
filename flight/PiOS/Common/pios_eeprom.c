@@ -30,16 +30,17 @@ int			address_byte_count;
 
 static void test(void);
 static void _hexdump(void *p, int count) __attribute__((used));
-
-
+static int8_t _erase(uint32_t address, uint32_t length);
 
 static int8_t PIOS_EEPROM_Erase(uint32_t address);
+static int8_t PIOS_EEPROM_EraseChip(void);
 static int8_t PIOS_EEPROM_Write(uint32_t address, uint8_t *data, uint16_t count);
 static int8_t PIOS_EEPROM_Read(uint32_t address, uint8_t *data, uint16_t count);
 
 PIOS_FLASHFS_Driver PIOS_EEPROM_Driver = {
 		EEPROM_SECTOR_SIZE,
 		PIOS_EEPROM_Erase,
+		PIOS_EEPROM_EraseChip,
 		PIOS_EEPROM_Write,
 		PIOS_EEPROM_Read
 };
@@ -67,7 +68,7 @@ PIOS_EEPROM_Init(void)
 }
 
 static int8_t
-PIOS_EEPROM_Erase(uint32_t address)
+_erase(uint32_t address, uint32_t length)
 {
 	uint8_t	blank[64];
 	int count;
@@ -75,13 +76,25 @@ PIOS_EEPROM_Erase(uint32_t address)
 	debug("erase 0x%x", address);
 
 	memset(blank, 0, sizeof(blank));
-	for (count = 0; count < EEPROM_SECTOR_SIZE; count += sizeof(blank), address += sizeof(blank)) {
+	for (count = 0; count < length; count += sizeof(blank), address += sizeof(blank)) {
 		if (PIOS_EEPROM_Write(address, blank, sizeof(blank))) {
 			debug("erase error");
 			return -1;
 		}
 	}
 	return 0;
+}
+
+static int8_t
+PIOS_EEPROM_Erase(uint32_t address)
+{
+	return _erase(address, EEPROM_SECTOR_SIZE);
+}
+
+static int8_t
+PIOS_EEPROM_EraseChip(void)
+{
+	return _erase(0, PIOS_I2C_EEPROM_SIZE);
 }
 
 static int8_t

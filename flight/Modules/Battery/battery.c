@@ -78,6 +78,9 @@ static void onTimer(UAVObjEvent* ev);
 
 int32_t BatteryInitialize(void)
 {
+	BatteryStateInitialze();
+	BatterySettingsInitialize();
+	
 	static UAVObjEvent ev;
 
 	memset(&ev,0,sizeof(UAVObjEvent));
