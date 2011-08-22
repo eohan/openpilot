@@ -28,7 +28,7 @@ include $(TOP)/make/firmware-defs.mk
 include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 
 # Target file name (without extension).
-TARGET = px2fmu
+TARGET := fw_$(BOARD_NAME)
 
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
 OUTDIR := $(TOP)/build/$(TARGET)
@@ -130,7 +130,6 @@ SRC += $(OPSYSTEM)/taskmonitor.c
 SRC += $(OPUAVTALK)/uavtalk.c
 SRC += $(OPUAVOBJ)/uavobjectmanager.c
 SRC += $(OPUAVOBJ)/eventdispatcher.c
-SRC += $(OPUAVOBJ)/uavobjectsinit_linker.c
 else
 ## TESTCODE
 SRC += $(OPTESTS)/test_common.c
@@ -359,6 +358,9 @@ CSTANDARD = -std=gnu99
 ifeq ($(DEBUG),YES)
 CFLAGS = -g$(DEBUGF) -DDEBUG
 endif
+
+# FMU has enough memory to always enable optional objects
+CFLAGS += -DDIAGNOSTICS
 
 CFLAGS += -O$(OPT)
 CFLAGS += -mcpu=$(MCU)

@@ -1,7 +1,7 @@
 #####
 # Project: OpenPilot
 #
-# Makefile for OpenPilot UAVObject code
+# Makefile for PX2 FMU UAVObject code
 #
 # The OpenPilot Team, http://www.openpilot.org, Copyright (C) 2011.
 # 
@@ -69,6 +69,8 @@ UAVOBJSRCFILENAMES += velocityactual
 UAVOBJSRCFILENAMES += velocitydesired
 UAVOBJSRCFILENAMES += watchdogstatus
 UAVOBJSRCFILENAMES += flightstatus
+UAVOBJSRCFILENAMES += cameradesired
+UAVOBJSRCFILENAMES += camerastabsettings
 
 UAVOBJSRC = $(foreach UAVOBJSRCFILE,$(UAVOBJSRCFILENAMES),$(UAVOBJSYNTHDIR)/$(UAVOBJSRCFILE).c )
 UAVOBJDEFINE = $(foreach UAVOBJSRCFILE,$(UAVOBJSRCFILENAMES),-DUAVOBJ_INIT_$(UAVOBJSRCFILE) )

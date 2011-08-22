@@ -41,6 +41,7 @@
 #include "flightstatus.h"
 #include "mixersettings.h"
 #include "mixerstatus.h"
+#include "cameradesired.h"
 
 
 // Private constants
@@ -108,9 +109,17 @@ int32_t ActuatorInitialize()
 	// Create object queue
 	queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
 
+	ActuatorSettingsInitialize();
+	ActuatorDesiredInitialize();
+	MixerSettingsInitialize();
+	ActuatorCommandInitialize();
+#if defined(DIAGNOSTICS)
+	MixerStatusInitialize();
+#endif
+
 	// Listen for ExampleObject1 updates
 	ActuatorDesiredConnectQueue(queue);
-	
+
 	// If settings change, update the output rate
 	ActuatorSettingsConnectCallback(actuator_update_rate);
 
@@ -163,7 +172,7 @@ static void actuatorTask(void* parameters)
 	// Main task loop
 	lastSysTime = xTaskGetTickCount();
 	while (1)
-	{		
+	{
 		PIOS_WDG_UpdateFlag(PIOS_WDG_ACTUATOR);
 
 		// Wait until the ActuatorDesired object is updated, if a timeout then go to failsafe
@@ -180,11 +189,13 @@ static void actuatorTask(void* parameters)
 		lastSysTime = thisSysTime;
 
 		FlightStatusGet(&flightStatus);
-		MixerStatusGet(&mixerStatus);
 		MixerSettingsGet (&mixerSettings);
 		ActuatorDesiredGet(&desired);
 		ActuatorCommandGet(&command);
 
+#if defined(DIAGNOSTICS)
+		MixerStatusGet(&mixerStatus);
+#endif
 		ActuatorSettingsMotorsSpinWhileArmedGet(&MotorsSpinWhileArmed);
 		ActuatorSettingsChannelMaxGet(ChannelMax);
 		ActuatorSettingsChannelMinGet(ChannelMin);
@@ -199,7 +210,7 @@ static void actuatorTask(void* parameters)
 				nMixers ++;
 			}
 		}
-		if((nMixers < 2) && !ActuatorCommandReadOnly(dummy)) //Nothing can fly with less than two mixers. 
+		if((nMixers < 2) && !ActuatorCommandReadOnly(dummy)) //Nothing can fly with less than two mixers.
 		{
 			setFailsafe(); // So that channels like PWM buzzer keep working
 			continue;
@@ -210,7 +221,7 @@ static void actuatorTask(void* parameters)
 		bool armed = flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED;
 		bool positiveThrottle = desired.Throttle >= 0.00;
 		bool spinWhileArmed = MotorsSpinWhileArmed == ACTUATORSETTINGS_MOTORSSPINWHILEARMED_TRUE;
-		
+
 		float curve1 = MixerCurve(desired.Throttle,mixerSettings.ThrottleCurve1);
 		//The source for the secondary curve is selectable
 		float curve2 = 0;
@@ -236,11 +247,11 @@ static void actuatorTask(void* parameters)
 			case MIXERSETTINGS_CURVE2SOURCE_ACCESSORY5:
 				if(AccessoryDesiredInstGet(mixerSettings.Curve2Source - MIXERSETTINGS_CURVE2SOURCE_ACCESSORY0,&accessory) == 0)
 					curve2 = MixerCurve(accessory.AccessoryVal,mixerSettings.ThrottleCurve2);
-				else 
-					curve2 = 0;				
+				else
+					curve2 = 0;
 				break;
 		}
-		
+
 		for(int ct=0; ct < MAX_MIX_ACTUATORS; ct++)
 		{
 			if(mixers[ct].type == MIXERSETTINGS_MIXER1TYPE_DISABLED) {
@@ -249,53 +260,82 @@ static void actuatorTask(void* parameters)
 				command.Channel[ct] = 0;
 				continue;
 			}
-			
-			status[ct] = ProcessMixer(ct, curve1, curve2, &mixerSettings, &desired, dT);
-			
+
+			if((mixers[ct].type == MIXERSETTINGS_MIXER1TYPE_MOTOR) || (mixers[ct].type == MIXERSETTINGS_MIXER1TYPE_SERVO))
+				status[ct] = ProcessMixer(ct, curve1, curve2, &mixerSettings, &desired, dT);
+			else
+				status[ct] = -1;
+
+
+
 			// Motors have additional protection for when to be on
-			if(mixers[ct].type == MIXERSETTINGS_MIXER1TYPE_MOTOR) {					
+			if(mixers[ct].type == MIXERSETTINGS_MIXER1TYPE_MOTOR) {
 
 				// If not armed or motors aren't meant to spin all the time
 				if( !armed ||
 				   (!spinWhileArmed && !positiveThrottle))
 				{
 					filterAccumulator[ct] = 0;
-					lastResult[ct] = 0;					
+					lastResult[ct] = 0;
 					status[ct] = -1;  //force min throttle
-				} 
-				// If armed meant to keep spinning, 
+				}
+				// If armed meant to keep spinning,
 				else if ((spinWhileArmed && !positiveThrottle) ||
 					 (status[ct] < 0) )
-					status[ct] = 0;					
+					status[ct] = 0;
 			}
-			
+
 			// If an accessory channel is selected for direct bypass mode
 			// In this configuration the accessory channel is scaled and mapped
 			// directly to output.  Note: THERE IS NO SAFETY CHECK HERE FOR ARMING
-			// these also will not be updated in failsafe mode.  I'm not sure what 
+			// these also will not be updated in failsafe mode.  I'm not sure what
 			// the correct behavior is since it seems domain specific.  I don't love
 			// this code
-			if( (mixers[ct].type >= MIXERSETTINGS_MIXER1TYPE_ACCESSORY0) && 
-			   (mixers[ct].type <= MIXERSETTINGS_MIXER1TYPE_ACCESSORY2))
+			if( (mixers[ct].type >= MIXERSETTINGS_MIXER1TYPE_ACCESSORY0) &&
+			   (mixers[ct].type <= MIXERSETTINGS_MIXER1TYPE_ACCESSORY5))
 			{
 				if(AccessoryDesiredInstGet(mixers[ct].type - MIXERSETTINGS_MIXER1TYPE_ACCESSORY0,&accessory) == 0)
 					status[ct] = accessory.AccessoryVal;
 				else
 					status[ct] = -1;
 			}
-			
+			if( (mixers[ct].type >= MIXERSETTINGS_MIXER1TYPE_CAMERAROLL) &&
+			   (mixers[ct].type <= MIXERSETTINGS_MIXER1TYPE_CAMERAYAW))
+			{
+				CameraDesiredData cameraDesired;
+				if( CameraDesiredGet(&cameraDesired) == 0 ) {
+					switch(mixers[ct].type) {
+						case MIXERSETTINGS_MIXER1TYPE_CAMERAROLL:
+							status[ct] = cameraDesired.Roll;
+							break;
+						case MIXERSETTINGS_MIXER1TYPE_CAMERAPITCH:
+							status[ct] = cameraDesired.Pitch;
+							break;
+						case MIXERSETTINGS_MIXER1TYPE_CAMERAYAW:
+							status[ct] = cameraDesired.Yaw;
+							break;
+						default:
+							break;
+					}
+				}
+				else
+					status[ct] = -1;
+			}
+
 			command.Channel[ct] = scaleChannel(status[ct],
 							   ChannelMax[ct],
 							   ChannelMin[ct],
 							   ChannelNeutral[ct]);
 		}
+#if defined(DIAGNOSTICS)
 		MixerStatusSet(&mixerStatus);
+#endif
 
 		// Store update time
 		command.UpdateTime = 1000*dT;
 		if(1000*dT > command.MaxUpdateTime)
 			command.MaxUpdateTime = 1000*dT;
-		
+
 		// Update output object
 		ActuatorCommandSet(&command);
 		// Update in case read only (eg. during servo configuration)
@@ -303,7 +343,7 @@ static void actuatorTask(void* parameters)
 
 		// Update servo outputs
 		bool success = true;
-		
+
 		for (int n = 0; n < ACTUATORCOMMAND_CHANNEL_NUMELEM; ++n)
 		{
 			success &= set_channel(n, command.Channel[n]);
@@ -312,7 +352,7 @@ static void actuatorTask(void* parameters)
 		if(!success) {
 			command.NumFailedUpdates++;
 			ActuatorCommandSet(&command);
-			AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL); 
+			AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL);
 		}
 
 	}
@@ -466,7 +506,7 @@ static void setFailsafe()
 	// Reset ActuatorCommand to safe values
 	for (int n = 0; n < ACTUATORCOMMAND_CHANNEL_NUMELEM; ++n)
 	{
-		
+
 		if(mixers[n].type == MIXERSETTINGS_MIXER1TYPE_MOTOR)
 		{
 			Channel[n] = ChannelMin[n];
@@ -516,7 +556,7 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 }
 #else
 static bool set_channel(uint8_t mixer_channel, uint16_t value) {
-	
+
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 	
@@ -580,17 +620,17 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 			return true;
 #endif
 #if defined(PIOS_INCLUDE_I2C_ESC)
-		case ACTUATORSETTINGS_CHANNELTYPE_MK: 
+		case ACTUATORSETTINGS_CHANNELTYPE_MK:
 			return PIOS_SetMKSpeed(settings.ChannelAddr[mixer_channel],value);
 		case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
 			return PIOS_SetAstec4Speed(settings.ChannelAddr[mixer_channel],value);
 #endif
 		default:
 			return false;
-	}			
-	
+	}
+
 	return false;
-	
+
 }
 #endif
 

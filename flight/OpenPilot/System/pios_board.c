@@ -525,6 +525,7 @@ static const struct pios_spektrum_cfg pios_spektrum_cfg = {
 #define PIOS_COM_TELEM_RF_TX_BUF_LEN 192
 
 #define PIOS_COM_GPS_RX_BUF_LEN 96
+#define PIOS_COM_GPS_TX_BUF_LEN 96
 
 #define PIOS_COM_TELEM_USB_RX_BUF_LEN 192
 #define PIOS_COM_TELEM_USB_TX_BUF_LEN 192
@@ -1023,7 +1024,6 @@ void PIOS_Board_Init(void) {
 	/* Initialize UAVObject libraries */
 	EventDispatcherInitialize();
 	UAVObjInitialize();
-	UAVObjectsInitializeAll();
 
 #if defined(PIOS_INCLUDE_RTC)
 	/* Initialize the real-time clock and its associated tick */
@@ -1075,10 +1075,12 @@ void PIOS_Board_Init(void) {
 			PIOS_Assert(0);
 		}
 		uint8_t * rx_buffer = (uint8_t *) pvPortMalloc(PIOS_COM_GPS_RX_BUF_LEN);
+		uint8_t * tx_buffer = (uint8_t *) pvPortMalloc(PIOS_COM_GPS_TX_BUF_LEN);
 		PIOS_Assert(rx_buffer);
+		PIOS_Assert(tx_buffer);
 		if (PIOS_COM_Init(&pios_com_gps_id, &pios_usart_com_driver, pios_usart_gps_id,
 				  rx_buffer, PIOS_COM_GPS_RX_BUF_LEN,
-				  NULL, 0)) {
+				  tx_buffer, PIOS_COM_GPS_TX_BUF_LEN)) {
 			PIOS_Assert(0);
 		}
 	}
@@ -1091,6 +1093,7 @@ void PIOS_Board_Init(void) {
 
 	/* Configure the selected receiver */
 	uint8_t manualcontrolsettings_inputmode;
+	ManualControlSettingsInitialize();
 	ManualControlSettingsInputModeGet(&manualcontrolsettings_inputmode);
 
 	switch (manualcontrolsettings_inputmode) {
