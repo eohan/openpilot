@@ -51,13 +51,13 @@ extern void vApplicationMallocFailedHook(void) __attribute__((weak));
 void
 zlock(void)
 {
-	vTaskSuspendAll();
+	vPortEnterCritical();
 }
 
 void
 zunlock(void)
 {
-	xTaskResumeAll();
+	vPortExitCritical();
 }
 
 void *
