@@ -222,6 +222,12 @@ uint64_t mavlink_missionlib_get_system_timestamp()
  */
 int32_t MAVLinkStart(void)
 {
+	// Process all registered objects and connect queue for updates
+	UAVObjIterate(&registerObject);
+
+	// Listen to objects of interest
+	GCSTelemetryStatsConnectQueue(priorityQueue);
+	TelemetrySettingsConnectQueue(priorityQueue);
 
 	// Start telemetry tasks
 	xTaskCreate(telemetryTxTask, (signed char *)"MAVLinkTx", STACK_SIZE_BYTES/4, NULL, TASK_PRIORITY_TX, &telemetryTxTaskHandle);
@@ -245,7 +251,48 @@ int32_t MAVLinkStart(void)
  */
 int32_t MAVLinkInitialize(void)
 {
+//	UAVObjEvent ev;
+//
+//	// Initialize vars
+//	timeOfLastObjectUpdate = 0;
+//
+//	// Create object queues
+//	queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
+//#if defined(PIOS_TELEM_PRIORITY_QUEUE)
+//	priorityQueue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
+//#endif
+//
+//	// Get telemetry settings object
+//	updateSettings();
+//
+//	// Initialize waypoint protocol
+//	mavlink_wpm_init(&wpm);
+//
+//	// Initialize parameter protocol
+//	mavlink_pm_reset_params(&pm);
+//
+//	// Process all registered objects and connect queue for updates
+//	UAVObjIterate(&registerObject);
+//
+//	// Create periodic event that will be used to update the telemetry stats
+//	txErrors = 0;
+//	txRetries = 0;
+//	memset(&ev, 0, sizeof(UAVObjEvent));
+//	EventPeriodicQueueCreate(&ev, priorityQueue, STATS_UPDATE_PERIOD_MS);
+//
+//	// Listen to objects of interest
+//	GCSTelemetryStatsConnectQueue(priorityQueue);
+//	TelemetrySettingsConnectQueue(priorityQueue);
+//
+//	return 0;
+//
+//
+//
 	UAVObjEvent ev;
+
+	FlightTelemetryStatsInitialize();
+	GCSTelemetryStatsInitialize();
+	TelemetrySettingsInitialize();
 
 	// Initialize vars
 	timeOfLastObjectUpdate = 0;
@@ -256,7 +303,7 @@ int32_t MAVLinkInitialize(void)
 	priorityQueue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
 #endif
 
-	// Get telemetry settings object
+    // Get telemetry settings object
 	updateSettings();
 
 	// Initialize waypoint protocol
@@ -265,18 +312,12 @@ int32_t MAVLinkInitialize(void)
 	// Initialize parameter protocol
 	mavlink_pm_reset_params(&pm);
 
-	// Process all registered objects and connect queue for updates
-	UAVObjIterate(&registerObject);
-
 	// Create periodic event that will be used to update the telemetry stats
 	txErrors = 0;
 	txRetries = 0;
 	memset(&ev, 0, sizeof(UAVObjEvent));
 	EventPeriodicQueueCreate(&ev, priorityQueue, STATS_UPDATE_PERIOD_MS);
 
-	// Listen to objects of interest
-	GCSTelemetryStatsConnectQueue(priorityQueue);
-	TelemetrySettingsConnectQueue(priorityQueue);
 
 	return 0;
 }
@@ -390,7 +431,7 @@ static void processObjEvent(UAVObjEvent * ev)
 		mavlink_system.sysid = 20;
 		mavlink_system.compid = MAV_COMP_ID_IMU;
 		mavlink_system.type = MAV_TYPE_FIXED_WING;
-		uint8_t mavClass = MAV_CLASS_OPENPILOT;
+		uint8_t mavClass = MAV_AUTOPILOT_OPENPILOT;
 
 		AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
 
@@ -479,8 +520,41 @@ static void processObjEvent(UAVObjEvent * ev)
 		}
 		case SYSTEMSTATS_OBJID:
 		{
+			FlightStatusData flightStatus;
+			FlightStatusGet(&flightStatus);
 			//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
-			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass);
+
+			uint8_t mode = MAV_MODE_PREFLIGHT;
+			uint8_t system_state = MAV_STATE_UNINIT;
+			uint8_t auto_state = MAV_FLIGHT_MODE_PREFLIGHT;
+			uint8_t safety_state = MAV_SAFETY_DISARMED;
+			uint8_t link_state = 0xFF;
+
+			switch (flightStatus.FlightMode)
+			{
+			case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
+				mode = MAV_MODE_MANUAL;
+				break;
+			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
+				mode = MAV_MODE_PREFLIGHT;
+				break;
+
+			}
+
+			switch (flightStatus.Armed)
+			{
+			case FLIGHTSTATUS_ARMED_ARMING:
+			case FLIGHTSTATUS_ARMED_ARMED:
+				system_state = MAV_STATE_ACTIVE;
+				safety_state = MAV_SAFETY_ARMED;
+				break;
+			case FLIGHTSTATUS_ARMED_DISARMED:
+				system_state = MAV_STATE_STANDBY;
+				safety_state = MAV_SAFETY_DISARMED;
+				break;
+			}
+
+			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass, mode, auto_state, system_state, safety_state, link_state);
 			//mavlink_msg_cpu_load_pack(mavlink_system.sysid, mavlink_system.compid, &msg,ucCpuLoad,ucCpuLoad,0);
 			// Copy the message to the send buffer
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
@@ -489,31 +563,16 @@ static void processObjEvent(UAVObjEvent * ev)
 
 			uint8_t ucCpuLoad;
 			SystemStatsCPULoadGet(&ucCpuLoad);
-			uint16_t vbat = 11000;
+			uint16_t voltage_battery = 11000;
+			uint16_t current_battery = 0;
+			uint8_t watt = 0;
+			uint8_t battery_percent = 175;
 
-			FlightStatusData flightStatus;
-			FlightStatusGet(&flightStatus);
-			uint8_t mode = MAV_MODE_UNINIT;
-			uint8_t state = MAV_STATE_UNINIT;
-			switch (flightStatus.FlightMode)
-			{
-			case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
-				mode = MAV_MODE_MANUAL;
-				break;
-			}
 
-			switch (flightStatus.Armed)
-			{
-			case FLIGHTSTATUS_ARMED_ARMING:
-			case FLIGHTSTATUS_ARMED_ARMED:
-				state = MAV_STATE_ACTIVE;
-				break;
-			case FLIGHTSTATUS_ARMED_DISARMED:
-				state = MAV_STATE_STANDBY;
-				break;
-			}
 
-			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, mavlink_system.nav_mode, mavlink_system.state, ucCpuLoad*4, vbat, 0, 0);
+
+
+			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0);
 			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
 			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
@@ -566,59 +625,6 @@ static void processObjEvent(UAVObjEvent * ev)
 			break;
 		}
 		}
-
-
-
-
-
-
-
-		//		if (ev->obj == AttitudeRawHandle()) {
-		//			// Get object data
-		//			mavlink_raw_imu_t imu;
-		//			imu.xacc =
-		//		}
-
-		// Send buffer
-		//transmitData(buf, len);
-		//if (outStream!=NULL) (*outStream)(txBuffer, dataOffset+length+CHECKSUM_LENGTH);
-
-		//		// Only process event if connected to GCS or if object FlightTelemetryStats is updated
-		//		FlightTelemetryStatsGet(&flightStats);
-		//		if (flightStats.Status == FLIGHTTELEMETRYSTATS_STATUS_CONNECTED || ev->obj == FlightTelemetryStatsHandle()) {
-		//			// Get object metadata
-		//			UAVObjGetMetadata(ev->obj, &metadata);
-		//			// Act on event
-		//			retries = 0;
-		//			success = -1;
-		//			if (ev->event == EV_UPDATED || ev->event == EV_UPDATED_MANUAL) {
-		//				// Send update to GCS (with retries)
-		//				while (retries < MAX_RETRIES && success == -1) {
-		//					success = UAVTalkSendObject(ev->obj, ev->instId, metadata.telemetryAcked, REQ_TIMEOUT_MS);	// call blocks until ack is received or timeout
-		//					++retries;
-		//				}
-		//				// Update stats
-		//				txRetries += (retries - 1);
-		//				if (success == -1) {
-		//					++txErrors;
-		//				}
-		//			} else if (ev->event == EV_UPDATE_REQ) {
-		//				// Request object update from GCS (with retries)
-		//				while (retries < MAX_RETRIES && success == -1) {
-		//					success = UAVTalkSendObjectRequest(ev->obj, ev->instId, REQ_TIMEOUT_MS);	// call blocks until update is received or timeout
-		//					++retries;
-		//				}
-		//				// Update stats
-		//				txRetries += (retries - 1);
-		//				if (success == -1) {
-		//					++txErrors;
-		//				}
-		//			}
-		//			// If this is a metaobject then make necessary telemetry updates
-		//			if (UAVObjIsMetaobject(ev->obj)) {
-		//				updateObject(UAVObjGetLinkedObj(ev->obj));	// linked object will be the actual object the metadata are for
-		//			}
-		//		}
 	}
 }
 
@@ -790,6 +796,7 @@ static void telemetryRxTask(void *parameters)
 //
 //	return PIOS_COM_SendBufferNonBlocking(outputPort, data, length);
 //}
+
 
 /**
  * Setup object for periodic updates.
@@ -964,26 +971,22 @@ static void updateTelemetryStats()
  */
 static void updateSettings()
 {
-	// Set port
-	telemetryPort = PIOS_COM_TELEM_RF;
+    // Set port
+    telemetryPort = PIOS_COM_TELEM_RF;
 
-	// Retrieve settings
-	TelemetrySettingsGet(&settings);
+    // Retrieve settings
+    TelemetrySettingsGet(&settings);
 
-	// Set port speed
-	if (settings.Speed == TELEMETRYSETTINGS_SPEED_2400) PIOS_COM_ChangeBaud(telemetryPort, 2400);
-	else
-		if (settings.Speed == TELEMETRYSETTINGS_SPEED_4800) PIOS_COM_ChangeBaud(telemetryPort, 4800);
-		else
-			if (settings.Speed == TELEMETRYSETTINGS_SPEED_9600) PIOS_COM_ChangeBaud(telemetryPort, 9600);
-			else
-				if (settings.Speed == TELEMETRYSETTINGS_SPEED_19200) PIOS_COM_ChangeBaud(telemetryPort, 19200);
-				else
-					if (settings.Speed == TELEMETRYSETTINGS_SPEED_38400) PIOS_COM_ChangeBaud(telemetryPort, 38400);
-					else
-						if (settings.Speed == TELEMETRYSETTINGS_SPEED_57600) PIOS_COM_ChangeBaud(telemetryPort, 57600);
-						else
-							if (settings.Speed == TELEMETRYSETTINGS_SPEED_115200) PIOS_COM_ChangeBaud(telemetryPort, 115200);
+//    if (telemetryPort) {
+//	// Set port speed
+//	if (settings.Speed == TELEMETRYSETTINGS_SPEED_2400) PIOS_COM_ChangeBaud(telemetryPort, 2400);
+//	else if (settings.Speed == TELEMETRYSETTINGS_SPEED_4800) PIOS_COM_ChangeBaud(telemetryPort, 4800);
+//	else if (settings.Speed == TELEMETRYSETTINGS_SPEED_9600) PIOS_COM_ChangeBaud(telemetryPort, 9600);
+//	else if (settings.Speed == TELEMETRYSETTINGS_SPEED_19200) PIOS_COM_ChangeBaud(telemetryPort, 19200);
+//	else if (settings.Speed == TELEMETRYSETTINGS_SPEED_38400) PIOS_COM_ChangeBaud(telemetryPort, 38400);
+//	else if (settings.Speed == TELEMETRYSETTINGS_SPEED_57600) PIOS_COM_ChangeBaud(telemetryPort, 57600);
+//	else if (settings.Speed == TELEMETRYSETTINGS_SPEED_115200) PIOS_COM_ChangeBaud(telemetryPort, 115200);
+//    }
 }
 
 /**

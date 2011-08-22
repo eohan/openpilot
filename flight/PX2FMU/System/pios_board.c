@@ -42,8 +42,8 @@
 /* XXX these should be somewhere else */
 #define PIOS_COM_TELEM_RF_RX_BUF_LEN	192
 #define PIOS_COM_TELEM_RF_TX_BUF_LEN	192
-#define PIOS_COM_GPS_RX_BUF_LEN			96
-#define PIOS_COM_GPS_TX_BUF_LEN			32    /* FIXME XXX any value below 32 will KILL all communication on that port. Why? */
+#define PIOS_COM_GPS_RX_BUF_LEN			192
+#define PIOS_COM_GPS_TX_BUF_LEN			192    /* FIXME XXX any value below 32 will KILL all communication on that port. Why? */
 #define PIOS_COM_AUX_RX_BUF_LEN			32
 #define PIOS_COM_AUX_TX_BUF_LEN			32
 #define PIOS_COM_CONTROL_RX_BUF_LEN		32
