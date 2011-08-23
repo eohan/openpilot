@@ -110,7 +110,6 @@ SECTIONS
     .heap (NOLOAD) :
     {
         . = ALIGN(4);
-        _heap = ABSOLUTE(.);
         _sheap = . ;
         
         /*
@@ -120,12 +119,8 @@ SECTIONS
          */
         *(.heap)
         
-        /* fill to the end of SRAM */
-        . = ORIGIN(SRAM) + LENGTH(SRAM) - _heap ;
-        . = ALIGN(4) ;
-        
         /* extend the heap up to the top of SRAM */
-        _eheap = . ;
+        _eheap = ORIGIN(SRAM) + LENGTH(SRAM) ;
     } > SRAM
 
     /* Stabs debugging sections.  */
