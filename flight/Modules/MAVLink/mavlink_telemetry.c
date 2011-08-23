@@ -111,39 +111,44 @@ static mavlink_message_t rx_msg;
 static mavlink_status_t rx_status;
 static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 
-///**
-// * @brief Send one char (uint8_t) over a comm channel
-// *
-// * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
-// * @param ch Character to send
-// */
-//static inline void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
-//{
-//    if (chan == MAVLINK_COMM_0)
-//    {
-//    	uint32_t outputPort;
-//
-//    	// Determine input port (USB takes priority over telemetry port)
-//    #if defined(PIOS_INCLUDE_USB_HID)
-//    	if (PIOS_USB_HID_CheckAvailable(0)) {
-//    		outputPort = PIOS_COM_TELEM_USB;
-//    	} else
-//    #endif /* PIOS_INCLUDE_USB_HID */
-//    	{
-//    		outputPort = telemetryPort;
-//    	}
-//
-//    	PIOS_COM_SendBufferNonBlocking(outputPort, &ch, 1);
-//    }
-//    if (chan == MAVLINK_COMM_1)
-//    {
-//    	PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_USB, &ch, 1);
-//    }
-//}
+/**
+ * @brief Send one char (uint8_t) over a comm channel
+ *
+ * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
+ * @param ch Character to send
+ */
+static inline void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t* buffer, uint16_t len)
+{
+    if (chan == MAVLINK_COMM_0)
+    {
+    	uint32_t outputPort;
+
+    	// Determine input port (USB takes priority over telemetry port)
+    #if defined(PIOS_INCLUDE_USB_HID)
+    	if (PIOS_USB_HID_CheckAvailable(0)) {
+    		outputPort = PIOS_COM_TELEM_USB;
+    	} else
+    #endif /* PIOS_INCLUDE_USB_HID */
+    	{
+    		outputPort = telemetryPort;
+    	}
+
+    	PIOS_COM_SendBufferNonBlocking(outputPort, buffer, len);
+    }
+    if (chan == MAVLINK_COMM_1)
+    {
+    	PIOS_COM_SendBufferNonBlocking(PIOS_COM_AUX, buffer, len);
+    }
+}
+
+#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
 
 #include "common/mavlink.h"
+#include "mavlink_settings_adapter.h"
+#include "mavlink_parameters_openpilot.h"
+//#include "mavlink_helpers.h"
 
-#include "mavlink_data.h"
+//#include "mavlink_data.h"
 
 /* 3: Define waypoint helper functions */
 void mavlink_missionlib_send_message(mavlink_message_t* msg);
@@ -156,23 +161,6 @@ mavlink_wpm_storage wpm;
 
 #include "mavlink_missionlib_data.h"
 #include "mavlink_parameters.h"
-
-mavlink_pm_storage pm;
-
-/**
- * @brief reset all parameters to default
- * @warning DO NOT USE THIS IN FLIGHT!
- */
-void mavlink_pm_reset_params(mavlink_pm_storage* pm)
-{
-	pm->size = MAVLINK_PM_MAX_PARAM_COUNT;
-	// 1) MAVLINK_PM_PARAM_SYSTEM_ID
-	pm->param_values[MAVLINK_PM_PARAM_SYSTEM_ID] = 12;
-	strcpy(pm->param_names[MAVLINK_PM_PARAM_SYSTEM_ID], "SYS_ID");
-	// 2) MAVLINK_PM_PARAM_ATT_K_D
-	pm->param_values[MAVLINK_PM_PARAM_ATT_K_D] = 0.3f;
-	strcpy(pm->param_names[MAVLINK_PM_PARAM_ATT_K_D], "ATT_K_D");
-}
 
 /* Provide the interface functions for the waypoint manager */
 
@@ -213,7 +201,7 @@ uint64_t mavlink_missionlib_get_system_timestamp()
 	return xTaskGetTickCount() * portTICK_RATE_MS;
 }
 
-
+uint16_t next_param = 0;
 
 /**
  * Initialise the telemetry module
@@ -308,9 +296,6 @@ int32_t MAVLinkInitialize(void)
 
 	// Initialize waypoint protocol
 	mavlink_wpm_init(&wpm);
-
-	// Initialize parameter protocol
-	mavlink_pm_reset_params(&pm);
 
 	// Create periodic event that will be used to update the telemetry stats
 	txErrors = 0;
@@ -670,7 +655,37 @@ static void mavlinkStateMachineTask(void* parameters)
 	while (1) {
 		// Run handlers, sleep for 20 ms
 		// Send one param
-		mavlink_pm_queued_send();
+		//		mavlink_pm_queued_send();
+
+		//send parameters one by one
+		if (next_param < getParamCount())
+		{
+			static mavlink_param_union_t param;
+			getParamByIndex(next_param, &param);
+			//for (int i.. all active comm links)
+#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
+			mavlink_message_t tx_msg;
+			mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
+					mavlink_system.compid,
+					MAVLINK_COMM_0,
+					&tx_msg,
+					getParamNameByIndex(next_param),
+					param.param_float,
+					param.type,
+					pm.size,
+					pm.next_param);
+			mavlink_missionlib_send_message(&tx_msg);
+#else
+	mavlink_msg_param_value_send(MAVLINK_COMM_0,
+			getParamNameByIndex(next_param),
+			param.param_float,
+			param.type,
+			pm.size,
+			pm.next_param);
+#endif
+next_param++;
+		}
+
 		// Send setpoints, time out
 		mavlink_wpm_loop();
 		// Wait 20 ms

@@ -33,11 +33,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef MAVLINK_ADAPTER_H
-#define MAVLINK_ADAPTER_H
-
-
-#define MAX_ACTUATOR_PARAMS = 2;
+#include "mavlink_settings_adapter.h"
 
 #include <string.h>
 
@@ -96,7 +92,7 @@ int16_t getActuatorSettingsParamIndexByName(const char* name)
 	return -1;
 }
 
-static const char* getActuatorSettingsParamName(uint16_t index)
+static const char* getActuatorSettingsParamNameByIndex(uint16_t index)
 {
 	switch (index)
 	{
@@ -150,8 +146,6 @@ bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* para
 	ActuatorSettingsSet(&settings);
 	return true;
 }
-
-#endif /* MAVLINK_ADAPTER_H */
 
 /**
  * @}
