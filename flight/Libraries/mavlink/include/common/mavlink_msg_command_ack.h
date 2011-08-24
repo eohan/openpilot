@@ -98,8 +98,7 @@ static inline uint16_t mavlink_msg_command_ack_encode(uint8_t system_id, uint8_t
 
 static inline void mavlink_msg_command_ack_send(mavlink_channel_t chan, float command, float result)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+8);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 8);
 	mavlink_msg_command_ack_pack_chan_send(chan, msg, command, result);
 }
 

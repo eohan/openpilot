@@ -154,8 +154,7 @@ static inline uint16_t mavlink_msg_rc_channels_raw_encode(uint8_t system_id, uin
 
 static inline void mavlink_msg_rc_channels_raw_send(mavlink_channel_t chan, uint16_t chan1_raw, uint16_t chan2_raw, uint16_t chan3_raw, uint16_t chan4_raw, uint16_t chan5_raw, uint16_t chan6_raw, uint16_t chan7_raw, uint16_t chan8_raw, uint8_t rssi)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+17);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 17);
 	mavlink_msg_rc_channels_raw_pack_chan_send(chan, msg, chan1_raw, chan2_raw, chan3_raw, chan4_raw, chan5_raw, chan6_raw, chan7_raw, chan8_raw, rssi);
 }
 

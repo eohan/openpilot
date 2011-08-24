@@ -18,11 +18,12 @@
  ****************************************************************************/
 
 #include "testing/mavlink_missionlib_data.h"
-#include "mavlink_parameters.h"
+#include "mavlink_parameters_openpilot.h"
+#include "mavlink_settings_adapter.h"
 #include "math.h" /* isinf / isnan checks */
 
 extern mavlink_system_t mavlink_system;
-extern mavlink_pm_storage pm;
+extern uint16_t next_param;
 
 extern void mavlink_missionlib_send_message(mavlink_message_t* msg);
 extern void mavlink_missionlib_send_gcs_string(const char* string);
@@ -34,7 +35,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 		case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
 			{
 				// Start sending parameters
-				pm.next_param = 0;
+				next_param = 0;
 				mavlink_missionlib_send_gcs_string("PM SENDING LIST");
 			}
 			break;
@@ -64,6 +65,10 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 					{
 						paramValue.param_float = set.param_value;
 						paramValue.type = set.param_type;
+
+						if (setParamByName(set.param_id, &paramValue))
+						{
+
 						// Report back new value
 #ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 						mavlink_message_t tx_msg;
@@ -74,19 +79,24 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 								getParamNameByIndex(index),
 								paramValue.param_float,
 								paramValue.type,
-								pm.size,
-								i);
+								getParamCount(),
+								index);
 						mavlink_missionlib_send_message(&tx_msg);
 #else
 	mavlink_msg_param_value_send(MAVLINK_COMM_0,
 			getParamNameByIndex(index),
 			paramValue.param_float,
 			paramValue.type,
-			pm.size,
-			i);
+			getParamCount(),
+			index);
 #endif
 
-	mavlink_missionlib_send_gcs_string("PM received param");
+	mavlink_missionlib_send_gcs_string("PM set param");
+						}
+						else
+						{
+							mavlink_missionlib_send_gcs_string("PM rejected param");
+						}
 					} // End valid value check
 				} // End match check
 			} // End system ID check
@@ -98,39 +108,39 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 	
 }
 	
-	/**
-	 * @brief Send low-priority messages at a maximum rate of xx Hertz
-	 *
-	 * This function sends messages at a lower rate to not exceed the wireless
-	 * bandwidth. It sends one message each time it is called until the buffer is empty.
-	 * Call this function with xx Hertz to increase/decrease the bandwidth.
-	 */
-	void mavlink_pm_queued_send(void)
-	{
-		//send parameters one by one
-		if (pm.next_param < pm.size)
-		{
-			//for (int i.. all active comm links)
-#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-			mavlink_message_t tx_msg;
-			mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
-											  mavlink_system.compid,
-											  MAVLINK_COMM_0,
-											  &tx_msg,
-											  pm.param_names[pm.next_param],
-											  pm.param_values[pm.next_param],
-											  MAV_DATA_TYPE_FLOAT,
-											  pm.size,
-											  pm.next_param);
-			mavlink_missionlib_send_message(&tx_msg);
-#else
-			mavlink_msg_param_value_send(MAVLINK_COMM_0,
-										 pm.param_names[pm.next_param],
-										 pm.param_values[pm.next_param],
-										 MAV_DATA_TYPE_FLOAT,
-										 pm.size,
-										 pm.next_param);
-#endif
-			pm.next_param++;
-		}
-	}
+//	/**
+//	 * @brief Send low-priority messages at a maximum rate of xx Hertz
+//	 *
+//	 * This function sends messages at a lower rate to not exceed the wireless
+//	 * bandwidth. It sends one message each time it is called until the buffer is empty.
+//	 * Call this function with xx Hertz to increase/decrease the bandwidth.
+//	 */
+//	void mavlink_pm_queued_send(void)
+//	{
+//		//send parameters one by one
+//		if (next_param < getParamCount())
+//		{
+//			//for (int i.. all active comm links)
+//#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
+//			mavlink_message_t tx_msg;
+//			mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
+//											  mavlink_system.compid,
+//											  MAVLINK_COMM_0,
+//											  &tx_msg,
+//											  pm.param_names[pm.next_param],
+//											  pm.param_values[pm.next_param],
+//											  MAV_DATA_TYPE_FLOAT,
+//											  getParamCount(),
+//											  next_param);
+//			mavlink_missionlib_send_message(&tx_msg);
+//#else
+//			mavlink_msg_param_value_send(MAVLINK_COMM_0,
+//										 pm.param_names[pm.next_param],
+//										 pm.param_values[pm.next_param],
+//										 MAV_DATA_TYPE_FLOAT,
+//										 pm.size,
+//										 pm.next_param);
+//#endif
+//			pm.next_param++;
+//		}
+//	}

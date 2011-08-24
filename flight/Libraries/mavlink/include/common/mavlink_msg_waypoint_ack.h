@@ -106,8 +106,7 @@ static inline uint16_t mavlink_msg_waypoint_ack_encode(uint8_t system_id, uint8_
 
 static inline void mavlink_msg_waypoint_ack_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, uint8_t type)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+3);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 3);
 	mavlink_msg_waypoint_ack_pack_chan_send(chan, msg, target_system, target_component, type);
 }
 

@@ -122,8 +122,7 @@ static inline uint16_t mavlink_msg_debug_vect_encode(uint8_t system_id, uint8_t 
 
 static inline void mavlink_msg_debug_vect_send(mavlink_channel_t chan, const char name[10], uint64_t usec, float x, float y, float z)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+30);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 30);
 	mavlink_msg_debug_vect_pack_chan_send(chan, msg, name, usec, x, y, z);
 }
 

@@ -185,6 +185,13 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 		{
 			gps_bin_custom_packet_t* packet = (gps_bin_custom_packet_t*) gps_rx_buffer;
 			// Check if checksum is valid
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, (const uint8_t*)"\nstate ck_ab: ", 14);
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &(mtk_state.ck_a), 1);
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &(mtk_state.ck_b), 1);
+
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, (const uint8_t*)"\nmtk ck_ab: ", 12);
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &(packet->ck_a), 1);
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &(packet->ck_b), 1);
 			if (1 == 1) //(mtk_state.ck_a == packet->ck_a && mtk_state.ck_b == packet->ck_b)
 			{
 				GPSPositionData	GpsData;

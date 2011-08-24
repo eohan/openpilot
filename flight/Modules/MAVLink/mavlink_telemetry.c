@@ -661,7 +661,7 @@ static void mavlinkStateMachineTask(void* parameters)
 		if (next_param < getParamCount())
 		{
 			static mavlink_param_union_t param;
-			getParamByIndex(next_param, &param);
+			if (!getParamByIndex(next_param, &param)) continue;
 			//for (int i.. all active comm links)
 #ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 			mavlink_message_t tx_msg;
@@ -672,18 +672,18 @@ static void mavlinkStateMachineTask(void* parameters)
 					getParamNameByIndex(next_param),
 					param.param_float,
 					param.type,
-					pm.size,
-					pm.next_param);
+					getParamCount(),
+					next_param);
 			mavlink_missionlib_send_message(&tx_msg);
 #else
-	mavlink_msg_param_value_send(MAVLINK_COMM_0,
-			getParamNameByIndex(next_param),
-			param.param_float,
-			param.type,
-			pm.size,
-			pm.next_param);
+			mavlink_msg_param_value_send(MAVLINK_COMM_0,
+					getParamNameByIndex(next_param),
+					param.param_float,
+					param.type,
+					getParamCount(),
+					next_param);
 #endif
-next_param++;
+			next_param++;
 		}
 
 		// Send setpoints, time out

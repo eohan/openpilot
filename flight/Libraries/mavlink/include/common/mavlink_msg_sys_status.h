@@ -178,8 +178,7 @@ static inline uint16_t mavlink_msg_sys_status_encode(uint8_t system_id, uint8_t 
 
 static inline void mavlink_msg_sys_status_send(mavlink_channel_t chan, uint16_t onboard_control_sensors_present, uint16_t onboard_control_sensors_enabled, uint16_t onboard_control_sensors_health, uint16_t load, uint16_t voltage_battery, uint16_t current_battery, uint16_t watt, uint8_t battery_percent, uint16_t errors_uart, uint16_t errors_i2c, uint16_t errors_spi, uint16_t errors_can)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+23);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 23);
 	mavlink_msg_sys_status_pack_chan_send(chan, msg, onboard_control_sensors_present, onboard_control_sensors_enabled, onboard_control_sensors_health, load, voltage_battery, current_battery, watt, battery_percent, errors_uart, errors_i2c, errors_spi, errors_can);
 }
 

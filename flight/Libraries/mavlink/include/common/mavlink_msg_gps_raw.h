@@ -162,8 +162,7 @@ static inline uint16_t mavlink_msg_gps_raw_encode(uint8_t system_id, uint8_t com
 
 static inline void mavlink_msg_gps_raw_send(mavlink_channel_t chan, uint64_t usec, uint8_t fix_type, float lat, float lon, float alt, float eph, float epv, float v, float hdg, uint8_t satellites_visible)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+38);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 38);
 	mavlink_msg_gps_raw_pack_chan_send(chan, msg, usec, fix_type, lat, lon, alt, eph, epv, v, hdg, satellites_visible);
 }
 

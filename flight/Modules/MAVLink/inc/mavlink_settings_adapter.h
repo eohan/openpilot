@@ -38,43 +38,23 @@
 
 #include "mavlink_types.h"
 
-#define MAX_ACTUATOR_PARAMS 2;
-#define ONBOARD_PARAM_NAME_LENGTH 16;
+#define MAX_ACTUATOR_PARAMS 2
+#define ONBOARD_PARAM_NAME_LENGTH 16
 
 #include <string.h>
+#include <stdbool.h>
 
-static uint16_t getParamCount()
-{
-	return MAX_ACTUATOR_PARAMS;
-}
+uint16_t getParamCount();
 
 bool getParamByName(const char* name, mavlink_param_union_t* param);
 
 bool setParamByName(const char* name, mavlink_param_union_t* param);
 
-int16_t getParamIndexByName(const char* name)
-{
-	return getActuatorSettingsParamIndexByName(name);
-}
+int16_t getParamIndexByName(const char* name);
 
-bool getParamByIndex(uint16_t index, mavlink_param_union_t* param)
-{
-	return getActuatorSettingsParamByIndex(index, param);
-}
+bool getParamByIndex(uint16_t index, mavlink_param_union_t* param);
 
-static const char* getParamNameByIndex(uint16_t index)
-{
-	return getActuatorSettingsParamNameByIndex(index);
-}
-
-
-int16_t getActuatorSettingsParamIndexByName(const char* name);
-
-static const char* getActuatorSettingsParamNameByIndex(uint16_t index);
-
-bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
-
-bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
+const char* getParamNameByIndex(uint16_t index);
 
 #endif /* MAVLINK_ADAPTER_H */
 

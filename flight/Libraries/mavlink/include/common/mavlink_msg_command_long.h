@@ -170,8 +170,7 @@ static inline uint16_t mavlink_msg_command_long_encode(uint8_t system_id, uint8_
 
 static inline void mavlink_msg_command_long_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, uint8_t command, uint8_t confirmation, float param1, float param2, float param3, float param4, float param5, float param6, float param7)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+32);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 32);
 	mavlink_msg_command_long_pack_chan_send(chan, msg, target_system, target_component, command, confirmation, param1, param2, param3, param4, param5, param6, param7);
 }
 

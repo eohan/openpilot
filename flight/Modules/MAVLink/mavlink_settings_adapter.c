@@ -33,19 +33,65 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <string.h>
 #include "mavlink_settings_adapter.h"
 
-#include <string.h>
+#include "openpilot.h"
+#include "mavlink.h"
+
+// START INCLUSION OF SETTINGS HEADERS
+#include "actuatorsettings.h"
+// END INCLUSION OF SETTINGS HEADERS
+
+// START INCLUSION OF INDIVIDUAL ADAPTER HEADERS
+int16_t getActuatorSettingsParamIndexByName(const char* name);
+
+const char* getActuatorSettingsParamNameByIndex(uint16_t index);
+
+bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
+
+bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
+// END INCLUSION OF INDIVIDUAL ADAPTER HEADERS
+
+
+int16_t getParamIndexByName(const char* name)
+{
+	return getActuatorSettingsParamIndexByName(name);
+}
+
+bool getParamByIndex(uint16_t index, mavlink_param_union_t* param)
+{
+	return getActuatorSettingsParamByIndex(index, param);
+}
+
+const char* getParamNameByIndex(uint16_t index)
+{
+	return getActuatorSettingsParamNameByIndex(index);
+}
+
+uint16_t getParamCount()
+{
+	return MAX_ACTUATOR_PARAMS;
+}
+
 
 bool getParamByName(const char* name, mavlink_param_union_t* param)
 {
+	int16_t index = -1;
+
+	// Search for index as long as it stays not found (-1)
+
+	// START INDEX FOUND SECTION
+	if (index == -1) index = getActuatorSettingsParamIndexByName(name);
+	// END INDEX FOUND SECTION
 	
-	// Actuator settings
-	int16_t index = getActuatorSettingsParamIndexByName(name);
 	if (index > -1)
 	{
-		getActuatorSettingsParamByIndex(index, param);
-		return true;
+		// Break on first match
+
+		// START VALUE FOUND SECTION
+		if (getActuatorSettingsParamByIndex(index, param)) return true;
+		// END VALUE FOUND SECTION
 	}
 	
 	// No match, return false
@@ -54,25 +100,36 @@ bool getParamByName(const char* name, mavlink_param_union_t* param)
 
 bool setParamByName(const char* name, mavlink_param_union_t* param)
 {
-	
-	// Actuator settings
-	int16_t index = getActuatorSettingsParamIndexByName(name);
+	int16_t index = -1;
+
+	// Search for index as long as it stays not found (-1)
+
+	// START INDEX FOUND SECTION
+	if (index == -1) index = getActuatorSettingsParamIndexByName(name);
+	// END INDEX FOUND SECTION
+
 	if (index > -1)
 	{
-		setActuatorSettingsParamByIndex(index, param);
-		return true;
+		// Break on first match
+
+		// START VALUE FOUND SECTION
+		if (setActuatorSettingsParamByIndex(index, param)) return true;
+		// END VALUE FOUND SECTION
 	}
 	
 	// No match, return false
 	return false;
 }
 
+
+// CONTENT OF C-FILES - TO BE REMOVED
+
 int16_t getActuatorSettingsParamIndexByName(const char* name)
 {
 	for (int i = 0; i < MAX_ACTUATOR_PARAMS; ++i)
 	{
 		bool match = true;
-		const char* storage_name = getActuatorSettingsParamName(i);
+		const char* storage_name = getActuatorSettingsParamNameByIndex(i);
 		for (uint8_t j = 0; j < ONBOARD_PARAM_NAME_LENGTH; ++j)
 		{
 			// Compare
@@ -92,7 +149,7 @@ int16_t getActuatorSettingsParamIndexByName(const char* name)
 	return -1;
 }
 
-static const char* getActuatorSettingsParamNameByIndex(uint16_t index)
+const char* getActuatorSettingsParamNameByIndex(uint16_t index)
 {
 	switch (index)
 	{
@@ -101,6 +158,7 @@ static const char* getActuatorSettingsParamNameByIndex(uint16_t index)
 		case 1:
 			return "fixedwing_roll2";
 	}
+	return 0;
 }
 
 bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param)
@@ -132,10 +190,24 @@ bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* para
 	switch (index)
 	{
 		case 0:
-			settings.FixedWingRoll1 = param->param_uint32;
+			if (param->type == MAV_DATA_TYPE_UINT32)
+			{
+				settings.FixedWingRoll1 = param->param_uint32;
+			}
+			else
+			{
+				return false;
+			}
 			break;
 		case 1:
+			if (param->type == MAV_DATA_TYPE_UINT32)
+			{
 			settings.FixedWingRoll2 = param->param_uint32;
+			}
+			else
+			{
+				return false;
+			}
 			break;
 		default:
 			return false;

@@ -106,8 +106,7 @@ static inline uint16_t mavlink_msg_change_operator_control_ack_encode(uint8_t sy
 
 static inline void mavlink_msg_change_operator_control_ack_send(mavlink_channel_t chan, uint8_t gcs_system_id, uint8_t control_request, uint8_t ack)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+3);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 3);
 	mavlink_msg_change_operator_control_ack_pack_chan_send(chan, msg, gcs_system_id, control_request, ack);
 }
 

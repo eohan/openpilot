@@ -151,7 +151,6 @@ endif
 
 ## MAVLINK MISSION LIB
 SRC += $(MAVLINKMISSIONLIB)/waypoints.c
-SRC += $(MAVLINKMISSIONLIB)/mavlink_parameters.c
 
 ## PIOS Hardware (STM32F2xx)
 SRC += $(PIOSSTM32F2XX)/startup.c

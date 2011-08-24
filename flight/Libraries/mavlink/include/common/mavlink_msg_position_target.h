@@ -114,8 +114,7 @@ static inline uint16_t mavlink_msg_position_target_encode(uint8_t system_id, uin
 
 static inline void mavlink_msg_position_target_send(mavlink_channel_t chan, float x, float y, float z, float yaw)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+16);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 16);
 	mavlink_msg_position_target_pack_chan_send(chan, msg, x, y, z, yaw);
 }
 

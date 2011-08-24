@@ -122,8 +122,7 @@ static inline uint16_t mavlink_msg_gps_set_global_origin_encode(uint8_t system_i
 
 static inline void mavlink_msg_gps_set_global_origin_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, int32_t latitude, int32_t longitude, int32_t altitude)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+14);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 14);
 	mavlink_msg_gps_set_global_origin_pack_chan_send(chan, msg, target_system, target_component, latitude, longitude, altitude);
 }
 

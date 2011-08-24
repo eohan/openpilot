@@ -122,8 +122,7 @@ static inline uint16_t mavlink_msg_param_value_encode(uint8_t system_id, uint8_t
 
 static inline void mavlink_msg_param_value_send(mavlink_channel_t chan, const char param_id[16], float param_value, uint8_t param_type, uint16_t param_count, uint16_t param_index)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+25);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 25);
 	mavlink_msg_param_value_pack_chan_send(chan, msg, param_id, param_value, param_type, param_count, param_index);
 }
 

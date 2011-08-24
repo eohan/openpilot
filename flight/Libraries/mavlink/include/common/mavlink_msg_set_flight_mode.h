@@ -98,8 +98,7 @@ static inline uint16_t mavlink_msg_set_flight_mode_encode(uint8_t system_id, uin
 
 static inline void mavlink_msg_set_flight_mode_send(mavlink_channel_t chan, uint8_t target, uint8_t flight_mode)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+2);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 2);
 	mavlink_msg_set_flight_mode_pack_chan_send(chan, msg, target, flight_mode);
 }
 

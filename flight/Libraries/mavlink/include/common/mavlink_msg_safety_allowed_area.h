@@ -138,8 +138,7 @@ static inline uint16_t mavlink_msg_safety_allowed_area_encode(uint8_t system_id,
 
 static inline void mavlink_msg_safety_allowed_area_send(mavlink_channel_t chan, uint8_t frame, float p1x, float p1y, float p1z, float p2x, float p2y, float p2z)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+25);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 25);
 	mavlink_msg_safety_allowed_area_pack_chan_send(chan, msg, frame, p1x, p1y, p1z, p2x, p2y, p2z);
 }
 

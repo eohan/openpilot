@@ -138,8 +138,7 @@ static inline uint16_t mavlink_msg_global_position_encode(uint8_t system_id, uin
 
 static inline void mavlink_msg_global_position_send(mavlink_channel_t chan, uint64_t usec, float lat, float lon, float alt, float vx, float vy, float vz)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+32);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 32);
 	mavlink_msg_global_position_pack_chan_send(chan, msg, usec, lat, lon, alt, vx, vy, vz);
 }
 

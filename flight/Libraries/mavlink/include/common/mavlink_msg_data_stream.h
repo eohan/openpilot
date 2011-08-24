@@ -106,8 +106,7 @@ static inline uint16_t mavlink_msg_data_stream_encode(uint8_t system_id, uint8_t
 
 static inline void mavlink_msg_data_stream_send(mavlink_channel_t chan, uint8_t stream_id, uint16_t message_rate, uint8_t on_off)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+4);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 4);
 	mavlink_msg_data_stream_pack_chan_send(chan, msg, stream_id, message_rate, on_off);
 }
 

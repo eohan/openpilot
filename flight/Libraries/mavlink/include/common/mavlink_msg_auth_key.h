@@ -90,8 +90,7 @@ static inline uint16_t mavlink_msg_auth_key_encode(uint8_t system_id, uint8_t co
 
 static inline void mavlink_msg_auth_key_send(mavlink_channel_t chan, const char key[32])
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+32);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 32);
 	mavlink_msg_auth_key_pack_chan_send(chan, msg, key);
 }
 

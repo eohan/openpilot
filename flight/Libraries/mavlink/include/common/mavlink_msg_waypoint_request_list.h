@@ -98,8 +98,7 @@ static inline uint16_t mavlink_msg_waypoint_request_list_encode(uint8_t system_i
 
 static inline void mavlink_msg_waypoint_request_list_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+2);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 2);
 	mavlink_msg_waypoint_request_list_pack_chan_send(chan, msg, target_system, target_component);
 }
 

@@ -130,8 +130,7 @@ static inline uint16_t mavlink_msg_optical_flow_encode(uint8_t system_id, uint8_
 
 static inline void mavlink_msg_optical_flow_send(mavlink_channel_t chan, uint64_t time, uint8_t sensor_id, int16_t flow_x, int16_t flow_y, uint8_t quality, float ground_distance)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+18);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 18);
 	mavlink_msg_optical_flow_pack_chan_send(chan, msg, time, sensor_id, flow_x, flow_y, quality, ground_distance);
 }
 

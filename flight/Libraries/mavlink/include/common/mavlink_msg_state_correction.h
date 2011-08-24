@@ -154,8 +154,7 @@ static inline uint16_t mavlink_msg_state_correction_encode(uint8_t system_id, ui
 
 static inline void mavlink_msg_state_correction_send(mavlink_channel_t chan, float xErr, float yErr, float zErr, float rollErr, float pitchErr, float yawErr, float vxErr, float vyErr, float vzErr)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+36);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 36);
 	mavlink_msg_state_correction_pack_chan_send(chan, msg, xErr, yErr, zErr, rollErr, pitchErr, yawErr, vxErr, vyErr, vzErr);
 }
 

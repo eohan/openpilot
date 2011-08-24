@@ -98,8 +98,7 @@ static inline uint16_t mavlink_msg_named_value_float_encode(uint8_t system_id, u
 
 static inline void mavlink_msg_named_value_float_send(mavlink_channel_t chan, const char name[10], float value)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+14);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 14);
 	mavlink_msg_named_value_float_pack_chan_send(chan, msg, name, value);
 }
 

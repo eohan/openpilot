@@ -114,8 +114,7 @@ static inline uint16_t mavlink_msg_ping_encode(uint8_t system_id, uint8_t compon
 
 static inline void mavlink_msg_ping_send(mavlink_channel_t chan, uint32_t seq, uint8_t target_system, uint8_t target_component, uint64_t time)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+14);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 14);
 	mavlink_msg_ping_pack_chan_send(chan, msg, seq, target_system, target_component, time);
 }
 

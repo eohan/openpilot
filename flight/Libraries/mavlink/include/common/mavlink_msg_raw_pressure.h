@@ -122,8 +122,7 @@ static inline uint16_t mavlink_msg_raw_pressure_encode(uint8_t system_id, uint8_
 
 static inline void mavlink_msg_raw_pressure_send(mavlink_channel_t chan, uint64_t usec, int16_t press_abs, int16_t press_diff1, int16_t press_diff2, int16_t temperature)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+16);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 16);
 	mavlink_msg_raw_pressure_pack_chan_send(chan, msg, usec, press_abs, press_diff1, press_diff2, temperature);
 }
 

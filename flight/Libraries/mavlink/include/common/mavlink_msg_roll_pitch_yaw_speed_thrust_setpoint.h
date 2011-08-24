@@ -122,8 +122,7 @@ static inline uint16_t mavlink_msg_roll_pitch_yaw_speed_thrust_setpoint_encode(u
 
 static inline void mavlink_msg_roll_pitch_yaw_speed_thrust_setpoint_send(mavlink_channel_t chan, uint32_t time_ms, float roll_speed, float pitch_speed, float yaw_speed, float thrust)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+20);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 20);
 	mavlink_msg_roll_pitch_yaw_speed_thrust_setpoint_pack_chan_send(chan, msg, time_ms, roll_speed, pitch_speed, yaw_speed, thrust);
 }
 

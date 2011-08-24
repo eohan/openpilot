@@ -130,8 +130,7 @@ static inline uint16_t mavlink_msg_gps_status_encode(uint8_t system_id, uint8_t 
 
 static inline void mavlink_msg_gps_status_send(mavlink_channel_t chan, uint8_t satellites_visible, const uint8_t satellite_prn[20], const uint8_t satellite_used[20], const uint8_t satellite_elevation[20], const uint8_t satellite_azimuth[20], const uint8_t satellite_snr[20])
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+101);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 101);
 	mavlink_msg_gps_status_pack_chan_send(chan, msg, satellites_visible, satellite_prn, satellite_used, satellite_elevation, satellite_azimuth, satellite_snr);
 }
 

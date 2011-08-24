@@ -114,8 +114,7 @@ static inline uint16_t mavlink_msg_global_position_setpoint_int_encode(uint8_t s
 
 static inline void mavlink_msg_global_position_setpoint_int_send(mavlink_channel_t chan, int32_t latitude, int32_t longitude, int32_t altitude, int16_t yaw)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+14);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 14);
 	mavlink_msg_global_position_setpoint_int_pack_chan_send(chan, msg, latitude, longitude, altitude, yaw);
 }
 

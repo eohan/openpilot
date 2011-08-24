@@ -90,8 +90,7 @@ static inline uint16_t mavlink_msg_waypoint_current_encode(uint8_t system_id, ui
 
 static inline void mavlink_msg_waypoint_current_send(mavlink_channel_t chan, uint16_t seq)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+2);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 2);
 	mavlink_msg_waypoint_current_pack_chan_send(chan, msg, seq);
 }
 

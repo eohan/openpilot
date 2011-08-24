@@ -114,8 +114,7 @@ static inline uint16_t mavlink_msg_param_request_read_encode(uint8_t system_id, 
 
 static inline void mavlink_msg_param_request_read_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, const char param_id[16], int16_t param_index)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+20);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 20);
 	mavlink_msg_param_request_read_pack_chan_send(chan, msg, target_system, target_component, param_id, param_index);
 }
 

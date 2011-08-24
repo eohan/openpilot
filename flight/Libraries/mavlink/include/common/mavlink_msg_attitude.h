@@ -138,8 +138,7 @@ static inline uint16_t mavlink_msg_attitude_encode(uint8_t system_id, uint8_t co
 
 static inline void mavlink_msg_attitude_send(mavlink_channel_t chan, uint64_t usec, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+32);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 32);
 	mavlink_msg_attitude_pack_chan_send(chan, msg, usec, roll, pitch, yaw, rollspeed, pitchspeed, yawspeed);
 }
 

@@ -130,8 +130,7 @@ static inline uint16_t mavlink_msg_local_position_setpoint_set_encode(uint8_t sy
 
 static inline void mavlink_msg_local_position_setpoint_set_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, float x, float y, float z, float yaw)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+18);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 18);
 	mavlink_msg_local_position_setpoint_set_pack_chan_send(chan, msg, target_system, target_component, x, y, z, yaw);
 }
 

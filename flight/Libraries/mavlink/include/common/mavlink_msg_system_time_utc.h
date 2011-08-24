@@ -98,8 +98,7 @@ static inline uint16_t mavlink_msg_system_time_utc_encode(uint8_t system_id, uin
 
 static inline void mavlink_msg_system_time_utc_send(mavlink_channel_t chan, uint32_t utc_date, uint32_t utc_time)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+8);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 8);
 	mavlink_msg_system_time_utc_pack_chan_send(chan, msg, utc_date, utc_time);
 }
 

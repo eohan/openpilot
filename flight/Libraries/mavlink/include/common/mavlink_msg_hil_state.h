@@ -210,8 +210,7 @@ static inline uint16_t mavlink_msg_hil_state_encode(uint8_t system_id, uint8_t c
 
 static inline void mavlink_msg_hil_state_send(mavlink_channel_t chan, uint64_t time_us, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed, int32_t lat, int32_t lon, int32_t alt, int16_t vx, int16_t vy, int16_t vz, int16_t xacc, int16_t yacc, int16_t zacc)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+56);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 56);
 	mavlink_msg_hil_state_pack_chan_send(chan, msg, time_us, roll, pitch, yaw, rollspeed, pitchspeed, yawspeed, lat, lon, alt, vx, vy, vz, xacc, yacc, zacc);
 }
 

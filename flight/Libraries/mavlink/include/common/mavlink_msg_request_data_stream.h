@@ -122,8 +122,7 @@ static inline uint16_t mavlink_msg_request_data_stream_encode(uint8_t system_id,
 
 static inline void mavlink_msg_request_data_stream_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, uint8_t req_stream_id, uint16_t req_message_rate, uint8_t start_stop)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+6);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
+	MAVLINK_ALIGNED_MESSAGE(msg, 6);
 	mavlink_msg_request_data_stream_pack_chan_send(chan, msg, target_system, target_component, req_stream_id, req_message_rate, start_stop);
 }
 
