@@ -49,8 +49,22 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			FlightStatusGet(&status);
 			if (status.Armed == FLIGHTSTATUS_ARMED_DISARMED/* || status.Armed == FLIGHTSTATUS_ARMED_HIL*/)
 			{
-				if (1 == 2)//UAVObjSaveSettings())
+				if (1 == 1)//UAVObjSaveSettings())
 				{
+					ObjectPersistenceData objper;
+
+					// Write all objects individually
+					// for;;
+					ObjectPersistenceGet(&objper);
+
+					ActuatorSettingsData settings;
+						ActuatorSettingsGet(&settings);
+
+					objper.Selection = OBJECTPERSISTENCE_SELECTION_SINGLEOBJECT;
+					objper.Operation = OBJECTPERSISTENCE_OPERATION_SAVE;
+					objper.ObjectID = UAVObjGetID(&settings);
+					objper.InstanceID = UAVOBJ_ALL_INSTANCES;
+					ObjectPersistenceSet(&objper);
 					mavlink_missionlib_send_gcs_string("PM: stored all params");
 				}
 				else
@@ -64,17 +78,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			}
 
 
-//			ObjectPersistenceData objper;
-//
-//			// Write all objects individually
-//			// for;;
-//			ObjectPersistenceGet(&objper);
-//
-//			objper.Selection = OBJECTPERSISTENCE_SELECTION_SINGLEOBJECT;
-//			objper.Operation = OBJECTPERSISTENCE_OPERATION_SAVE;
-//			objper.ObjectID = ACTUATORSETTINGS_OBJID;
-//			objper.InstanceID = UAVOBJ_ALL_INSTANCES;
-//			ObjectPersistenceSet(&objper);
+
 
 
 		}

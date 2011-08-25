@@ -388,15 +388,15 @@ void mavlink_wpm_message_handler(const mavlink_message_t* msg)
                     float orbit = wp->param1;
 					
                     float dist;
-                    if (wp->param2 == 0)
-                    {
-						// FIXME segment distance
-                        //dist = mavlink_wpm_distance_to_segment(current_active_wp_id, pos.x, pos.y, pos.z);
-                    }
-                    else
-                    {
+//                    if (wp->param2 == 0)
+//                    {
+//						// FIXME segment distance
+//                        //dist = mavlink_wpm_distance_to_segment(current_active_wp_id, pos.x, pos.y, pos.z);
+//                    }
+//                    else
+//                    {
                         dist = mavlink_wpm_distance_to_point(wpm.current_active_wp_id, pos.x, pos.y, pos.z);
-                    }
+//                    }
 					
                     if (dist >= 0.f && dist <= orbit && wpm.yaw_reached)
                     {

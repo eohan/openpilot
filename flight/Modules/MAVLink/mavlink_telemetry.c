@@ -613,6 +613,9 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+
+//			mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0, gps_raw.usec, gps_raw.lat, gps_raw.lon, gps_raw.alt, gps_raw.eph, gps_raw.epv, gps_raw.hdg, gps_raw.satellites_visible, gps_raw.fix_type, 0);
+
 			break;
 		}
 		case MANUALCONTROLCOMMAND_OBJID:
@@ -627,6 +630,12 @@ static void processObjEvent(UAVObjEvent * ev)
 			rc.chan3_scaled = val*1000;
 			ManualControlCommandThrottleGet(&val);
 			rc.chan4_scaled = val*1000;
+
+			rc.chan5_scaled = 0;
+			rc.chan6_scaled = 0;
+			rc.chan7_scaled = 0;
+			rc.chan8_scaled = 0;
+			rc.rssi = 0;
 
 			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
 
