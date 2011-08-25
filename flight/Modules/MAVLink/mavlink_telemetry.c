@@ -45,6 +45,8 @@
 #include "gpssatellites.h"		   /* GPS satellites */
 #include "flightstatus.h"          /* Main system state machine */
 
+#include "actuatorsettings.h"
+
 // Private constants
 #define MAX_QUEUE_SIZE   MAVLINK_QUEUE_SIZE
 #define STACK_SIZE_BYTES PIOS_MAVLINK_STACK_SIZE
@@ -428,6 +430,28 @@ static void processObjEvent(UAVObjEvent * ev)
 
 		//		uint64_t timeStamp = 0;
 		switch(objId) {
+		case ACTUATORSETTINGS_OBJID:
+		{
+			ActuatorSettingsData settings;
+				ActuatorSettingsGet(&settings);
+				if (settings.FixedWingRoll1 == 0)
+				{
+					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 0");
+				}
+				else if (settings.FixedWingRoll1 == 1)
+				{
+					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 1");
+				}
+				else if (settings.FixedWingRoll1 == 2)
+				{
+					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 1");
+				}
+				else if (settings.FixedWingRoll1 == 3)
+				{
+					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 1");
+				}
+		}
+		break;
 		case ATTITUDEACTUAL_OBJID:
 		{
 			AttitudeActualGet(&attitudeActual);
@@ -522,6 +546,15 @@ static void processObjEvent(UAVObjEvent * ev)
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
 				mode = MAV_MODE_PREFLIGHT;
+				break;
+			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED1:
+				mode = MAV_MODE_STABILIZE;
+				break;
+			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED2:
+				mode = MAV_MODE_GUIDED;
+				break;
+			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED3:
+				mode = MAV_MODE_AUTO;
 				break;
 
 			}
@@ -729,62 +762,78 @@ static void telemetryRxTask(void *parameters)
 			// Handle packet with parameter component
 			mavlink_pm_message_handler(mavlink_chan, &rx_msg);
 
-//			switch (rx_msg.msgid)
-//			{
-//			case MAVLINK_MSG_ID_HEARTBEAT:
-//			{
-//				// Check if this is the gcs
-//				mavlink_heartbeat_t beat;
-//				mavlink_msg_heartbeat_decode(&rx_msg, &beat);
-//				if (beat.type == MAV_TYPE_OCU)
-//				{
-//					// Got heartbeat from the GCS, we're good!
-//					lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
-//				}
-//			}
-//			break;
-//			case MAVLINK_MSG_ID_SET_MODE:
-//			{
-//				mavlink_set_mode_t mode;
-//				mavlink_msg_set_mode_decode(&rx_msg, &mode);
-//				// Check if this system should change the mode
-//				if (mode.target == mavlink_system.sysid)
-//				{
-//					mavlink_system.mode = mode.mode;
-//					FlightStatusData flightStatus;
-//					FlightStatusGet(&flightStatus);
-//
-//					switch (mode.mode)
-//					{
-//					case MAV_MODE_MANUAL:
-//					{
-//						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
-//						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
-//					}
-//					break;
-//					case MAV_MODE_LOCKED:
-//					{
-//						flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
-//					}
-//					break;
-//					case MAV_MODE_GUIDED:
-//					{
-//						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED1;
-//						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
-//					}
-//					break;
-//					}
-//
-//					FlightStatusSet(&flightStatus);
-//				}
-//			}
-//			break;
-//			case MAVLINK_MSG_ID_COMMAND:
-//			{
-//				// FIXME Implement
-//			}
-//			break;
-//			}
+			switch (rx_msg.msgid)
+			{
+			case MAVLINK_MSG_ID_HEARTBEAT:
+			{
+				// Check if this is the gcs
+				mavlink_heartbeat_t beat;
+				mavlink_msg_heartbeat_decode(&rx_msg, &beat);
+				if (beat.type == MAV_TYPE_GCS)
+				{
+					// Got heartbeat from the GCS, we're good!
+					lastOperatorHeartbeat = xTaskGetTickCount() * portTICK_RATE_MS;
+				}
+			}
+			break;
+			case MAVLINK_MSG_ID_SET_MODE:
+			{
+				mavlink_set_mode_t mode;
+				mavlink_msg_set_mode_decode(&rx_msg, &mode);
+				// Check if this system should change the mode
+				if (mode.target == mavlink_system.sysid)
+				{
+					FlightStatusData flightStatus;
+					FlightStatusGet(&flightStatus);
+
+					switch (mode.mode)
+					{
+					case MAV_MODE_MANUAL:
+					{
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+					}
+					break;
+					case MAV_MODE_PREFLIGHT:
+					{
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
+					}
+					break;
+					case MAV_MODE_STABILIZE:
+					{
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED1;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+					}
+					break;
+					case MAV_MODE_GUIDED:
+					{
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED2;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+					}
+					break;
+					case MAV_MODE_AUTO:
+					{
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED3;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+					}
+					break;
+					}
+
+					FlightStatusSet(&flightStatus);
+				}
+			}
+			break;
+			case MAVLINK_MSG_ID_COMMAND_SHORT:
+			{
+				// FIXME Implement
+			}
+			break;
+			case MAVLINK_MSG_ID_COMMAND_LONG:
+						{
+							// FIXME Implement
+						}
+						break;
+			}
 		}
 	}
 }

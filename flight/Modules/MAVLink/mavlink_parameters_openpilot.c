@@ -22,6 +22,13 @@
 #include "mavlink_settings_adapter.h"
 #include "math.h" /* isinf / isnan checks */
 
+#include "openpilot.h"
+#include "objectpersistence.h"
+
+#include "flightstatus.h"
+
+#include "actuatorsettings.h"
+
 extern mavlink_system_t mavlink_system;
 extern uint16_t next_param;
 
@@ -32,6 +39,47 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 {
 	switch (msg->msgid)
 	{
+	case MAVLINK_MSG_ID_COMMAND_SHORT:
+	{
+		mavlink_command_short_t cmd;
+		mavlink_msg_command_short_decode(msg, &cmd);
+		if (cmd.command == MAV_CMD_PREFLIGHT_STORAGE)
+		{
+			FlightStatusData status;
+			FlightStatusGet(&status);
+			if (status.Armed == FLIGHTSTATUS_ARMED_DISARMED/* || status.Armed == FLIGHTSTATUS_ARMED_HIL*/)
+			{
+				if (1 == 2)//UAVObjSaveSettings())
+				{
+					mavlink_missionlib_send_gcs_string("PM: stored all params");
+				}
+				else
+				{
+					mavlink_missionlib_send_gcs_string("PM: FAILED storing params");
+				}
+			}
+			else
+			{
+				mavlink_missionlib_send_gcs_string("PM: Not storing params in ARMED mode.");
+			}
+
+
+//			ObjectPersistenceData objper;
+//
+//			// Write all objects individually
+//			// for;;
+//			ObjectPersistenceGet(&objper);
+//
+//			objper.Selection = OBJECTPERSISTENCE_SELECTION_SINGLEOBJECT;
+//			objper.Operation = OBJECTPERSISTENCE_OPERATION_SAVE;
+//			objper.ObjectID = ACTUATORSETTINGS_OBJID;
+//			objper.InstanceID = UAVOBJ_ALL_INSTANCES;
+//			ObjectPersistenceSet(&objper);
+
+
+		}
+	}
+	break;
 		case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
 			{
 				// Start sending parameters
@@ -66,10 +114,11 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 						paramValue.param_float = set.param_value;
 						paramValue.type = set.param_type;
 
-						if (setParamByName(set.param_id, &paramValue))
+						// Report back new value
+						// Read back from storage
+						if (setParamByIndex(index, &paramValue) && getParamByIndex(index, &paramValue))
 						{
 
-						// Report back new value
 #ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 						mavlink_message_t tx_msg;
 						mavlink_msg_param_value_pack_chan(mavlink_system.sysid,

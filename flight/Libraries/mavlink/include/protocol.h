@@ -186,7 +186,8 @@ static inline void put_uint64_t_by_index(uint64_t b, const uint8_t bindex, uint8
 	buffer[bindex+6] = (b>>8)&0xff;
 	buffer[bindex+7] = (b & 0xff);
 #else
-	//*(uint64_t *)(buffer+bindex) = b;
+	*(uint32_t *)(buffer+bindex) = *((uint32_t *)&b);
+	*(((uint32_t *)(buffer+bindex))+1) = *(((uint32_t *)&b)+1);
 #endif
 }
 

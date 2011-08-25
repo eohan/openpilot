@@ -53,6 +53,7 @@ bool setParamByName(const char* name, mavlink_param_union_t* param);
 int16_t getParamIndexByName(const char* name);
 
 bool getParamByIndex(uint16_t index, mavlink_param_union_t* param);
+bool setParamByIndex(uint16_t index, const mavlink_param_union_t* param);
 
 const char* getParamNameByIndex(uint16_t index);
 

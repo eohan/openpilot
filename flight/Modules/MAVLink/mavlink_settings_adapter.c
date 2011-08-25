@@ -50,7 +50,7 @@ const char* getActuatorSettingsParamNameByIndex(uint16_t index);
 
 bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
 
-bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
+bool setActuatorSettingsParamByIndex(uint16_t index, const mavlink_param_union_t* param);
 // END INCLUSION OF INDIVIDUAL ADAPTER HEADERS
 
 
@@ -62,6 +62,11 @@ int16_t getParamIndexByName(const char* name)
 bool getParamByIndex(uint16_t index, mavlink_param_union_t* param)
 {
 	return getActuatorSettingsParamByIndex(index, param);
+}
+
+bool setParamByIndex(uint16_t index, const mavlink_param_union_t* param)
+{
+	return setActuatorSettingsParamByIndex(index, param);
 }
 
 const char* getParamNameByIndex(uint16_t index)
@@ -168,38 +173,48 @@ bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* para
 	switch (index)
 	{
 		case 0:
+		{
 			param->param_uint32 = settings.FixedWingRoll1;
 			param->type = MAV_DATA_TYPE_UINT32;
+		}
 			break;
 		case 1:
+		{
 			param->param_uint32 = settings.FixedWingRoll2;
 			param->type = MAV_DATA_TYPE_UINT32;
+		}
 			break;
 		default:
+		{
 			return false;
+		}
 			break;
 	}
 	// Not returned in default case, return true
 	return true;
 }
 
-bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param)
+bool setActuatorSettingsParamByIndex(uint16_t index, const mavlink_param_union_t* param)
 {
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 	switch (index)
 	{
 		case 0:
+		{
 			if (param->type == MAV_DATA_TYPE_UINT32)
 			{
 				settings.FixedWingRoll1 = param->param_uint32;
+				settings.FixedWingRoll1 = 5;
 			}
 			else
 			{
 				return false;
 			}
+		}
 			break;
 		case 1:
+		{
 			if (param->type == MAV_DATA_TYPE_UINT32)
 			{
 			settings.FixedWingRoll2 = param->param_uint32;
@@ -208,15 +223,18 @@ bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* para
 			{
 				return false;
 			}
+		}
 			break;
 		default:
+		{
 			return false;
+		}
 			break;
 	}
 	
-	// Not returned in default case, write and return true
-	ActuatorSettingsSet(&settings);
-	return true;
+	// Not returned in default case, try to write (ok == 0) and return result of
+	// write operation
+	return (ActuatorSettingsSet(&settings) == 0);
 }
 
 /**
