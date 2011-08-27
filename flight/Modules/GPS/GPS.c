@@ -229,11 +229,29 @@ static void gpsTask(void *parameters)
 	while (1)
 	{
 		uint8_t c;
+		#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
+			// GTOP BINARY GPS mode
+
+		    while (PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, xDelay) > 0)
+			{
+				PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, 0);
+				int res = GTOP_BIN_CUSTOM_update_position(c, &numChecksumErrors, &numParsingErrors);
+				if (res >= 0)
+				{
+					numUpdates++;
+
+					timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;
+					timeOfLastUpdateMs = timeNowMs;
+					timeOfLastCommandMs = timeNowMs;
+				}
+			}
+		#endif
 		#ifdef ENABLE_GPS_BINARY_GTOP
 			// GTOP BINARY GPS mode
 
 			while (PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, xDelay) > 0)
 			{
+				uint8_t c;
 				if (GTOP_BIN_update_position(c, &numChecksumErrors, &numParsingErrors) >= 0)
 				{
 					numUpdates++;
