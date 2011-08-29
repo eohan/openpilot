@@ -52,7 +52,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
     .USART_Mode                = USART_Mode_Rx | USART_Mode_Tx,
   },
   .irq = {
-    .handler = NULL,
     .init    = {
       .NVIC_IRQChannel                   = USART1_IRQn,
       .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
@@ -195,7 +194,6 @@ const struct pios_ppm_cfg pios_ppm_cfg = {
 	},
 	.remap = 0,
 	.irq = {
-		.handler = TIM1_CC_IRQHandler,
 		.init    = {
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
 			.NVIC_IRQChannelSubPriority        = 0,
@@ -212,6 +210,7 @@ void PIOS_TIM1_CC_irq_handler()
 	PIOS_PPM_irq_handler();
 }
 
+
 #if defined(PIOS_INCLUDE_RTC)
 /*
  * Realtime Clock (RTC)
@@ -224,7 +223,6 @@ static const struct pios_rtc_cfg pios_rtc_main_cfg = {
 	.clksrc = RCC_RTCCLKSource_HSE_Div128,
 	.prescaler = 100,
 	.irq = {
-		.handler = NULL,
 		.init = {
 			.NVIC_IRQChannel                   = RTC_IRQn,
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
@@ -242,6 +240,7 @@ void PIOS_RTC_IRQ_Handler (void)
 #endif
 
 
+
 uint32_t pios_com_aux_id;
 #if defined(PIOS_INCLUDE_SPEKTRUM)
 uint32_t pios_com_spektrum_id;
@@ -255,7 +254,6 @@ uint32_t pios_rcvr_max_channel;
  */
 void PIOS_Board_Init(void)
 {
-	uint32_t	rcvr_id;
 
 	/* Delay system */
 	PIOS_DELAY_Init();	
@@ -263,36 +261,49 @@ void PIOS_Board_Init(void)
 	/* Initialize UAVObject libraries */
 //	EventDispatcherInitialize();
 //	UAVObjInitialize();
-//	UAVObjectsInitializeAll();
+//	HwSettingsInitialize();
+//	ManualControlSettingsInitialize();
 
 #if defined(PIOS_INCLUDE_RTC)
 	/* Initialize the real-time clock and its associated tick */
-	//XXX
-	//PIOS_RTC_Init(&pios_rtc_main_cfg);
+	PIOS_RTC_Init(&pios_rtc_main_cfg);
 #else
 #warning Need RTC for PPM
 #endif
 	
+	/* Initialize the alarms library */
+//	AlarmsInitialize();
+
+	/* Initialize the task monitor library */
+//	TaskMonitorInitialize();
+
 #if 0 // XXX this is all very wrong now
 #if defined(PIOS_INCLUDE_SBUS)
-	// XXX need to do this
-	PIOS_SBUS_Init(&pios_sbus_cfg);
+		{
+			uint32_t pios_usart_sbus_id;
+			if (PIOS_USART_Init(&pios_usart_sbus_id, &pios_usart_sbus_main_cfg)) {
+				PIOS_Assert(0);
+			}
 
-	uint32_t pios_usart_sbus_id;
-	if (PIOS_USART_Init(&pios_usart_sbus_id, &pios_usart_sbus_main_cfg)) {
-		PIOS_Assert(0);
-	}
+			uint32_t pios_sbus_id;
+			if (PIOS_SBUS_Init(&pios_sbus_id, &pios_sbus_cfg, &pios_usart_com_driver, pios_usart_sbus_id)) {
+				PIOS_Assert(0);
+			}
+		}
 #endif	/* PIOS_INCLUDE_SBUS */
 #if defined(PIOS_INCLUDE_SPEKTRUM)
-	/* SPEKTRUM init must come before comms */
-	PIOS_SPEKTRUM_Init(&pios_spektrum_cfg, false);
+		{
+			uint32_t pios_usart_spektrum_id;
+			if (PIOS_USART_Init(&pios_usart_spektrum_id, &pios_usart_spektrum_main_cfg)) {
+				PIOS_Assert(0);
+			}
 
-	uint32_t pios_usart_spektrum_id;
-
-	if (PIOS_USART_Init(&pios_usart_spektrum_id, &pios_usart_spektrum_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
-#endif
+			uint32_t pios_spektrum_id;
+			if (PIOS_SPEKTRUM_Init(&pios_spektrum_id, &pios_spektrum_main_cfg, &pios_usart_com_driver, pios_usart_spektrum_id, 0)) {
+				PIOS_Assert(0);
+			}
+		}
+#endif	/* PIOS_INCLUDE_SPEKTRUM */
 #endif
 
 #if defined(PIOS_COM_AUX)
@@ -300,8 +311,14 @@ void PIOS_Board_Init(void)
 	if (PIOS_USART_Init(&pios_usart_aux_id, &pios_usart_aux_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
-	if (PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, pios_usart_aux_id)) {
-		PIOS_DEBUG_Assert(0);
+	uint8_t * rx_buffer = (uint8_t *) pvPortMalloc(128);
+	uint8_t * tx_buffer = (uint8_t *) pvPortMalloc(128);
+	PIOS_Assert(rx_buffer);
+	PIOS_Assert(tx_buffer);
+	if (PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, pios_usart_aux_id,
+			  rx_buffer, 128,
+			  tx_buffer, 128)) {
+		PIOS_Assert(0);
 	}
 #endif
 	PIOS_COM_SendFormattedString(PIOS_COM_AUX, "PX2IO starting...\r\n");
@@ -310,20 +327,53 @@ void PIOS_Board_Init(void)
 //	PIOS_ADC_INIT();
 	PIOS_GPIO_Init();
 
+	/* Configure the selected receiver */
+	/* XXX we don't have these settings until we have config from FMU ... */
 #if defined(PIOS_INCLUDE_PPM)
-	// XXX in theory we need to do this... but why?  This is crap.  It should be somewhere very far from here.
-	//uint8_t inputmode;
-	//ManualControlSettingsInputModeGet(&inputmode);
-	PIOS_PPM_Init();
-	if (PIOS_RCVR_Init(&rcvr_id, &pios_ppm_rcvr_driver, 0)) {
-		PIOS_Assert(0);
-	}
-	for (uint8_t i = 0; i < PIOS_PPM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map); i++) {
-		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = rcvr_id;
-		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
-		pios_rcvr_max_channel++;
-	}
-#endif
+		PIOS_PPM_Init();
+		uint32_t pios_ppm_rcvr_id;
+		if (PIOS_RCVR_Init(&pios_ppm_rcvr_id, &pios_ppm_rcvr_driver, 0)) {
+			PIOS_Assert(0);
+		}
+		for (uint8_t i = 0;
+		     i < PIOS_PPM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map);
+		     i++) {
+			pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = pios_ppm_rcvr_id;
+			pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+			pios_rcvr_max_channel++;
+		}
+#endif	/* PIOS_INCLUDE_PPM */
+#if defined(PIOS_INCLUDE_SPEKTRUM)
+		if (hwsettings_cc_mainport == HWSETTINGS_CC_MAINPORT_SPEKTRUM ||
+		    hwsettings_cc_flexiport == HWSETTINGS_CC_FLEXIPORT_SPEKTRUM) {
+			uint32_t pios_spektrum_rcvr_id;
+			if (PIOS_RCVR_Init(&pios_spektrum_rcvr_id, &pios_spektrum_rcvr_driver, 0)) {
+				PIOS_Assert(0);
+			}
+			for (uint8_t i = 0;
+			     i < PIOS_SPEKTRUM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map);
+			     i++) {
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = pios_spektrum_rcvr_id;
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+				pios_rcvr_max_channel++;
+			}
+		}
+#endif	/* PIOS_INCLUDE_SPEKTRUM */
+#if defined(PIOS_INCLUDE_SBUS)
+		if (hwsettings_cc_mainport == HWSETTINGS_CC_MAINPORT_SBUS) {
+			uint32_t pios_sbus_rcvr_id;
+			if (PIOS_RCVR_Init(&pios_sbus_rcvr_id, &pios_sbus_rcvr_driver, 0)) {
+				PIOS_Assert(0);
+			}
+			for (uint8_t i = 0;
+			     i < SBUS_NUMBER_OF_CHANNELS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map);
+			     i++) {
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = pios_sbus_rcvr_id;
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+				pios_rcvr_max_channel++;
+			}
+		}
+#endif  /* PIOS_INCLUDE_SBUS */
 
 	//PIOS_WDG_Init();
 }
