@@ -76,23 +76,21 @@ SECTIONS
 		KEEP(*(.boardinfo))
 	} > BD_INFO
 
-    /*
-     * Place the IRQ/bootstrap stack at the bottom of SRAM so that an overflow
-     * results in a hard fault.
-     */
-    .irq_stack :
-    {
-    	_irq_stack_end = . ;
-    	*(.irqstack)
-    	_irq_stack_top = . ;
-    } > SRAM
-
 	/*
 	 * Non-const initialised data.
 	 */
     .data : AT (_sidata)
     {
         _sdata = .;
+
+	    /*
+     	* Place the IRQ/bootstrap stack at the bottom of SRAM so that an overflow
+     	* results in a hard fault.
+     	*/
+    	_irq_stack_end = . ;
+    	*(.irqstack)
+    	_irq_stack_top = . ;
+
         *(.data .data.*)
         . = ALIGN(4);
         _edata = . ;
