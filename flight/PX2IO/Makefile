@@ -30,7 +30,7 @@ include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 TARGET				= fw_$(BOARD_NAME)
 
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
-OUTDIR				= $(TOP)/build/px2io
+OUTDIR				= $(TOP)/build/fw_px2io
 
 # Set to YES to compile for debugging
 DEBUG				?= YES
