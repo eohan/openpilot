@@ -134,19 +134,18 @@ void mavlink_wpm_send_setpoint(uint16_t seq)
         mavlink_waypoint_t *cur = &(wpm.waypoints[seq]);
 		
         mavlink_message_t msg;
-        mavlink_local_position_setpoint_set_t position_control_set_point;
+        mavlink_set_local_position_setpoint_t position_control_set_point;
 		
         // Send new NED or ENU setpoint to onbaord autopilot
         if (cur->frame == MAV_FRAME_LOCAL_NED || cur->frame == MAV_FRAME_LOCAL_ENU)
         {
             position_control_set_point.target_system = mavlink_system.sysid;
-            position_control_set_point.target_component = MAV_COMP_ID_IMU;
             position_control_set_point.x = cur->x;
             position_control_set_point.y = cur->y;
             position_control_set_point.z = cur->z;
             position_control_set_point.yaw = cur->param4;
 			
-            mavlink_msg_local_position_setpoint_set_encode(mavlink_system.sysid, mavlink_wpm_comp_id, &msg, &position_control_set_point);
+            mavlink_msg_set_local_position_setpoint_encode(mavlink_system.sysid, mavlink_wpm_comp_id, &msg, &position_control_set_point);
             mavlink_missionlib_send_message(&msg);
 			
             // FIXME TIMING usleep(paramClient->getParamValue("PROTOCOLDELAY"));

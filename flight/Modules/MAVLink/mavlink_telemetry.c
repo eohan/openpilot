@@ -533,28 +533,26 @@ static void processObjEvent(UAVObjEvent * ev)
 			FlightStatusGet(&flightStatus);
 			//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
 
-			uint8_t mode = MAV_MODE_PREFLIGHT;
 			uint8_t system_state = MAV_STATE_UNINIT;
-			uint8_t auto_state = MAV_FLIGHT_MODE_PREFLIGHT;
-			uint8_t safety_state = MAV_SAFETY_DISARMED;
-			uint8_t link_state = 0xFF;
+			uint8_t base_mode = 0;
+			uint8_t custom_mode = 0;
 
 			switch (flightStatus.FlightMode)
 			{
 			case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
-				mode = MAV_MODE_MANUAL;
+				base_mode = MAV_MODE_MANUAL;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
-				mode = MAV_MODE_PREFLIGHT;
+				base_mode = MAV_MODE_PREFLIGHT;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED1:
-				mode = MAV_MODE_STABILIZE;
+				base_mode = MAV_MODE_STABILIZE;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED2:
-				mode = MAV_MODE_GUIDED;
+				base_mode = MAV_MODE_GUIDED;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED3:
-				mode = MAV_MODE_AUTO;
+				base_mode = MAV_MODE_AUTO;
 				break;
 
 			}
@@ -564,15 +562,15 @@ static void processObjEvent(UAVObjEvent * ev)
 			case FLIGHTSTATUS_ARMED_ARMING:
 			case FLIGHTSTATUS_ARMED_ARMED:
 				system_state = MAV_STATE_ACTIVE;
-				safety_state = MAV_SAFETY_ARMED;
+				base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 				break;
 			case FLIGHTSTATUS_ARMED_DISARMED:
 				system_state = MAV_STATE_STANDBY;
-				safety_state = MAV_SAFETY_DISARMED;
+				base_mode &= !MAV_MODE_FLAG_SAFETY_ARMED;
 				break;
 			}
 
-			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass, mode, auto_state, system_state, safety_state, link_state);
+			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
 			//mavlink_msg_cpu_load_pack(mavlink_system.sysid, mavlink_system.compid, &msg,ucCpuLoad,ucCpuLoad,0);
 			// Copy the message to the send buffer
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
@@ -584,13 +582,13 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint16_t voltage_battery = 11000;
 			uint16_t current_battery = 0;
 			uint8_t watt = 0;
-			uint8_t battery_percent = 175;
+			int8_t battery_percent = -1;
 
 
 
 
 
-			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.mode, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0);
+			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0, 0);
 			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
 			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
@@ -600,12 +598,13 @@ static void processObjEvent(UAVObjEvent * ev)
 		case GPSPOSITION_OBJID:
 		{
 			GPSPositionGet(&gpsPosition);
+			gps_raw.time_usec = 0;
 			gps_raw.lat = gpsPosition.Latitude*10;
 			gps_raw.lon = gpsPosition.Longitude*10;
 			gps_raw.alt = gpsPosition.Altitude*10;
 			gps_raw.eph = gpsPosition.HDOP*100;
 			gps_raw.epv = gpsPosition.VDOP*100;
-			gps_raw.hdg = gpsPosition.Heading*100;
+			gps_raw.cog = gpsPosition.Heading*100;
 			gps_raw.satellites_visible = gpsPosition.Satellites;
 			gps_raw.fix_type = gpsPosition.Status;
 			mavlink_msg_gps_raw_int_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &gps_raw);
@@ -636,6 +635,7 @@ static void processObjEvent(UAVObjEvent * ev)
 			rc.chan7_scaled = 0;
 			rc.chan8_scaled = 0;
 			rc.rssi = 0;
+			rc.port = 0;
 
 			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
 
@@ -790,12 +790,12 @@ static void telemetryRxTask(void *parameters)
 				mavlink_set_mode_t mode;
 				mavlink_msg_set_mode_decode(&rx_msg, &mode);
 				// Check if this system should change the mode
-				if (mode.target == mavlink_system.sysid)
+				if (mode.target_system == mavlink_system.sysid)
 				{
 					FlightStatusData flightStatus;
 					FlightStatusGet(&flightStatus);
 
-					switch (mode.mode)
+					switch (mode.base_mode)
 					{
 					case MAV_MODE_MANUAL:
 					{

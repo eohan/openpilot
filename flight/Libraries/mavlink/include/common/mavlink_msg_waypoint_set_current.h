@@ -9,6 +9,21 @@ typedef struct __mavlink_waypoint_set_current_t
  uint8_t target_component; ///< Component ID
 } mavlink_waypoint_set_current_t;
 
+#define MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT_LEN 4
+#define MAVLINK_MSG_ID_41_LEN 4
+
+
+
+#define MAVLINK_MESSAGE_INFO_WAYPOINT_SET_CURRENT { \
+	"WAYPOINT_SET_CURRENT", \
+	3, \
+	{  { "seq", MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_waypoint_set_current_t, seq) }, \
+         { "target_system", MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_waypoint_set_current_t, target_system) }, \
+         { "target_component", MAVLINK_TYPE_UINT8_T, 0, 3, offsetof(mavlink_waypoint_set_current_t, target_component) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a waypoint_set_current message
  * @param system_id ID of this system
@@ -25,11 +40,11 @@ static inline uint16_t mavlink_msg_waypoint_set_current_pack(uint8_t system_id, 
 {
 	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT;
 
-	put_uint16_t_by_index(seq, 0,  msg->payload); // Sequence
-	put_uint8_t_by_index(target_system, 2,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 3,  msg->payload); // Component ID
+	put_uint16_t_by_index(msg, 0, seq); // Sequence
+	put_uint8_t_by_index(msg, 2, target_system); // System ID
+	put_uint8_t_by_index(msg, 3, target_component); // Component ID
 
-	return mavlink_finalize_message(msg, system_id, component_id, 4, 110);
+	return mavlink_finalize_message(msg, system_id, component_id, 4, 80);
 }
 
 /**
@@ -49,37 +64,12 @@ static inline uint16_t mavlink_msg_waypoint_set_current_pack_chan(uint8_t system
 {
 	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT;
 
-	put_uint16_t_by_index(seq, 0,  msg->payload); // Sequence
-	put_uint8_t_by_index(target_system, 2,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 3,  msg->payload); // Component ID
+	put_uint16_t_by_index(msg, 0, seq); // Sequence
+	put_uint8_t_by_index(msg, 2, target_system); // System ID
+	put_uint8_t_by_index(msg, 3, target_component); // Component ID
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 4, 110);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 4, 80);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a waypoint_set_current message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param target_system System ID
- * @param target_component Component ID
- * @param seq Sequence
- */
-static inline void mavlink_msg_waypoint_set_current_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           uint8_t target_system,uint8_t target_component,uint16_t seq)
-{
-	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT;
-
-	put_uint16_t_by_index(seq, 0,  msg->payload); // Sequence
-	put_uint8_t_by_index(target_system, 2,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 3,  msg->payload); // Component ID
-
-	mavlink_finalize_message_chan_send(msg, chan, 4, 110);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a waypoint_set_current struct into a message
@@ -107,7 +97,13 @@ static inline uint16_t mavlink_msg_waypoint_set_current_encode(uint8_t system_id
 static inline void mavlink_msg_waypoint_set_current_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, uint16_t seq)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 4);
-	mavlink_msg_waypoint_set_current_pack_chan_send(chan, msg, target_system, target_component, seq);
+	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_SET_CURRENT;
+
+	put_uint16_t_by_index(msg, 0, seq); // Sequence
+	put_uint8_t_by_index(msg, 2, target_system); // System ID
+	put_uint8_t_by_index(msg, 3, target_component); // Component ID
+
+	mavlink_finalize_message_chan_send(msg, chan, 4, 80);
 }
 
 #endif
@@ -158,6 +154,6 @@ static inline void mavlink_msg_waypoint_set_current_decode(const mavlink_message
 	waypoint_set_current->target_system = mavlink_msg_waypoint_set_current_get_target_system(msg);
 	waypoint_set_current->target_component = mavlink_msg_waypoint_set_current_get_target_component(msg);
 #else
-	memcpy(waypoint_set_current, msg->payload, 4);
+	memcpy(waypoint_set_current, MAVLINK_PAYLOAD(msg), 4);
 #endif
 }

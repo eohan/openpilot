@@ -9,6 +9,21 @@ typedef struct __mavlink_waypoint_ack_t
  uint8_t type; ///< 0: OK, 1: Error
 } mavlink_waypoint_ack_t;
 
+#define MAVLINK_MSG_ID_WAYPOINT_ACK_LEN 3
+#define MAVLINK_MSG_ID_47_LEN 3
+
+
+
+#define MAVLINK_MESSAGE_INFO_WAYPOINT_ACK { \
+	"WAYPOINT_ACK", \
+	3, \
+	{  { "target_system", MAVLINK_TYPE_UINT8_T, 0, 0, offsetof(mavlink_waypoint_ack_t, target_system) }, \
+         { "target_component", MAVLINK_TYPE_UINT8_T, 0, 1, offsetof(mavlink_waypoint_ack_t, target_component) }, \
+         { "type", MAVLINK_TYPE_UINT8_T, 0, 2, offsetof(mavlink_waypoint_ack_t, type) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a waypoint_ack message
  * @param system_id ID of this system
@@ -25,11 +40,11 @@ static inline uint16_t mavlink_msg_waypoint_ack_pack(uint8_t system_id, uint8_t 
 {
 	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_ACK;
 
-	put_uint8_t_by_index(target_system, 0,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 1,  msg->payload); // Component ID
-	put_uint8_t_by_index(type, 2,  msg->payload); // 0: OK, 1: Error
+	put_uint8_t_by_index(msg, 0, target_system); // System ID
+	put_uint8_t_by_index(msg, 1, target_component); // Component ID
+	put_uint8_t_by_index(msg, 2, type); // 0: OK, 1: Error
 
-	return mavlink_finalize_message(msg, system_id, component_id, 3, 46);
+	return mavlink_finalize_message(msg, system_id, component_id, 3, 214);
 }
 
 /**
@@ -49,37 +64,12 @@ static inline uint16_t mavlink_msg_waypoint_ack_pack_chan(uint8_t system_id, uin
 {
 	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_ACK;
 
-	put_uint8_t_by_index(target_system, 0,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 1,  msg->payload); // Component ID
-	put_uint8_t_by_index(type, 2,  msg->payload); // 0: OK, 1: Error
+	put_uint8_t_by_index(msg, 0, target_system); // System ID
+	put_uint8_t_by_index(msg, 1, target_component); // Component ID
+	put_uint8_t_by_index(msg, 2, type); // 0: OK, 1: Error
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 3, 46);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 3, 214);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a waypoint_ack message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param target_system System ID
- * @param target_component Component ID
- * @param type 0: OK, 1: Error
- */
-static inline void mavlink_msg_waypoint_ack_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           uint8_t target_system,uint8_t target_component,uint8_t type)
-{
-	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_ACK;
-
-	put_uint8_t_by_index(target_system, 0,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 1,  msg->payload); // Component ID
-	put_uint8_t_by_index(type, 2,  msg->payload); // 0: OK, 1: Error
-
-	mavlink_finalize_message_chan_send(msg, chan, 3, 46);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a waypoint_ack struct into a message
@@ -107,7 +97,13 @@ static inline uint16_t mavlink_msg_waypoint_ack_encode(uint8_t system_id, uint8_
 static inline void mavlink_msg_waypoint_ack_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, uint8_t type)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 3);
-	mavlink_msg_waypoint_ack_pack_chan_send(chan, msg, target_system, target_component, type);
+	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_ACK;
+
+	put_uint8_t_by_index(msg, 0, target_system); // System ID
+	put_uint8_t_by_index(msg, 1, target_component); // Component ID
+	put_uint8_t_by_index(msg, 2, type); // 0: OK, 1: Error
+
+	mavlink_finalize_message_chan_send(msg, chan, 3, 214);
 }
 
 #endif
@@ -158,6 +154,6 @@ static inline void mavlink_msg_waypoint_ack_decode(const mavlink_message_t* msg,
 	waypoint_ack->target_component = mavlink_msg_waypoint_ack_get_target_component(msg);
 	waypoint_ack->type = mavlink_msg_waypoint_ack_get_type(msg);
 #else
-	memcpy(waypoint_ack, msg->payload, 3);
+	memcpy(waypoint_ack, MAVLINK_PAYLOAD(msg), 3);
 #endif
 }

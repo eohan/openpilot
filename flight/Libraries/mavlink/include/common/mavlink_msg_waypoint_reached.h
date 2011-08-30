@@ -7,6 +7,19 @@ typedef struct __mavlink_waypoint_reached_t
  uint16_t seq; ///< Sequence
 } mavlink_waypoint_reached_t;
 
+#define MAVLINK_MSG_ID_WAYPOINT_REACHED_LEN 2
+#define MAVLINK_MSG_ID_46_LEN 2
+
+
+
+#define MAVLINK_MESSAGE_INFO_WAYPOINT_REACHED { \
+	"WAYPOINT_REACHED", \
+	1, \
+	{  { "seq", MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_waypoint_reached_t, seq) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a waypoint_reached message
  * @param system_id ID of this system
@@ -21,9 +34,9 @@ static inline uint16_t mavlink_msg_waypoint_reached_pack(uint8_t system_id, uint
 {
 	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_REACHED;
 
-	put_uint16_t_by_index(seq, 0,  msg->payload); // Sequence
+	put_uint16_t_by_index(msg, 0, seq); // Sequence
 
-	return mavlink_finalize_message(msg, system_id, component_id, 2, 235);
+	return mavlink_finalize_message(msg, system_id, component_id, 2, 21);
 }
 
 /**
@@ -41,31 +54,10 @@ static inline uint16_t mavlink_msg_waypoint_reached_pack_chan(uint8_t system_id,
 {
 	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_REACHED;
 
-	put_uint16_t_by_index(seq, 0,  msg->payload); // Sequence
+	put_uint16_t_by_index(msg, 0, seq); // Sequence
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 2, 235);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 2, 21);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a waypoint_reached message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param seq Sequence
- */
-static inline void mavlink_msg_waypoint_reached_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           uint16_t seq)
-{
-	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_REACHED;
-
-	put_uint16_t_by_index(seq, 0,  msg->payload); // Sequence
-
-	mavlink_finalize_message_chan_send(msg, chan, 2, 235);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a waypoint_reached struct into a message
@@ -91,7 +83,11 @@ static inline uint16_t mavlink_msg_waypoint_reached_encode(uint8_t system_id, ui
 static inline void mavlink_msg_waypoint_reached_send(mavlink_channel_t chan, uint16_t seq)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 2);
-	mavlink_msg_waypoint_reached_pack_chan_send(chan, msg, seq);
+	msg->msgid = MAVLINK_MSG_ID_WAYPOINT_REACHED;
+
+	put_uint16_t_by_index(msg, 0, seq); // Sequence
+
+	mavlink_finalize_message_chan_send(msg, chan, 2, 21);
 }
 
 #endif
@@ -120,6 +116,6 @@ static inline void mavlink_msg_waypoint_reached_decode(const mavlink_message_t* 
 #if MAVLINK_NEED_BYTE_SWAP
 	waypoint_reached->seq = mavlink_msg_waypoint_reached_get_seq(msg);
 #else
-	memcpy(waypoint_reached, msg->payload, 2);
+	memcpy(waypoint_reached, MAVLINK_PAYLOAD(msg), 2);
 #endif
 }

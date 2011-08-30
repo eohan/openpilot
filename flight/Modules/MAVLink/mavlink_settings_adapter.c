@@ -175,13 +175,13 @@ bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* para
 		case 0:
 		{
 			param->param_uint32 = settings.FixedWingRoll1;
-			param->type = MAV_DATA_TYPE_UINT32;
+			param->type = MAVLINK_TYPE_UINT32_T;
 		}
 			break;
 		case 1:
 		{
 			param->param_uint32 = settings.FixedWingRoll2;
-			param->type = MAV_DATA_TYPE_UINT32;
+			param->type = MAVLINK_TYPE_UINT32_T;
 		}
 			break;
 		default:
@@ -202,7 +202,7 @@ bool setActuatorSettingsParamByIndex(uint16_t index, const mavlink_param_union_t
 	{
 		case 0:
 		{
-			if (param->type == MAV_DATA_TYPE_UINT32)
+			if (param->type == MAVLINK_TYPE_UINT32_T)
 			{
 				settings.FixedWingRoll1 = param->param_uint32;
 			}
@@ -214,7 +214,7 @@ bool setActuatorSettingsParamByIndex(uint16_t index, const mavlink_param_union_t
 			break;
 		case 1:
 		{
-			if (param->type == MAV_DATA_TYPE_UINT32)
+			if (param->type == MAVLINK_TYPE_UINT32_T)
 			{
 				settings.FixedWingRoll2 = param->param_uint32;
 			}
