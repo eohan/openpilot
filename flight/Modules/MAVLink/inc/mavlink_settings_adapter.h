@@ -44,18 +44,32 @@
 #include <string.h>
 #include <stdbool.h>
 
+enum MAVLINK_RET_VAL {
+	MAVLINK_RET_VAL_PARAM_SUCCESS = 0,
+	MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST = 1,
+	MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH = 2,
+	MAVLINK_RET_VAL_PARAM_VALUE_TOO_LOW = 3,
+	MAVLINK_RET_VAL_PARAM_VALUE_TOO_HIGH = 4,
+	MAVLINK_RET_VAL_PARAM_VALUE_NOT_SUPPORTED = 5,
+	MAVLINK_RET_VAL_PARAM_WRITE_ERROR = 6,
+};
+
 uint16_t getParamCount();
 
-bool getParamByName(const char* name, mavlink_param_union_t* param);
+uint8_t getParamByName(const char* name, mavlink_param_union_t* param);
 
-bool setParamByName(const char* name, mavlink_param_union_t* param);
+uint8_t setParamByName(const char* name, mavlink_param_union_t* param);
 
 int16_t getParamIndexByName(const char* name);
 
-bool getParamByIndex(uint16_t index, mavlink_param_union_t* param);
-bool setParamByIndex(uint16_t index, const mavlink_param_union_t* param);
+uint8_t getParamByIndex(uint16_t index, mavlink_param_union_t* param);
+uint8_t setParamByIndex(uint16_t index, const mavlink_param_union_t* param);
 
 const char* getParamNameByIndex(uint16_t index);
+
+int32_t writeParametersToStorage();
+
+int32_t readParametersFromStorage();
 
 #endif /* MAVLINK_ADAPTER_H */
 

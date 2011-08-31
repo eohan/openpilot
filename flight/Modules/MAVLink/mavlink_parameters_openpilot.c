@@ -35,6 +35,18 @@ extern uint16_t next_param;
 extern void mavlink_missionlib_send_message(mavlink_message_t* msg);
 extern void mavlink_missionlib_send_gcs_string(const char* string);
 
+void mavlink_pm_start_sending_params()
+{
+	next_param = 0;
+	mavlink_missionlib_send_gcs_string("PM# Sending list");
+}
+
+void mavlink_pm_stop_sending_params()
+{
+	next_param = getParamCount();
+	mavlink_missionlib_send_gcs_string("PM# Aborting list transmission");
+}
+
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t* msg)
 {
 	switch (msg->msgid)
@@ -49,46 +61,41 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			FlightStatusGet(&status);
 			if (status.Armed == FLIGHTSTATUS_ARMED_DISARMED/* || status.Armed == FLIGHTSTATUS_ARMED_HIL*/)
 			{
-				if (1 == 1)//UAVObjSaveSettings())
+				// WRITE command (to SDCARD / EEPROM)
+				if (cmd.param1 == 1)
 				{
-					ObjectPersistenceData objper;
-
-					// Write all objects individually
-					// for;;
-					ObjectPersistenceGet(&objper);
-
-					ActuatorSettingsData settings;
-						ActuatorSettingsGet(&settings);
-
-					objper.Selection = OBJECTPERSISTENCE_SELECTION_SINGLEOBJECT;
-					objper.Operation = OBJECTPERSISTENCE_OPERATION_SAVE;
-					objper.ObjectID = UAVObjGetID(&settings);
-					objper.InstanceID = UAVOBJ_ALL_INSTANCES;
-					ObjectPersistenceSet(&objper);
-					mavlink_missionlib_send_gcs_string("PM: stored all params");
+					uint32_t ret = writeParametersToStorage();
+					// FIXME Evaluate return value
+					if (ret != 1000)
+					{
+						mavlink_missionlib_send_gcs_string("PM# stored params from RAM to ROM");
+					}
+					//mavlink_missionlib_send_gcs_string("PM# FAILED storing params");
 				}
-				else
+				// READ command (from SDCARD / EEPROM)
+				else if (cmd.param1 == 0)
 				{
-					mavlink_missionlib_send_gcs_string("PM: FAILED storing params");
+					uint32_t ret = readParametersFromStorage();
+					// FIXME Evaluate return value
+					if (ret != 1000)
+					{
+						mavlink_missionlib_send_gcs_string("PM# read params from ROM to RAM");
+						// Emit all params fresh
+						mavlink_pm_start_sending_params();
+					}
 				}
 			}
 			else
 			{
-				mavlink_missionlib_send_gcs_string("PM: Not storing params in ARMED mode.");
+				mavlink_missionlib_send_gcs_string("PM# IGN read/write when ARMED");
 			}
-
-
-
-
-
 		}
 	}
 	break;
 		case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
 			{
 				// Start sending parameters
-				next_param = 0;
-				mavlink_missionlib_send_gcs_string("PM SENDING LIST");
+				mavlink_pm_start_sending_params();
 			}
 			break;
 		case MAVLINK_MSG_ID_PARAM_SET:
@@ -103,15 +110,18 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 				int16_t index = getParamIndexByName(key);
 
-				// Check if matched
-				if (index != -1)
+				if (index == -1)
+				{
+					// Param not found
+					mavlink_missionlib_send_gcs_string("PM# ERR: Param does not exist");
+				}
+				else
 				{
 					mavlink_param_union_t paramValue;
-					if (!getParamByIndex(index, &paramValue)) return;
 					// Only write and emit changes if there is actually a difference
 					// AND only write if new value is NOT "not-a-number"
 					// AND is NOT infinity
-					if (paramValue.param_float != set.param_value)
+					if (1 == 1)
 						//							&& !isnan(set.param_value) // FIXME Need to check NaN only for floats
 						//							&& !isinf(set.param_value))
 					{
@@ -120,8 +130,12 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 						// Report back new value
 						// Read back from storage
-						if (setParamByIndex(index, &paramValue) && getParamByIndex(index, &paramValue))
+						uint8_t ret = setParamByIndex(index, &paramValue);
+						if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS)
 						{
+							// Write back new value
+
+							ret = getParamByIndex(index, &paramValue);
 
 #ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 						mavlink_message_t tx_msg;
@@ -143,14 +157,42 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			getParamCount(),
 			index);
 #endif
+						}
 
-	mavlink_missionlib_send_gcs_string("PM set param");
-						}
-						else
+						// Send back verbose status code
+						switch (ret)
 						{
-							mavlink_missionlib_send_gcs_string("PM rejected param");
+						case MAVLINK_RET_VAL_PARAM_SUCCESS:
+							mavlink_missionlib_send_gcs_string("PM# OK: Wrote param");
+							break;
+						case MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Param does not exist");
+							break;
+						case MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Data type mismatch");
+							break;
+						case MAVLINK_RET_VAL_PARAM_VALUE_TOO_LOW:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Val too low");
+							break;
+						case MAVLINK_RET_VAL_PARAM_VALUE_TOO_HIGH:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Val too high");
+							break;
+						case MAVLINK_RET_VAL_PARAM_VALUE_NOT_SUPPORTED:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Val not supported");
+							break;
+						case MAVLINK_RET_VAL_PARAM_WRITE_ERROR:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Write error");
+							break;
+						default:
+							mavlink_missionlib_send_gcs_string("PM# ERR: Unknown error");
+							break;
 						}
-					} // End valid value check
+
+					} // End unchanged value check
+					else
+					{
+						mavlink_missionlib_send_gcs_string("PM# OK: Param unchanged");
+					}
 				} // End match check
 			} // End system ID check
 
@@ -161,39 +203,46 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 	
 }
 	
-//	/**
-//	 * @brief Send low-priority messages at a maximum rate of xx Hertz
-//	 *
-//	 * This function sends messages at a lower rate to not exceed the wireless
-//	 * bandwidth. It sends one message each time it is called until the buffer is empty.
-//	 * Call this function with xx Hertz to increase/decrease the bandwidth.
-//	 */
-//	void mavlink_pm_queued_send(void)
-//	{
-//		//send parameters one by one
-//		if (next_param < getParamCount())
-//		{
-//			//for (int i.. all active comm links)
-//#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-//			mavlink_message_t tx_msg;
-//			mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
-//											  mavlink_system.compid,
-//											  MAVLINK_COMM_0,
-//											  &tx_msg,
-//											  pm.param_names[pm.next_param],
-//											  pm.param_values[pm.next_param],
-//											  MAV_DATA_TYPE_FLOAT,
-//											  getParamCount(),
-//											  next_param);
-//			mavlink_missionlib_send_message(&tx_msg);
-//#else
-//			mavlink_msg_param_value_send(MAVLINK_COMM_0,
-//										 pm.param_names[pm.next_param],
-//										 pm.param_values[pm.next_param],
-//										 MAV_DATA_TYPE_FLOAT,
-//										 pm.size,
-//										 pm.next_param);
-//#endif
-//			pm.next_param++;
-//		}
-//	}
+	/**
+	 * @brief Send low-priority messages at a maximum rate of xx Hertz
+	 *
+	 * This function sends messages at a lower rate to not exceed the wireless
+	 * bandwidth. It sends one message each time it is called until the buffer is empty.
+	 * Call this function with xx Hertz to increase/decrease the bandwidth.
+	 */
+	void mavlink_pm_queued_send(void)
+	{
+		//send parameters one by one
+		if (next_param < getParamCount())
+		{
+			//for (int i.. all active comm links)
+#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
+			mavlink_message_t tx_msg;
+			mavlink_param_union_t param;
+			uint8_t ret = getParamByIndex(next_param, &param);
+			if (ret != MAVLINK_RET_VAL_PARAM_SUCCESS)
+				{
+					mavlink_missionlib_send_gcs_string("PM# ERR: Param not sent");
+					return;
+				}
+			mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
+											  mavlink_system.compid,
+											  MAVLINK_COMM_0,
+											  &tx_msg,
+											  getParamNameByIndex(next_param),
+											  param.param_float,
+											  param.type,
+											  getParamCount(),
+											  next_param);
+			mavlink_missionlib_send_message(&tx_msg);
+#else
+			mavlink_msg_param_value_send(MAVLINK_COMM_0,
+					  getParamNameByIndex(next_param),
+					  param.param_float,
+					  param.type,
+					  getParamCount(),
+					  next_param);
+#endif
+			next_param++;
+		}
+	}

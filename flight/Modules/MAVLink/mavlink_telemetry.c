@@ -697,37 +697,7 @@ static void mavlinkStateMachineTask(void* parameters)
 	while (1) {
 		// Run handlers, sleep for 20 ms
 		// Send one param
-		//		mavlink_pm_queued_send();
-
-		//send parameters one by one
-		if (next_param < getParamCount())
-		{
-			static mavlink_param_union_t param;
-			if (!getParamByIndex(next_param, &param)) continue;
-			//for (int i.. all active comm links)
-#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-			mavlink_message_t tx_msg;
-			mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
-					mavlink_system.compid,
-					MAVLINK_COMM_0,
-					&tx_msg,
-					getParamNameByIndex(next_param),
-					param.param_float,
-					param.type,
-					getParamCount(),
-					next_param);
-			mavlink_missionlib_send_message(&tx_msg);
-#else
-			mavlink_msg_param_value_send(MAVLINK_COMM_0,
-					getParamNameByIndex(next_param),
-					param.param_float,
-					param.type,
-					getParamCount(),
-					next_param);
-#endif
-			next_param++;
-		}
-
+		mavlink_pm_queued_send();
 		// Send setpoints, time out
 		mavlink_wpm_loop();
 		// Wait 20 ms
