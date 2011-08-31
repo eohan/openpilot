@@ -35,6 +35,7 @@
 #include "flighttelemetrystats.h"
 #include "gcstelemetrystats.h"
 #include "telemetrysettings.h"
+#include "CoordinateConversions.h"
 
 /* Include all UAVObjects that need to be translated to MAVLink */
 #include "manualcontrolcommand.h"  /* Remote control / manual commands */
@@ -44,6 +45,9 @@
 #include "gpsposition.h"		   /* GPS position */
 #include "gpssatellites.h"		   /* GPS satellites */
 #include "flightstatus.h"          /* Main system state machine */
+#include "positionactual.h"
+#include "actuatorcommand.h"
+
 
 #include "actuatorsettings.h"
 
@@ -617,6 +621,27 @@ static void processObjEvent(UAVObjEvent * ev)
 
 			break;
 		}
+		case POSITIONACTUAL_OBJID:
+		{
+			PositionActualData pos;
+			PositionActualGet(&pos);
+			mavlink_local_position_t m_pos;
+			m_pos.time_boot_ms = 0;
+			m_pos.x = pos.North;
+			m_pos.y = pos.East;
+			m_pos.z = pos.Down;
+			m_pos.vx = 0.0f;
+			m_pos.vy = 0.0f;
+			m_pos.vz = 0.0f;
+
+			mavlink_msg_local_position_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &m_pos);
+
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+		}
+		break;
 		case MANUALCONTROLCOMMAND_OBJID:
 		{
 			mavlink_rc_channels_scaled_t rc;
@@ -800,6 +825,58 @@ static void telemetryRxTask(void *parameters)
 
 					FlightStatusSet(&flightStatus);
 				}
+			}
+			break;
+			case MAVLINK_MSG_ID_HIL_STATE:
+			{
+				mavlink_hil_state_t hil;
+				mavlink_msg_hil_state_decode(&rx_msg, &hil);
+
+				// READ-ONLY flag write to ActuatorCommand
+
+
+				// Write GPSPosition
+				GPSPositionData gps;
+				GPSPositionGet(&gps);
+				gps.Altitude = hil.alt/10;
+				gps.Latitude = hil.lat/10;
+				gps.Longitude = hil.lon/10;
+				GPSPositionSet(&gps);
+
+				// Write PositionActual
+				PositionActualData pos;
+				PositionActualGet(&pos);
+				// FIXME WRITE POSITION HERE
+				PositionActualSet(&pos);
+
+				// Write AttitudeActual
+				AttitudeActualData att;
+				AttitudeActualGet(&att);
+				att.Roll = hil.roll;
+				att.Pitch = hil.pitch;
+				att.Yaw = hil.yaw;
+				att.RollSpeed = hil.rollspeed;
+				att.PitchSpeed = hil.pitchspeed;
+				att.YawSpeed = hil.yawspeed;
+
+				// Convert to quaternion formulation
+				RPY2Quaternion(&attitudeActual.Roll, &attitudeActual.q1);
+				// Write AttitudeActual
+				AttitudeActualSet(&att);
+
+				// Write AttitudeRaw
+				AttitudeRawData raw;
+				AttitudeRawGet(&raw);
+				raw.gyros[0] = hil.rollspeed;
+				raw.gyros[1] = hil.pitchspeed;
+				raw.gyros[2] = hil.yawspeed;
+				raw.accels[0] = hil.xacc;
+				raw.accels[1] = hil.yacc;
+				raw.accels[2] = hil.zacc;
+//				raw.magnetometers[0] = hil.xmag;
+//				raw.magnetometers[0] = hil.ymag;
+//				raw.magnetometers[0] = hil.zmag;
+				AttitudeRawSet(&raw);
 			}
 			break;
 			case MAVLINK_MSG_ID_COMMAND_SHORT:
