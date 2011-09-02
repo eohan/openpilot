@@ -151,7 +151,6 @@ endif
 
 ## MAVLINK MISSION LIB
 SRC += $(MAVLINKMISSIONLIB)/waypoints.c
-SRC += $(MAVLINKMISSIONLIB)/mavlink_parameters.c
 
 ## PIOS Hardware (STM32F2xx)
 SRC += $(PIOSSTM32F2XX)/startup.c
@@ -333,7 +332,8 @@ DEBUGF = dwarf-2
 # Place project-specific -D (define) and/or
 # -U options for C here.
 CDEFS = -DSTM32F2XX
-CDEFS += -DMAVLINK_NO_DATA
+#CDEFS += -DMAVLINK_SEPARATE_HELPERS
+#CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
 CDEFS += -D__ARM_ARCH_7M__
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER

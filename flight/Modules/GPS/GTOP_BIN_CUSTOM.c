@@ -109,32 +109,39 @@ static gps_bin_custom_state_t mtk_state;
 //	return (((data >> 24) & 0x000000ff) |
 //			((data >>  8) & 0x0000ff00) |
 //			((data <<  8) & 0x00ff0000) |
-//			((data << 24) & 0xff000000));
+////			((data << 24) & 0xff000000));
+////}
+//
+///****************************************************************
+// *
+// ****************************************************************/
+// // Join 4 bytes into a long
+//long join_4_bytes(unsigned char Buffer[])
+//{
+//  union long_union {
+//        int32_t dword;
+//        uint8_t  byte[4];
+//} longUnion;
+//
+//  longUnion.byte[3] = *Buffer;
+//  longUnion.byte[2] = *(Buffer+1);
+//  longUnion.byte[1] = *(Buffer+2);
+//  longUnion.byte[0] = *(Buffer+3);
+//  return(longUnion.dword);
 //}
 
-/****************************************************************
- *
- ****************************************************************/
- // Join 4 bytes into a long
-long join_4_bytes(unsigned char Buffer[])
+void mtk_decode_init(gps_bin_custom_state_t* mtk_state)
 {
-  union long_union {
-        int32_t dword;
-        uint8_t  byte[4];
-} longUnion;
-
-  longUnion.byte[3] = *Buffer;
-  longUnion.byte[2] = *(Buffer+1);
-  longUnion.byte[1] = *(Buffer+2);
-  longUnion.byte[0] = *(Buffer+3);
-  return(longUnion.dword);
+	mtk_state->ck_a = 0;
+	mtk_state->ck_b = 0;
+	mtk_state->rx_count = 0;
+	mtk_state->decode_state = MTK_DECODE_UNINIT;
 }
-
 
 void mtk_checksum(uint8_t b, uint8_t* ck_a, uint8_t* ck_b)
 {
-  *(ck_a)+=b;
-  *(ck_b)+=*(ck_a);
+  *(ck_a) = *(ck_a) + b;
+  *(ck_b) = *(ck_b) + *(ck_a);
 }
 
 
@@ -150,11 +157,6 @@ void mtk_checksum(uint8_t b, uint8_t* ck_a, uint8_t* ck_b)
 
 int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors, volatile uint32_t *parsing_errors)
 {
-	// TESTING
-	//PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &b, 1);
-	//PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &mtk_state.decode_state, 1);
-	// END TESTING
-
 	if (mtk_state.decode_state == MTK_DECODE_UNINIT)
 	{
 		if (b == 0xd0) mtk_state.decode_state = MTK_DECODE_GOT_CK_A;
@@ -168,33 +170,33 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 		else
 		{
 			// Second start symbol was wrong, reset state machine
-			mtk_state.decode_state = MTK_DECODE_UNINIT;
-			mtk_state.rx_count = 0;
+			mtk_decode_init(&mtk_state);
 		}
 	}
 	else if (mtk_state.decode_state == MTK_DECODE_GOT_CK_B)
 	{
 		// Add to checksum
-		mtk_checksum(b, &(mtk_state.ck_a), &(mtk_state.ck_b));
+		if (mtk_state.rx_count < 33) mtk_checksum(b, &(mtk_state.ck_a), &(mtk_state.ck_b));
 		// Fill packet buffer
 		gps_rx_buffer[mtk_state.rx_count] = b;
 		mtk_state.rx_count++;
 		uint8_t ret = 0;
 
-		if (mtk_state.rx_count >= sizeof(gps_bin_custom_packet_t))
+		// Packet size minus checksum
+		if (mtk_state.rx_count >= 35)
 		{
 			gps_bin_custom_packet_t* packet = (gps_bin_custom_packet_t*) gps_rx_buffer;
 			// Check if checksum is valid
-			if (1 == 1) //(mtk_state.ck_a == packet->ck_a && mtk_state.ck_b == packet->ck_b)
+			if (mtk_state.ck_a == packet->ck_a && mtk_state.ck_b == packet->ck_b)
 			{
 				GPSPositionData	GpsData;
 				GPSPositionGet(&GpsData);
 				switch (packet->fix_type)
 				{
-				case 1: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
-				case 2: GpsData.Status = GPSPOSITION_STATUS_FIX2D; break;
-				case 3: GpsData.Status = GPSPOSITION_STATUS_FIX3D; break;
-				default: GpsData.Status = GPSPOSITION_STATUS_NOGPS; break;
+					case 1: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
+					case 2: GpsData.Status = GPSPOSITION_STATUS_FIX2D; break;
+					case 3: GpsData.Status = GPSPOSITION_STATUS_FIX3D; break;
+					default: GpsData.Status = GPSPOSITION_STATUS_NOGPS; break;
 				}
 				GpsData.Latitude        = packet->latitude;   // degrees * 10e6
 				GpsData.Longitude       = packet->longitude;	// degrees * 10e6
@@ -236,8 +238,7 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 				ret = -1;
 			}
 			// Reset state machine to decode next packet
-			mtk_state.decode_state = MTK_DECODE_UNINIT;
-			mtk_state.rx_count = 0;
+			mtk_decode_init(&mtk_state);
 			return ret;
 		}
 	}
@@ -248,10 +249,7 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 
 void GTOP_BIN_CUSTOM_init(void)
 {
-	mtk_state.rx_count = 0;
-    mtk_state.ck_a = 0;
-    mtk_state.ck_b = 0;
-    mtk_state.decode_state = MTK_DECODE_UNINIT;
+	mtk_decode_init(&mtk_state);
 //    mtk_state.new_data = false;
 //    mtk_state.fix = 0;
     mtk_state.print_errors = false;
