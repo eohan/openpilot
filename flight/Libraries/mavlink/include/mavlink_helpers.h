@@ -30,8 +30,13 @@ MAVLINK_HELPER mavlink_status_t* mavlink_get_channel_status(uint8_t chan)
  * @param system_id Id of the sending (this) system, 1-127
  * @param length Message length
  */
+#if MAVLINK_CRC_EXTRA
 MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id, 
 						      uint8_t chan, uint16_t length, uint8_t crc_extra)
+#else
+MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id, 
+						      uint8_t chan, uint16_t length)
+#endif
 {
 	// This code part is the same for all messages;
 	uint16_t checksum;
@@ -42,7 +47,7 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t* msg, ui
 	// One sequence number per component
 	msg->seq = mavlink_get_channel_status(chan)->current_tx_seq;
 	mavlink_get_channel_status(chan)->current_tx_seq = mavlink_get_channel_status(chan)->current_tx_seq+1;
-	checksum = crc_calculate(1+(uint8_t*)msg, length + MAVLINK_CORE_HEADER_LEN);
+	checksum = crc_calculate((uint8_t*)&msg->len, length + MAVLINK_CORE_HEADER_LEN);
 #if MAVLINK_CRC_EXTRA
 	crc_accumulate(crc_extra, &checksum);
 #endif
@@ -56,11 +61,19 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t* msg, ui
 /**
  * @brief Finalize a MAVLink message with MAVLINK_COMM_0 as default channel
  */
+#if MAVLINK_CRC_EXTRA
 MAVLINK_HELPER uint16_t mavlink_finalize_message(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id, 
 						 uint16_t length, uint8_t crc_extra)
 {
 	return mavlink_finalize_message_chan(msg, system_id, component_id, MAVLINK_COMM_0, length, crc_extra);
 }
+#else
+MAVLINK_HELPER uint16_t mavlink_finalize_message(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id, 
+						 uint16_t length)
+{
+	return mavlink_finalize_message_chan(msg, system_id, component_id, MAVLINK_COMM_0, length);
+}
+#endif
 
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 MAVLINK_HELPER void mavlink_send_uart(mavlink_channel_t chan, mavlink_message_t* msg);
@@ -68,27 +81,31 @@ MAVLINK_HELPER void mavlink_send_uart(mavlink_channel_t chan, mavlink_message_t*
 /**
  * @brief Finalize a MAVLink message with channel assignment and send
  */
+#if MAVLINK_CRC_EXTRA
 MAVLINK_HELPER void mavlink_finalize_message_chan_send(mavlink_message_t* msg,
 						       mavlink_channel_t chan, uint16_t length, uint8_t crc_extra)
 {
 	mavlink_finalize_message_chan(msg, mavlink_system.sysid, mavlink_system.compid, chan, length, crc_extra);
 	mavlink_send_uart(chan, msg);
 }
+#else
+MAVLINK_HELPER void mavlink_finalize_message_chan_send(mavlink_message_t* msg,
+						       mavlink_channel_t chan, uint16_t length)
+{
+	mavlink_finalize_message_chan(msg, mavlink_system.sysid, mavlink_system.compid, chan, length);
+	mavlink_send_uart(chan, msg);
+}
 #endif
+#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /**
  * @brief Pack a message to send it over a serial byte stream
  */
 MAVLINK_HELPER uint16_t mavlink_msg_to_send_buffer(uint8_t *buffer, const mavlink_message_t *msg)
 {
-	memcpy(buffer, (uint8_t *)msg, msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES);
-	return msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	memcpy(buffer, (uint8_t *)&msg->magic, MAVLINK_NUM_NON_PAYLOAD_BYTES + (uint16_t)msg->len);
+	return MAVLINK_NUM_NON_PAYLOAD_BYTES + (uint16_t)msg->len;
 }
-
-union checksum_ {
-	uint16_t s;
-	uint8_t c[2];
-};
 
 union __mavlink_bitfield {
 	uint8_t uint8;
@@ -102,20 +119,12 @@ union __mavlink_bitfield {
 
 MAVLINK_HELPER void mavlink_start_checksum(mavlink_message_t* msg)
 {
-	union checksum_ ck;
-	crc_init(&(ck.s));
-	mavlink_ck_a(msg) = ck.c[0];
-	mavlink_ck_b(msg) = ck.c[1];
+	crc_init(&msg->checksum);
 }
 
 MAVLINK_HELPER void mavlink_update_checksum(mavlink_message_t* msg, uint8_t c)
 {
-	union checksum_ ck;
-	ck.c[0] = mavlink_ck_a(msg);
-	ck.c[1] = mavlink_ck_b(msg);
-	crc_accumulate(c, &(ck.s));
-	mavlink_ck_a(msg) = ck.c[0];
-	mavlink_ck_b(msg) = ck.c[1];
+	crc_accumulate(c, &msg->checksum);
 }
 
 /**
@@ -198,12 +207,7 @@ MAVLINK_HELPER uint8_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messa
 		else
 		{
 			// NOT counting STX, LENGTH, SEQ, SYSID, COMPID, MSGID, CRC1 and CRC2
-			uint8_t ck_a = mavlink_ck_a(rxmsg);
-			uint8_t ck_b = mavlink_ck_b(rxmsg);
 			rxmsg->len = c;
-			// move the checksum to the right location
-			mavlink_ck_a(rxmsg) = ck_a;
-			mavlink_ck_b(rxmsg) = ck_b;
 			status->packet_idx = 0;
 			mavlink_update_checksum(rxmsg, c);
 			status->parse_state = MAVLINK_PARSE_STATE_GOT_LENGTH;
@@ -242,7 +246,7 @@ MAVLINK_HELPER uint8_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messa
 		break;
 
 	case MAVLINK_PARSE_STATE_GOT_MSGID:
-		rxmsg->payload[status->packet_idx++] = c;
+		rxmsg->payload.u8[status->packet_idx++] = c;
 		mavlink_update_checksum(rxmsg, c);
 		if (status->packet_idx == rxmsg->len)
 		{
@@ -254,8 +258,7 @@ MAVLINK_HELPER uint8_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messa
 #if MAVLINK_CRC_EXTRA
 		mavlink_update_checksum(rxmsg, MAVLINK_MESSAGE_CRC(rxmsg->msgid));
 #endif
-		if (c != mavlink_ck_a(rxmsg))
-		{
+		if (c != (rxmsg->checksum & 0xFF)) {
 			// Check first checksum byte
 			status->parse_error++;
 			status->msg_received = 0;
@@ -274,8 +277,8 @@ MAVLINK_HELPER uint8_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_messa
 		break;
 
 	case MAVLINK_PARSE_STATE_GOT_CRC1:
-		if (c != mavlink_ck_b(rxmsg))
-		{// Check second checksum byte
+		if (c != (rxmsg->checksum >> 8)) {
+			// Check second checksum byte
 			status->parse_error++;
 			status->msg_received = 0;
 			status->parse_state = MAVLINK_PARSE_STATE_IDLE;
@@ -448,11 +451,12 @@ MAVLINK_HELPER void mavlink_send_uart(mavlink_channel_t chan, mavlink_message_t*
 #ifdef MAVLINK_SEND_UART_BYTES
 	/* this is the more efficient approach, if the platform
 	   defines it */
-	MAVLINK_SEND_UART_BYTES(chan, (uint8_t *)msg, msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+	MAVLINK_SEND_UART_BYTES(chan, (uint8_t *)&msg->magic, MAVLINK_NUM_NON_PAYLOAD_BYTES + (uint16_t)msg->len);
 #else
 	/* fallback to one byte at a time */
-	uint8_t *buffer = (uint8_t *)msg;
-	for (uint16_t i = 0; i < (uint16_t)(msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES); i++) {
+	uint8_t *buffer = (uint8_t *)&msg->magic;
+	uint16_t i;
+	for (i = 0; i < MAVLINK_NUM_NON_PAYLOAD_BYTES + (uint16_t)msg->len; i++) {
 		comm_send_ch(chan, buffer[i]);
 	}
 #endif

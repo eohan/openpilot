@@ -35,4 +35,4 @@
 #endif
 
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t* msg);
-//void mavlink_pm_queued_send(void);
+void mavlink_pm_queued_send(void);

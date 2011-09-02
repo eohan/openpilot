@@ -18,47 +18,46 @@
 
 
 /* Task Priorities */
+#define INIT_TASK_PRIORITY		(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// max priority
 #define PROTOCOL_TASK_PRIORITY	(tskIDLE_PRIORITY + 2)
 #define FAILSAFE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)
 
 /* Global Variables */
 
 /* Local Variables */
-static xTaskHandle protocolTaskHandle;
-static xTaskHandle failsafeTaskHandle;
+#define INIT_TASK_STACK			(1024 / 4)
 #define PROTOCOL_TASK_STACK		(128 / 4)
 #define FAILSAFE_TASK_STACK		(128 / 4)
+static xTaskHandle initTaskHandle;
+static xTaskHandle protocolTaskHandle;
+static xTaskHandle failsafeTaskHandle;
 
 /* Function Prototypes */
+static void initTask(void *parameters);
 static void protocolTask(void *parameters);
 static void failsafeTask(void *parameters);
-extern void Stack_Change();	// in startup
 
 /* Prototype of PIOS_Board_Init() function */
 extern void PIOS_Board_Init(void);
 
 int main()
 {
-	/* Brings up System using CMSIS functions, enables the LEDs. */
+	int	result;
+
+	/* initialise the heap */
+	vPortInitialiseBlocks();
+
+	/* core PIOS init */
 	PIOS_SYS_Init();
-	
-	/* Do board init */
-	PIOS_Board_Init();
 
-	/* Do module init */
-	MODULE_INITIALISE_ALL;
-
-	/* start tasks */
-	xTaskCreate(protocolTask, (const signed char *)"protocol", PROTOCOL_TASK_STACK, NULL, PROTOCOL_TASK_PRIORITY, &protocolTaskHandle);
-	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, protocolTaskHandle);
-	//PIOS_WDG_RegisterFlag(PIOS_WDG_PROTOCOL);
-
-	xTaskCreate(failsafeTask, (const signed char *)"failsafe", FAILSAFE_TASK_STACK, NULL, FAILSAFE_TASK_PRIORITY, &failsafeTaskHandle);
-	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, failsafeTaskHandle);
-	//PIOS_WDG_RegisterFlag(PIOS_WDG_FAILSAFE);
-
-	/* swap the stack to use the IRQ stack */
-	Stack_Change();
+	/* create the init task */
+	result = xTaskCreate(initTask,
+						(const signed char *)"init",
+						INIT_TASK_STACK,
+						NULL,
+						INIT_TASK_PRIORITY,
+						&initTaskHandle);
+	PIOS_Assert(result == pdPASS);
 
 	/* Start the FreeRTOS scheduler */
 	vTaskStartScheduler();
@@ -75,6 +74,34 @@ int main()
 
 	return 0;
 }
+
+/**
+ * Initialisation task.
+ *
+ * Runs board and module initialisation, then terminates.
+ */
+void
+initTask(void *parameters)
+{
+	/* board driver init */
+	PIOS_Board_Init();
+
+	/* Initialize modules */
+	MODULE_INITIALISE_ALL;
+
+	/* start tasks */
+	xTaskCreate(protocolTask, (const signed char *)"protocol", PROTOCOL_TASK_STACK, NULL, PROTOCOL_TASK_PRIORITY, &protocolTaskHandle);
+	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, protocolTaskHandle);
+	//PIOS_WDG_RegisterFlag(PIOS_WDG_PROTOCOL);
+
+	xTaskCreate(failsafeTask, (const signed char *)"failsafe", FAILSAFE_TASK_STACK, NULL, FAILSAFE_TASK_PRIORITY, &failsafeTaskHandle);
+	//TaskMonitorAdd(TASKINFO_RUNNING_PROTOCOL, failsafeTaskHandle);
+	//PIOS_WDG_RegisterFlag(PIOS_WDG_FAILSAFE);
+
+	/* terminate this task */
+	vTaskDelete(NULL);
+}
+
 
 static void
 protocolTask(void *parameters)

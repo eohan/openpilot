@@ -12,6 +12,24 @@ typedef struct __mavlink_vfr_hud_t
  uint16_t throttle; ///< Current throttle setting in integer percent, 0 to 100
 } mavlink_vfr_hud_t;
 
+#define MAVLINK_MSG_ID_VFR_HUD_LEN 20
+#define MAVLINK_MSG_ID_74_LEN 20
+
+
+
+#define MAVLINK_MESSAGE_INFO_VFR_HUD { \
+	"VFR_HUD", \
+	6, \
+	{  { "airspeed", MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_vfr_hud_t, airspeed) }, \
+         { "groundspeed", MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_vfr_hud_t, groundspeed) }, \
+         { "alt", MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_vfr_hud_t, alt) }, \
+         { "climb", MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_vfr_hud_t, climb) }, \
+         { "heading", MAVLINK_TYPE_INT16_T, 0, 16, offsetof(mavlink_vfr_hud_t, heading) }, \
+         { "throttle", MAVLINK_TYPE_UINT16_T, 0, 18, offsetof(mavlink_vfr_hud_t, throttle) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a vfr_hud message
  * @param system_id ID of this system
@@ -31,14 +49,14 @@ static inline uint16_t mavlink_msg_vfr_hud_pack(uint8_t system_id, uint8_t compo
 {
 	msg->msgid = MAVLINK_MSG_ID_VFR_HUD;
 
-	put_float_by_index(airspeed, 0,  msg->payload); // Current airspeed in m/s
-	put_float_by_index(groundspeed, 4,  msg->payload); // Current ground speed in m/s
-	put_float_by_index(alt, 8,  msg->payload); // Current altitude (MSL), in meters
-	put_float_by_index(climb, 12,  msg->payload); // Current climb rate in meters/second
-	put_int16_t_by_index(heading, 16,  msg->payload); // Current heading in degrees, in compass units (0..360, 0=north)
-	put_uint16_t_by_index(throttle, 18,  msg->payload); // Current throttle setting in integer percent, 0 to 100
+	put_float_by_index(msg, 0, airspeed); // Current airspeed in m/s
+	put_float_by_index(msg, 4, groundspeed); // Current ground speed in m/s
+	put_float_by_index(msg, 8, alt); // Current altitude (MSL), in meters
+	put_float_by_index(msg, 12, climb); // Current climb rate in meters/second
+	put_int16_t_by_index(msg, 16, heading); // Current heading in degrees, in compass units (0..360, 0=north)
+	put_uint16_t_by_index(msg, 18, throttle); // Current throttle setting in integer percent, 0 to 100
 
-	return mavlink_finalize_message(msg, system_id, component_id, 20, 242);
+	return mavlink_finalize_message(msg, system_id, component_id, 20, 20);
 }
 
 /**
@@ -61,46 +79,15 @@ static inline uint16_t mavlink_msg_vfr_hud_pack_chan(uint8_t system_id, uint8_t 
 {
 	msg->msgid = MAVLINK_MSG_ID_VFR_HUD;
 
-	put_float_by_index(airspeed, 0,  msg->payload); // Current airspeed in m/s
-	put_float_by_index(groundspeed, 4,  msg->payload); // Current ground speed in m/s
-	put_float_by_index(alt, 8,  msg->payload); // Current altitude (MSL), in meters
-	put_float_by_index(climb, 12,  msg->payload); // Current climb rate in meters/second
-	put_int16_t_by_index(heading, 16,  msg->payload); // Current heading in degrees, in compass units (0..360, 0=north)
-	put_uint16_t_by_index(throttle, 18,  msg->payload); // Current throttle setting in integer percent, 0 to 100
+	put_float_by_index(msg, 0, airspeed); // Current airspeed in m/s
+	put_float_by_index(msg, 4, groundspeed); // Current ground speed in m/s
+	put_float_by_index(msg, 8, alt); // Current altitude (MSL), in meters
+	put_float_by_index(msg, 12, climb); // Current climb rate in meters/second
+	put_int16_t_by_index(msg, 16, heading); // Current heading in degrees, in compass units (0..360, 0=north)
+	put_uint16_t_by_index(msg, 18, throttle); // Current throttle setting in integer percent, 0 to 100
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 20, 242);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 20, 20);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a vfr_hud message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param airspeed Current airspeed in m/s
- * @param groundspeed Current ground speed in m/s
- * @param heading Current heading in degrees, in compass units (0..360, 0=north)
- * @param throttle Current throttle setting in integer percent, 0 to 100
- * @param alt Current altitude (MSL), in meters
- * @param climb Current climb rate in meters/second
- */
-static inline void mavlink_msg_vfr_hud_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           float airspeed,float groundspeed,int16_t heading,uint16_t throttle,float alt,float climb)
-{
-	msg->msgid = MAVLINK_MSG_ID_VFR_HUD;
-
-	put_float_by_index(airspeed, 0,  msg->payload); // Current airspeed in m/s
-	put_float_by_index(groundspeed, 4,  msg->payload); // Current ground speed in m/s
-	put_float_by_index(alt, 8,  msg->payload); // Current altitude (MSL), in meters
-	put_float_by_index(climb, 12,  msg->payload); // Current climb rate in meters/second
-	put_int16_t_by_index(heading, 16,  msg->payload); // Current heading in degrees, in compass units (0..360, 0=north)
-	put_uint16_t_by_index(throttle, 18,  msg->payload); // Current throttle setting in integer percent, 0 to 100
-
-	mavlink_finalize_message_chan_send(msg, chan, 20, 242);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a vfr_hud struct into a message
@@ -131,7 +118,16 @@ static inline uint16_t mavlink_msg_vfr_hud_encode(uint8_t system_id, uint8_t com
 static inline void mavlink_msg_vfr_hud_send(mavlink_channel_t chan, float airspeed, float groundspeed, int16_t heading, uint16_t throttle, float alt, float climb)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 20);
-	mavlink_msg_vfr_hud_pack_chan_send(chan, msg, airspeed, groundspeed, heading, throttle, alt, climb);
+	msg->msgid = MAVLINK_MSG_ID_VFR_HUD;
+
+	put_float_by_index(msg, 0, airspeed); // Current airspeed in m/s
+	put_float_by_index(msg, 4, groundspeed); // Current ground speed in m/s
+	put_float_by_index(msg, 8, alt); // Current altitude (MSL), in meters
+	put_float_by_index(msg, 12, climb); // Current climb rate in meters/second
+	put_int16_t_by_index(msg, 16, heading); // Current heading in degrees, in compass units (0..360, 0=north)
+	put_uint16_t_by_index(msg, 18, throttle); // Current throttle setting in integer percent, 0 to 100
+
+	mavlink_finalize_message_chan_send(msg, chan, 20, 20);
 }
 
 #endif
@@ -215,6 +211,6 @@ static inline void mavlink_msg_vfr_hud_decode(const mavlink_message_t* msg, mavl
 	vfr_hud->heading = mavlink_msg_vfr_hud_get_heading(msg);
 	vfr_hud->throttle = mavlink_msg_vfr_hud_get_throttle(msg);
 #else
-	memcpy(vfr_hud, msg->payload, 20);
+	memcpy(vfr_hud, MAVLINK_PAYLOAD(msg), 20);
 #endif
 }

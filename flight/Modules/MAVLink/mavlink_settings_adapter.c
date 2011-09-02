@@ -48,9 +48,9 @@ int16_t getActuatorSettingsParamIndexByName(const char* name);
 
 const char* getActuatorSettingsParamNameByIndex(uint16_t index);
 
-bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
+uint8_t getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
 
-bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param);
+uint8_t setActuatorSettingsParamByIndex(uint16_t index, const mavlink_param_union_t* param);
 // END INCLUSION OF INDIVIDUAL ADAPTER HEADERS
 
 
@@ -59,9 +59,14 @@ int16_t getParamIndexByName(const char* name)
 	return getActuatorSettingsParamIndexByName(name);
 }
 
-bool getParamByIndex(uint16_t index, mavlink_param_union_t* param)
+uint8_t getParamByIndex(uint16_t index, mavlink_param_union_t* param)
 {
 	return getActuatorSettingsParamByIndex(index, param);
+}
+
+uint8_t setParamByIndex(uint16_t index, const mavlink_param_union_t* param)
+{
+	return setActuatorSettingsParamByIndex(index, param);
 }
 
 const char* getParamNameByIndex(uint16_t index)
@@ -75,9 +80,10 @@ uint16_t getParamCount()
 }
 
 
-bool getParamByName(const char* name, mavlink_param_union_t* param)
+uint8_t getParamByName(const char* name, mavlink_param_union_t* param)
 {
 	int16_t index = -1;
+	uint8_t ret;
 
 	// Search for index as long as it stays not found (-1)
 
@@ -90,17 +96,19 @@ bool getParamByName(const char* name, mavlink_param_union_t* param)
 		// Break on first match
 
 		// START VALUE FOUND SECTION
-		if (getActuatorSettingsParamByIndex(index, param)) return true;
+		ret = getActuatorSettingsParamByIndex(index, param);
+		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
 		// END VALUE FOUND SECTION
 	}
 	
 	// No match, return false
-	return false;
+	return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
 }
 
-bool setParamByName(const char* name, mavlink_param_union_t* param)
+uint8_t setParamByName(const char* name, mavlink_param_union_t* param)
 {
 	int16_t index = -1;
+	uint8_t ret;
 
 	// Search for index as long as it stays not found (-1)
 
@@ -113,12 +121,13 @@ bool setParamByName(const char* name, mavlink_param_union_t* param)
 		// Break on first match
 
 		// START VALUE FOUND SECTION
-		if (setActuatorSettingsParamByIndex(index, param)) return true;
+		ret = setActuatorSettingsParamByIndex(index, param);
+		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
 		// END VALUE FOUND SECTION
 	}
 	
 	// No match, return false
-	return false;
+	return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
 }
 
 
@@ -161,62 +170,112 @@ const char* getActuatorSettingsParamNameByIndex(uint16_t index)
 	return 0;
 }
 
-bool getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param)
+uint8_t getActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param)
 {
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 	switch (index)
 	{
 		case 0:
+		{
 			param->param_uint32 = settings.FixedWingRoll1;
-			param->type = MAV_DATA_TYPE_UINT32;
+			param->type = MAVLINK_TYPE_UINT32_T;
+		}
 			break;
 		case 1:
+		{
 			param->param_uint32 = settings.FixedWingRoll2;
-			param->type = MAV_DATA_TYPE_UINT32;
+			param->type = MAVLINK_TYPE_UINT32_T;
+		}
 			break;
 		default:
-			return false;
+		{
+			return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
+		}
 			break;
 	}
 	// Not returned in default case, return true
-	return true;
+	return MAVLINK_RET_VAL_PARAM_SUCCESS;
 }
 
-bool setActuatorSettingsParamByIndex(uint16_t index, mavlink_param_union_t* param)
+uint8_t setActuatorSettingsParamByIndex(uint16_t index, const mavlink_param_union_t* param)
 {
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 	switch (index)
 	{
 		case 0:
-			if (param->type == MAV_DATA_TYPE_UINT32)
+		{
+			if (param->type == MAVLINK_TYPE_UINT32_T)
 			{
 				settings.FixedWingRoll1 = param->param_uint32;
 			}
 			else
 			{
-				return false;
+				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
 			}
+		}
 			break;
 		case 1:
-			if (param->type == MAV_DATA_TYPE_UINT32)
+		{
+			if (param->type == MAVLINK_TYPE_UINT32_T)
 			{
-			settings.FixedWingRoll2 = param->param_uint32;
+				settings.FixedWingRoll2 = param->param_uint32;
 			}
 			else
 			{
-				return false;
+				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
 			}
+		}
 			break;
 		default:
-			return false;
+		{
+			return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
+		}
 			break;
 	}
 	
-	// Not returned in default case, write and return true
-	ActuatorSettingsSet(&settings);
-	return true;
+	// Not returned in default case, try to write (ok == 0) and return result of
+	// write operation
+	if (ActuatorSettingsSet(&settings) == 0)
+	{
+		return MAVLINK_RET_VAL_PARAM_SUCCESS;
+	}
+	else
+	{
+		return MAVLINK_RET_VAL_PARAM_WRITE_ERROR;
+	}
+}
+
+int32_t writeParametersToStorage()
+{
+	//					// WORKING
+	//					ObjectPersistenceData objper;
+	//
+	//					// Write all objects individually
+	//					// for;;
+	//					ObjectPersistenceGet(&objper);
+	//
+	//					ActuatorSettingsData settings;
+	//					ActuatorSettingsGet(&settings);
+	//
+	//					objper.Selection = OBJECTPERSISTENCE_SELECTION_SINGLEOBJECT;
+	//					objper.Operation = OBJECTPERSISTENCE_OPERATION_SAVE;
+	//					objper.ObjectID = ACTUATORSETTINGS_OBJID;
+	//					objper.InstanceID = 0;
+	//					ObjectPersistenceSet(&objper);
+	//					// END WORKING
+
+
+
+	UAVObjHandle handle = ActuatorSettingsHandle();
+	return UAVObjSave(handle, 0);
+}
+
+int32_t readParametersFromStorage()
+{
+	UAVObjHandle handle = ActuatorSettingsHandle();
+	return UAVObjLoad(handle, 0);
 }
 
 /**

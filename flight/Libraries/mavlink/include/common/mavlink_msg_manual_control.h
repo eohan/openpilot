@@ -15,6 +15,27 @@ typedef struct __mavlink_manual_control_t
  uint8_t thrust_manual; ///< thrust auto:0, manual:1
 } mavlink_manual_control_t;
 
+#define MAVLINK_MSG_ID_MANUAL_CONTROL_LEN 21
+#define MAVLINK_MSG_ID_69_LEN 21
+
+
+
+#define MAVLINK_MESSAGE_INFO_MANUAL_CONTROL { \
+	"MANUAL_CONTROL", \
+	9, \
+	{  { "roll", MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_manual_control_t, roll) }, \
+         { "pitch", MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_manual_control_t, pitch) }, \
+         { "yaw", MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_manual_control_t, yaw) }, \
+         { "thrust", MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_manual_control_t, thrust) }, \
+         { "target", MAVLINK_TYPE_UINT8_T, 0, 16, offsetof(mavlink_manual_control_t, target) }, \
+         { "roll_manual", MAVLINK_TYPE_UINT8_T, 0, 17, offsetof(mavlink_manual_control_t, roll_manual) }, \
+         { "pitch_manual", MAVLINK_TYPE_UINT8_T, 0, 18, offsetof(mavlink_manual_control_t, pitch_manual) }, \
+         { "yaw_manual", MAVLINK_TYPE_UINT8_T, 0, 19, offsetof(mavlink_manual_control_t, yaw_manual) }, \
+         { "thrust_manual", MAVLINK_TYPE_UINT8_T, 0, 20, offsetof(mavlink_manual_control_t, thrust_manual) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a manual_control message
  * @param system_id ID of this system
@@ -37,17 +58,17 @@ static inline uint16_t mavlink_msg_manual_control_pack(uint8_t system_id, uint8_
 {
 	msg->msgid = MAVLINK_MSG_ID_MANUAL_CONTROL;
 
-	put_float_by_index(roll, 0,  msg->payload); // roll
-	put_float_by_index(pitch, 4,  msg->payload); // pitch
-	put_float_by_index(yaw, 8,  msg->payload); // yaw
-	put_float_by_index(thrust, 12,  msg->payload); // thrust
-	put_uint8_t_by_index(target, 16,  msg->payload); // The system to be controlled
-	put_uint8_t_by_index(roll_manual, 17,  msg->payload); // roll control enabled auto:0, manual:1
-	put_uint8_t_by_index(pitch_manual, 18,  msg->payload); // pitch auto:0, manual:1
-	put_uint8_t_by_index(yaw_manual, 19,  msg->payload); // yaw auto:0, manual:1
-	put_uint8_t_by_index(thrust_manual, 20,  msg->payload); // thrust auto:0, manual:1
+	put_float_by_index(msg, 0, roll); // roll
+	put_float_by_index(msg, 4, pitch); // pitch
+	put_float_by_index(msg, 8, yaw); // yaw
+	put_float_by_index(msg, 12, thrust); // thrust
+	put_uint8_t_by_index(msg, 16, target); // The system to be controlled
+	put_uint8_t_by_index(msg, 17, roll_manual); // roll control enabled auto:0, manual:1
+	put_uint8_t_by_index(msg, 18, pitch_manual); // pitch auto:0, manual:1
+	put_uint8_t_by_index(msg, 19, yaw_manual); // yaw auto:0, manual:1
+	put_uint8_t_by_index(msg, 20, thrust_manual); // thrust auto:0, manual:1
 
-	return mavlink_finalize_message(msg, system_id, component_id, 21, 116);
+	return mavlink_finalize_message(msg, system_id, component_id, 21, 52);
 }
 
 /**
@@ -73,55 +94,18 @@ static inline uint16_t mavlink_msg_manual_control_pack_chan(uint8_t system_id, u
 {
 	msg->msgid = MAVLINK_MSG_ID_MANUAL_CONTROL;
 
-	put_float_by_index(roll, 0,  msg->payload); // roll
-	put_float_by_index(pitch, 4,  msg->payload); // pitch
-	put_float_by_index(yaw, 8,  msg->payload); // yaw
-	put_float_by_index(thrust, 12,  msg->payload); // thrust
-	put_uint8_t_by_index(target, 16,  msg->payload); // The system to be controlled
-	put_uint8_t_by_index(roll_manual, 17,  msg->payload); // roll control enabled auto:0, manual:1
-	put_uint8_t_by_index(pitch_manual, 18,  msg->payload); // pitch auto:0, manual:1
-	put_uint8_t_by_index(yaw_manual, 19,  msg->payload); // yaw auto:0, manual:1
-	put_uint8_t_by_index(thrust_manual, 20,  msg->payload); // thrust auto:0, manual:1
+	put_float_by_index(msg, 0, roll); // roll
+	put_float_by_index(msg, 4, pitch); // pitch
+	put_float_by_index(msg, 8, yaw); // yaw
+	put_float_by_index(msg, 12, thrust); // thrust
+	put_uint8_t_by_index(msg, 16, target); // The system to be controlled
+	put_uint8_t_by_index(msg, 17, roll_manual); // roll control enabled auto:0, manual:1
+	put_uint8_t_by_index(msg, 18, pitch_manual); // pitch auto:0, manual:1
+	put_uint8_t_by_index(msg, 19, yaw_manual); // yaw auto:0, manual:1
+	put_uint8_t_by_index(msg, 20, thrust_manual); // thrust auto:0, manual:1
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 21, 116);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 21, 52);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a manual_control message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param target The system to be controlled
- * @param roll roll
- * @param pitch pitch
- * @param yaw yaw
- * @param thrust thrust
- * @param roll_manual roll control enabled auto:0, manual:1
- * @param pitch_manual pitch auto:0, manual:1
- * @param yaw_manual yaw auto:0, manual:1
- * @param thrust_manual thrust auto:0, manual:1
- */
-static inline void mavlink_msg_manual_control_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           uint8_t target,float roll,float pitch,float yaw,float thrust,uint8_t roll_manual,uint8_t pitch_manual,uint8_t yaw_manual,uint8_t thrust_manual)
-{
-	msg->msgid = MAVLINK_MSG_ID_MANUAL_CONTROL;
-
-	put_float_by_index(roll, 0,  msg->payload); // roll
-	put_float_by_index(pitch, 4,  msg->payload); // pitch
-	put_float_by_index(yaw, 8,  msg->payload); // yaw
-	put_float_by_index(thrust, 12,  msg->payload); // thrust
-	put_uint8_t_by_index(target, 16,  msg->payload); // The system to be controlled
-	put_uint8_t_by_index(roll_manual, 17,  msg->payload); // roll control enabled auto:0, manual:1
-	put_uint8_t_by_index(pitch_manual, 18,  msg->payload); // pitch auto:0, manual:1
-	put_uint8_t_by_index(yaw_manual, 19,  msg->payload); // yaw auto:0, manual:1
-	put_uint8_t_by_index(thrust_manual, 20,  msg->payload); // thrust auto:0, manual:1
-
-	mavlink_finalize_message_chan_send(msg, chan, 21, 116);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a manual_control struct into a message
@@ -155,7 +139,19 @@ static inline uint16_t mavlink_msg_manual_control_encode(uint8_t system_id, uint
 static inline void mavlink_msg_manual_control_send(mavlink_channel_t chan, uint8_t target, float roll, float pitch, float yaw, float thrust, uint8_t roll_manual, uint8_t pitch_manual, uint8_t yaw_manual, uint8_t thrust_manual)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 21);
-	mavlink_msg_manual_control_pack_chan_send(chan, msg, target, roll, pitch, yaw, thrust, roll_manual, pitch_manual, yaw_manual, thrust_manual);
+	msg->msgid = MAVLINK_MSG_ID_MANUAL_CONTROL;
+
+	put_float_by_index(msg, 0, roll); // roll
+	put_float_by_index(msg, 4, pitch); // pitch
+	put_float_by_index(msg, 8, yaw); // yaw
+	put_float_by_index(msg, 12, thrust); // thrust
+	put_uint8_t_by_index(msg, 16, target); // The system to be controlled
+	put_uint8_t_by_index(msg, 17, roll_manual); // roll control enabled auto:0, manual:1
+	put_uint8_t_by_index(msg, 18, pitch_manual); // pitch auto:0, manual:1
+	put_uint8_t_by_index(msg, 19, yaw_manual); // yaw auto:0, manual:1
+	put_uint8_t_by_index(msg, 20, thrust_manual); // thrust auto:0, manual:1
+
+	mavlink_finalize_message_chan_send(msg, chan, 21, 52);
 }
 
 #endif
@@ -272,6 +268,6 @@ static inline void mavlink_msg_manual_control_decode(const mavlink_message_t* ms
 	manual_control->yaw_manual = mavlink_msg_manual_control_get_yaw_manual(msg);
 	manual_control->thrust_manual = mavlink_msg_manual_control_get_thrust_manual(msg);
 #else
-	memcpy(manual_control, msg->payload, 21);
+	memcpy(manual_control, MAVLINK_PAYLOAD(msg), 21);
 #endif
 }

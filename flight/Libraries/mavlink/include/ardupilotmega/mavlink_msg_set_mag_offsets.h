@@ -11,6 +11,23 @@ typedef struct __mavlink_set_mag_offsets_t
  uint8_t target_component; ///< Component ID
 } mavlink_set_mag_offsets_t;
 
+#define MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN 8
+#define MAVLINK_MSG_ID_151_LEN 8
+
+
+
+#define MAVLINK_MESSAGE_INFO_SET_MAG_OFFSETS { \
+	"SET_MAG_OFFSETS", \
+	5, \
+	{  { "mag_ofs_x", MAVLINK_TYPE_INT16_T, 0, 0, offsetof(mavlink_set_mag_offsets_t, mag_ofs_x) }, \
+         { "mag_ofs_y", MAVLINK_TYPE_INT16_T, 0, 2, offsetof(mavlink_set_mag_offsets_t, mag_ofs_y) }, \
+         { "mag_ofs_z", MAVLINK_TYPE_INT16_T, 0, 4, offsetof(mavlink_set_mag_offsets_t, mag_ofs_z) }, \
+         { "target_system", MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_set_mag_offsets_t, target_system) }, \
+         { "target_component", MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_set_mag_offsets_t, target_component) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a set_mag_offsets message
  * @param system_id ID of this system
@@ -29,13 +46,13 @@ static inline uint16_t mavlink_msg_set_mag_offsets_pack(uint8_t system_id, uint8
 {
 	msg->msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
 
-	put_int16_t_by_index(mag_ofs_x, 0,  msg->payload); // magnetometer X offset
-	put_int16_t_by_index(mag_ofs_y, 2,  msg->payload); // magnetometer Y offset
-	put_int16_t_by_index(mag_ofs_z, 4,  msg->payload); // magnetometer Z offset
-	put_uint8_t_by_index(target_system, 6,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 7,  msg->payload); // Component ID
+	put_int16_t_by_index(msg, 0, mag_ofs_x); // magnetometer X offset
+	put_int16_t_by_index(msg, 2, mag_ofs_y); // magnetometer Y offset
+	put_int16_t_by_index(msg, 4, mag_ofs_z); // magnetometer Z offset
+	put_uint8_t_by_index(msg, 6, target_system); // System ID
+	put_uint8_t_by_index(msg, 7, target_component); // Component ID
 
-	return mavlink_finalize_message(msg, system_id, component_id, 8, 253);
+	return mavlink_finalize_message(msg, system_id, component_id, 8, 219);
 }
 
 /**
@@ -57,43 +74,14 @@ static inline uint16_t mavlink_msg_set_mag_offsets_pack_chan(uint8_t system_id, 
 {
 	msg->msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
 
-	put_int16_t_by_index(mag_ofs_x, 0,  msg->payload); // magnetometer X offset
-	put_int16_t_by_index(mag_ofs_y, 2,  msg->payload); // magnetometer Y offset
-	put_int16_t_by_index(mag_ofs_z, 4,  msg->payload); // magnetometer Z offset
-	put_uint8_t_by_index(target_system, 6,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 7,  msg->payload); // Component ID
+	put_int16_t_by_index(msg, 0, mag_ofs_x); // magnetometer X offset
+	put_int16_t_by_index(msg, 2, mag_ofs_y); // magnetometer Y offset
+	put_int16_t_by_index(msg, 4, mag_ofs_z); // magnetometer Z offset
+	put_uint8_t_by_index(msg, 6, target_system); // System ID
+	put_uint8_t_by_index(msg, 7, target_component); // Component ID
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 8, 253);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 8, 219);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a set_mag_offsets message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param target_system System ID
- * @param target_component Component ID
- * @param mag_ofs_x magnetometer X offset
- * @param mag_ofs_y magnetometer Y offset
- * @param mag_ofs_z magnetometer Z offset
- */
-static inline void mavlink_msg_set_mag_offsets_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           uint8_t target_system,uint8_t target_component,int16_t mag_ofs_x,int16_t mag_ofs_y,int16_t mag_ofs_z)
-{
-	msg->msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
-
-	put_int16_t_by_index(mag_ofs_x, 0,  msg->payload); // magnetometer X offset
-	put_int16_t_by_index(mag_ofs_y, 2,  msg->payload); // magnetometer Y offset
-	put_int16_t_by_index(mag_ofs_z, 4,  msg->payload); // magnetometer Z offset
-	put_uint8_t_by_index(target_system, 6,  msg->payload); // System ID
-	put_uint8_t_by_index(target_component, 7,  msg->payload); // Component ID
-
-	mavlink_finalize_message_chan_send(msg, chan, 8, 253);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a set_mag_offsets struct into a message
@@ -122,9 +110,16 @@ static inline uint16_t mavlink_msg_set_mag_offsets_encode(uint8_t system_id, uin
 
 static inline void mavlink_msg_set_mag_offsets_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, int16_t mag_ofs_x, int16_t mag_ofs_y, int16_t mag_ofs_z)
 {
-	MAVLINK_ALIGNED_BUFFER(buffer, MAVLINK_NUM_NON_PAYLOAD_BYTES+8);
-	mavlink_message_t *msg = (mavlink_message_t *)&buffer;
-	mavlink_msg_set_mag_offsets_pack_chan_send(chan, msg, target_system, target_component, mag_ofs_x, mag_ofs_y, mag_ofs_z);
+	MAVLINK_ALIGNED_MESSAGE(msg, 8);
+	msg->msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
+
+	put_int16_t_by_index(msg, 0, mag_ofs_x); // magnetometer X offset
+	put_int16_t_by_index(msg, 2, mag_ofs_y); // magnetometer Y offset
+	put_int16_t_by_index(msg, 4, mag_ofs_z); // magnetometer Z offset
+	put_uint8_t_by_index(msg, 6, target_system); // System ID
+	put_uint8_t_by_index(msg, 7, target_component); // Component ID
+
+	mavlink_finalize_message_chan_send(msg, chan, 8, 219);
 }
 
 #endif
@@ -197,6 +192,6 @@ static inline void mavlink_msg_set_mag_offsets_decode(const mavlink_message_t* m
 	set_mag_offsets->target_system = mavlink_msg_set_mag_offsets_get_target_system(msg);
 	set_mag_offsets->target_component = mavlink_msg_set_mag_offsets_get_target_component(msg);
 #else
-	memcpy(set_mag_offsets, msg->payload, 8);
+	memcpy(set_mag_offsets, MAVLINK_PAYLOAD(msg), 8);
 #endif
 }

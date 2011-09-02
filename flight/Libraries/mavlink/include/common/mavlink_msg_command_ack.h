@@ -8,6 +8,20 @@ typedef struct __mavlink_command_ack_t
  float result; ///< 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
 } mavlink_command_ack_t;
 
+#define MAVLINK_MSG_ID_COMMAND_ACK_LEN 8
+#define MAVLINK_MSG_ID_77_LEN 8
+
+
+
+#define MAVLINK_MESSAGE_INFO_COMMAND_ACK { \
+	"COMMAND_ACK", \
+	2, \
+	{  { "command", MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_command_ack_t, command) }, \
+         { "result", MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_command_ack_t, result) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a command_ack message
  * @param system_id ID of this system
@@ -23,10 +37,10 @@ static inline uint16_t mavlink_msg_command_ack_pack(uint8_t system_id, uint8_t c
 {
 	msg->msgid = MAVLINK_MSG_ID_COMMAND_ACK;
 
-	put_float_by_index(command, 0,  msg->payload); // Current airspeed in m/s
-	put_float_by_index(result, 4,  msg->payload); // 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
+	put_float_by_index(msg, 0, command); // Current airspeed in m/s
+	put_float_by_index(msg, 4, result); // 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
 
-	return mavlink_finalize_message(msg, system_id, component_id, 8, 228);
+	return mavlink_finalize_message(msg, system_id, component_id, 8, 8);
 }
 
 /**
@@ -45,34 +59,11 @@ static inline uint16_t mavlink_msg_command_ack_pack_chan(uint8_t system_id, uint
 {
 	msg->msgid = MAVLINK_MSG_ID_COMMAND_ACK;
 
-	put_float_by_index(command, 0,  msg->payload); // Current airspeed in m/s
-	put_float_by_index(result, 4,  msg->payload); // 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
+	put_float_by_index(msg, 0, command); // Current airspeed in m/s
+	put_float_by_index(msg, 4, result); // 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 8, 228);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 8, 8);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a command_ack message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param command Current airspeed in m/s
- * @param result 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
- */
-static inline void mavlink_msg_command_ack_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           float command,float result)
-{
-	msg->msgid = MAVLINK_MSG_ID_COMMAND_ACK;
-
-	put_float_by_index(command, 0,  msg->payload); // Current airspeed in m/s
-	put_float_by_index(result, 4,  msg->payload); // 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
-
-	mavlink_finalize_message_chan_send(msg, chan, 8, 228);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a command_ack struct into a message
@@ -99,7 +90,12 @@ static inline uint16_t mavlink_msg_command_ack_encode(uint8_t system_id, uint8_t
 static inline void mavlink_msg_command_ack_send(mavlink_channel_t chan, float command, float result)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 8);
-	mavlink_msg_command_ack_pack_chan_send(chan, msg, command, result);
+	msg->msgid = MAVLINK_MSG_ID_COMMAND_ACK;
+
+	put_float_by_index(msg, 0, command); // Current airspeed in m/s
+	put_float_by_index(msg, 4, result); // 1: Action ACCEPTED and EXECUTED, 1: Action TEMPORARY REJECTED/DENIED, 2: Action PERMANENTLY DENIED, 3: Action UNKNOWN/UNSUPPORTED, 4: Requesting CONFIRMATION
+
+	mavlink_finalize_message_chan_send(msg, chan, 8, 8);
 }
 
 #endif
@@ -139,6 +135,6 @@ static inline void mavlink_msg_command_ack_decode(const mavlink_message_t* msg, 
 	command_ack->command = mavlink_msg_command_ack_get_command(msg);
 	command_ack->result = mavlink_msg_command_ack_get_result(msg);
 #else
-	memcpy(command_ack, msg->payload, 8);
+	memcpy(command_ack, MAVLINK_PAYLOAD(msg), 8);
 #endif
 }

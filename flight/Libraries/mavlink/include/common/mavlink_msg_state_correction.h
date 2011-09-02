@@ -15,6 +15,27 @@ typedef struct __mavlink_state_correction_t
  float vzErr; ///< z velocity
 } mavlink_state_correction_t;
 
+#define MAVLINK_MSG_ID_STATE_CORRECTION_LEN 36
+#define MAVLINK_MSG_ID_64_LEN 36
+
+
+
+#define MAVLINK_MESSAGE_INFO_STATE_CORRECTION { \
+	"STATE_CORRECTION", \
+	9, \
+	{  { "xErr", MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_state_correction_t, xErr) }, \
+         { "yErr", MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_state_correction_t, yErr) }, \
+         { "zErr", MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_state_correction_t, zErr) }, \
+         { "rollErr", MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_state_correction_t, rollErr) }, \
+         { "pitchErr", MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_state_correction_t, pitchErr) }, \
+         { "yawErr", MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_state_correction_t, yawErr) }, \
+         { "vxErr", MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_state_correction_t, vxErr) }, \
+         { "vyErr", MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_state_correction_t, vyErr) }, \
+         { "vzErr", MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_state_correction_t, vzErr) }, \
+         } \
+}
+
+
 /**
  * @brief Pack a state_correction message
  * @param system_id ID of this system
@@ -37,17 +58,17 @@ static inline uint16_t mavlink_msg_state_correction_pack(uint8_t system_id, uint
 {
 	msg->msgid = MAVLINK_MSG_ID_STATE_CORRECTION;
 
-	put_float_by_index(xErr, 0,  msg->payload); // x position error
-	put_float_by_index(yErr, 4,  msg->payload); // y position error
-	put_float_by_index(zErr, 8,  msg->payload); // z position error
-	put_float_by_index(rollErr, 12,  msg->payload); // roll error (radians)
-	put_float_by_index(pitchErr, 16,  msg->payload); // pitch error (radians)
-	put_float_by_index(yawErr, 20,  msg->payload); // yaw error (radians)
-	put_float_by_index(vxErr, 24,  msg->payload); // x velocity
-	put_float_by_index(vyErr, 28,  msg->payload); // y velocity
-	put_float_by_index(vzErr, 32,  msg->payload); // z velocity
+	put_float_by_index(msg, 0, xErr); // x position error
+	put_float_by_index(msg, 4, yErr); // y position error
+	put_float_by_index(msg, 8, zErr); // z position error
+	put_float_by_index(msg, 12, rollErr); // roll error (radians)
+	put_float_by_index(msg, 16, pitchErr); // pitch error (radians)
+	put_float_by_index(msg, 20, yawErr); // yaw error (radians)
+	put_float_by_index(msg, 24, vxErr); // x velocity
+	put_float_by_index(msg, 28, vyErr); // y velocity
+	put_float_by_index(msg, 32, vzErr); // z velocity
 
-	return mavlink_finalize_message(msg, system_id, component_id, 36, 227);
+	return mavlink_finalize_message(msg, system_id, component_id, 36, 130);
 }
 
 /**
@@ -73,55 +94,18 @@ static inline uint16_t mavlink_msg_state_correction_pack_chan(uint8_t system_id,
 {
 	msg->msgid = MAVLINK_MSG_ID_STATE_CORRECTION;
 
-	put_float_by_index(xErr, 0,  msg->payload); // x position error
-	put_float_by_index(yErr, 4,  msg->payload); // y position error
-	put_float_by_index(zErr, 8,  msg->payload); // z position error
-	put_float_by_index(rollErr, 12,  msg->payload); // roll error (radians)
-	put_float_by_index(pitchErr, 16,  msg->payload); // pitch error (radians)
-	put_float_by_index(yawErr, 20,  msg->payload); // yaw error (radians)
-	put_float_by_index(vxErr, 24,  msg->payload); // x velocity
-	put_float_by_index(vyErr, 28,  msg->payload); // y velocity
-	put_float_by_index(vzErr, 32,  msg->payload); // z velocity
+	put_float_by_index(msg, 0, xErr); // x position error
+	put_float_by_index(msg, 4, yErr); // y position error
+	put_float_by_index(msg, 8, zErr); // z position error
+	put_float_by_index(msg, 12, rollErr); // roll error (radians)
+	put_float_by_index(msg, 16, pitchErr); // pitch error (radians)
+	put_float_by_index(msg, 20, yawErr); // yaw error (radians)
+	put_float_by_index(msg, 24, vxErr); // x velocity
+	put_float_by_index(msg, 28, vyErr); // y velocity
+	put_float_by_index(msg, 32, vzErr); // z velocity
 
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 36, 227);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 36, 130);
 }
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
-/**
- * @brief Pack a state_correction message on a channel and send
- * @param chan The MAVLink channel this message was sent over
- * @param msg The MAVLink message to compress the data into
- * @param xErr x position error
- * @param yErr y position error
- * @param zErr z position error
- * @param rollErr roll error (radians)
- * @param pitchErr pitch error (radians)
- * @param yawErr yaw error (radians)
- * @param vxErr x velocity
- * @param vyErr y velocity
- * @param vzErr z velocity
- */
-static inline void mavlink_msg_state_correction_pack_chan_send(mavlink_channel_t chan,
-							   mavlink_message_t* msg,
-						           float xErr,float yErr,float zErr,float rollErr,float pitchErr,float yawErr,float vxErr,float vyErr,float vzErr)
-{
-	msg->msgid = MAVLINK_MSG_ID_STATE_CORRECTION;
-
-	put_float_by_index(xErr, 0,  msg->payload); // x position error
-	put_float_by_index(yErr, 4,  msg->payload); // y position error
-	put_float_by_index(zErr, 8,  msg->payload); // z position error
-	put_float_by_index(rollErr, 12,  msg->payload); // roll error (radians)
-	put_float_by_index(pitchErr, 16,  msg->payload); // pitch error (radians)
-	put_float_by_index(yawErr, 20,  msg->payload); // yaw error (radians)
-	put_float_by_index(vxErr, 24,  msg->payload); // x velocity
-	put_float_by_index(vyErr, 28,  msg->payload); // y velocity
-	put_float_by_index(vzErr, 32,  msg->payload); // z velocity
-
-	mavlink_finalize_message_chan_send(msg, chan, 36, 227);
-}
-#endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
-
 
 /**
  * @brief Encode a state_correction struct into a message
@@ -155,7 +139,19 @@ static inline uint16_t mavlink_msg_state_correction_encode(uint8_t system_id, ui
 static inline void mavlink_msg_state_correction_send(mavlink_channel_t chan, float xErr, float yErr, float zErr, float rollErr, float pitchErr, float yawErr, float vxErr, float vyErr, float vzErr)
 {
 	MAVLINK_ALIGNED_MESSAGE(msg, 36);
-	mavlink_msg_state_correction_pack_chan_send(chan, msg, xErr, yErr, zErr, rollErr, pitchErr, yawErr, vxErr, vyErr, vzErr);
+	msg->msgid = MAVLINK_MSG_ID_STATE_CORRECTION;
+
+	put_float_by_index(msg, 0, xErr); // x position error
+	put_float_by_index(msg, 4, yErr); // y position error
+	put_float_by_index(msg, 8, zErr); // z position error
+	put_float_by_index(msg, 12, rollErr); // roll error (radians)
+	put_float_by_index(msg, 16, pitchErr); // pitch error (radians)
+	put_float_by_index(msg, 20, yawErr); // yaw error (radians)
+	put_float_by_index(msg, 24, vxErr); // x velocity
+	put_float_by_index(msg, 28, vyErr); // y velocity
+	put_float_by_index(msg, 32, vzErr); // z velocity
+
+	mavlink_finalize_message_chan_send(msg, chan, 36, 130);
 }
 
 #endif
@@ -272,6 +268,6 @@ static inline void mavlink_msg_state_correction_decode(const mavlink_message_t* 
 	state_correction->vyErr = mavlink_msg_state_correction_get_vyErr(msg);
 	state_correction->vzErr = mavlink_msg_state_correction_get_vzErr(msg);
 #else
-	memcpy(state_correction, msg->payload, 36);
+	memcpy(state_correction, MAVLINK_PAYLOAD(msg), 36);
 #endif
 }
