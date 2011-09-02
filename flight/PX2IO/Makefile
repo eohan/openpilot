@@ -96,6 +96,7 @@ SRC += $(PIOSSTM32F10X)/pios_led.c
 SRC += $(PIOSSTM32F10X)/pios_delay.c
 SRC += $(PIOSSTM32F10X)/pios_usart.c
 SRC += $(PIOSSTM32F10X)/pios_irq.c
+SRC += $(PIOSSTM32F10X)/pios_i2c_slave.c
 #SRC += $(PIOSSTM32F10X)/pios_adc.c  XXX we either need this or a replacement like the F2xx module
 SRC += $(PIOSSTM32F10X)/pios_servo.c
 SRC += $(PIOSSTM32F10X)/pios_ppm.c
