@@ -1,16 +1,10 @@
 /**
  ******************************************************************************
- * @addtogroup PIOS PIOS Core hardware abstraction layer
- * @{
- * @addtogroup   PIOS_PPM PPM Functions
- * @brief PIOS interface to read and write from ppm port
- * @{
  *
- * @file       pios_ppm_priv.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @brief      ppm private structures.
- * @see        The GNU Public License (GPL) Version 3
- *
+ * @file       cachedsvgitem.h
+ * @author     Dmytro Poplavskiy Copyright (C) 2011.
+ * @{
+ * @brief OpenGL texture cached SVG item
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -28,25 +22,33 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef PIOS_PPM_PRIV_H
-#define PIOS_PPM_PRIV_H
+#ifndef CACHEDSVGITEM_H
+#define CACHEDSVGITEM_H
 
-#include <pios.h>
-#include <pios_stm32.h>
+#include <QGraphicsSvgItem>
+#include <QGLContext>
 
-struct pios_ppm_cfg {
-	TIM_ICInitTypeDef tim_ic_init;
-	const struct pios_tim_channel * channels;
-	uint8_t num_channels;
+#include "utils_global.h"
+
+class QGLContext;
+
+//Cache Svg item as GL Texture.
+//Texture is regenerated each time item is scaled
+//but it's reused during rotation, unlike DeviceCoordinateCache mode
+class QTCREATOR_UTILS_EXPORT CachedSvgItem: public QGraphicsSvgItem
+{
+    Q_OBJECT
+public:
+    CachedSvgItem(QGraphicsItem * parent = 0);
+    CachedSvgItem(const QString & fileName, QGraphicsItem * parent = 0);
+    ~CachedSvgItem();
+
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
+
+private:
+    QGLContext *m_context;
+    GLuint m_texture;
+    qreal m_scale;
 };
 
-extern const struct pios_rcvr_driver pios_ppm_rcvr_driver;
-
-extern int32_t PIOS_PPM_Init(uint32_t * ppm_id, const struct pios_ppm_cfg * cfg);
-
-#endif /* PIOS_PPM_PRIV_H */
-
-/**
- * @}
- * @}
- */
+#endif
