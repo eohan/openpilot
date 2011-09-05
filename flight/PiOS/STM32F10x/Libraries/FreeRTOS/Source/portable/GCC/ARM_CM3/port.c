@@ -97,14 +97,14 @@ static void prvSetupTimerInterrupt( void );
 /*
  * Exception handlers.
  */
-void xPortPendSVHandler( void ) __attribute__ (( naked ));
-void xPortSysTickHandler( void );
-void vPortSVCHandler( void ) __attribute__ (( naked ));
+void xPortPendSVHandler( void ) __attribute__ (( naked )) __attribute__((no_instrument_function));
+void xPortSysTickHandler( void ) __attribute__((no_instrument_function));
+void vPortSVCHandler( void ) __attribute__ (( naked )) __attribute__((no_instrument_function));
 
 /*
  * Start first task is a separate function so it can be tested in isolation.
  */
-void vPortStartFirstTask( void ) __attribute__ (( naked ));
+void vPortStartFirstTask( void ) __attribute__ (( naked )) __attribute__((no_instrument_function));
 
 /*-----------------------------------------------------------*/
 
@@ -136,6 +136,7 @@ void vPortSVCHandler( void )
 					"	ldr r1, [r3]					\n" /* Use pxCurrentTCBConst to get the pxCurrentTCB address. */
 					"	ldr r0, [r1]					\n" /* The first item in pxCurrentTCB is the task top of stack. */
 					"	ldmia r0!, {r4-r11}				\n" /* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
+					"	ldr r10, [r1, #4]				\n" /* The second item in pxCurrentTCB is the task stack base. XXX HACK*/
 					"	msr psp, r0						\n" /* Restore the task stack pointer. */
 					"	mov r0, #0 						\n"
 					"	msr	basepri, r0					\n"
@@ -242,6 +243,7 @@ void xPortPendSVHandler( void )
 	"	ldr r1, [r3]						\n"
 	"	ldr r0, [r1]						\n" /* The first item in pxCurrentTCB is the task top of stack. */
 	"	ldmia r0!, {r4-r11}					\n" /* Pop the registers. */
+	"	ldr r10, [r1, #4]					\n" /* The second item in pxCurrentTCB is the task stack base. XXX HACK*/
 	"	msr psp, r0							\n"
 	"	bx r14								\n"
 	"										\n"

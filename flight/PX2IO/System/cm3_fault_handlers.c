@@ -79,3 +79,53 @@ UsageFault_Handler2(struct cm3_frame *frame)
 	for (;;);
 }
 
+void	__cyg_profile_func_enter(void *func, void *caller) __attribute__((naked)) __attribute__((no_instrument_function));
+void	__cyg_profile_func_exit(void *func, void *caller)  __attribute__((naked)) __attribute__((no_instrument_function));
+static void StackOverflow_Handler(uint32_t func, uint32_t caller) __attribute__((used)) __attribute__((no_instrument_function));
+
+static void
+StackOverflow_Handler(uint32_t func, uint32_t caller)
+{
+	dbg_write_str("\nSTACK OVERFLOW");
+	dbg_write_hex32(func);
+	dbg_write_char('\n');
+	dbg_write_hex32(caller);
+	dbg_write_char('\n');
+	for (;;);
+}
+
+void
+__cyg_profile_func_enter(void *func, void *caller)
+{
+	asm volatile (
+			"    mrs	r2, ipsr	\n"
+			"    cmp    r2, #0		\n"
+			"    bne    L__out		\n"		/* ignore this test if we are in interrupt mode */
+			"    cmp	sp, r10		\n"
+			"    bgt    L__out	 	\n"		/* stack is above limit and thus OK */
+			"    cpsid	i			\n"		/* disable interrupts, we're toast now */
+			"    mov    r2, r10		\n"		/* push the stack back up 64 bytes XXX this is ho-key */
+			"    add	r2, r2, #64	\n"		/* we should probably switch to the MSP and run from there ... */
+			"    mov	sp, r2		\n"
+			"    b      StackOverflow_Handler\n"
+			"L__out:				\n"
+			"    bx		lr			\n"
+			);
+	//asm volatile("bx lr");
+	// XXX note, function must be re-entrant
+
+	// determine if we are on the interrupt stack or a task stack
+	// if task, get task stack limit from task structure (13th word of the task structure normally)
+	// if interrupt, get interrupt stack limit from (???)
+
+	// compare current sp with limit
+	// on overflow, reset sp to top of interrupt stack, call panic?
+
+}
+
+void
+__cyg_profile_func_exit(void *func, void *caller)
+{
+	asm volatile("bx lr");
+}
+

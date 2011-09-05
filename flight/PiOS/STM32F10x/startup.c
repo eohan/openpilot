@@ -9,7 +9,7 @@
 extern int main(void) __attribute__((noreturn));
 
 /* prototype our _main() to avoid prolog/epilog insertion and other related junk */
-static void _main(void) __attribute__((noreturn, naked));
+static void _main(void) __attribute__((noreturn, naked, no_instrument_function));
 
 /** default handler for CPU exceptions */
 static void		default_cpu_handler(void) __attribute__((noreturn, naked));
@@ -21,7 +21,7 @@ extern char		_sbss, _ebss;
 extern char		_sidata, _sdata, _edata;
 
 /** The bootstrap/IRQ stack XXX should define size somewhere else */
-char			irq_stack[256] __attribute__((section(".irqstack")));
+char			irq_stack[512] __attribute__((section(".irqstack")));
 
 /** exception handler */
 typedef const void	(vector)(void);
@@ -39,6 +39,8 @@ struct cm3_vectors {
 void
 _main(void)
 {
+	asm volatile ("mov r10, %0" : : "r" (&irq_stack[0]) : );
+
 	/* copy initialised data from flash to RAM */
 	memcpy(&_sdata, &_sidata, &_edata - &_sdata);
 
