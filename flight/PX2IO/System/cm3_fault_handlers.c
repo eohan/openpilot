@@ -79,9 +79,9 @@ UsageFault_Handler2(struct cm3_frame *frame)
 	for (;;);
 }
 
-void	__cyg_profile_func_enter(void *func, void *caller) __attribute__((naked)) __attribute__((no_instrument_function));
-void	__cyg_profile_func_exit(void *func, void *caller)  __attribute__((naked)) __attribute__((no_instrument_function));
-static void StackOverflow_Handler(uint32_t func, uint32_t caller) __attribute__((used)) __attribute__((no_instrument_function));
+void	__cyg_profile_func_enter(void *func, void *caller) __attribute__((naked, no_instrument_function));
+void	__cyg_profile_func_exit(void *func, void *caller)  __attribute__((naked, no_instrument_function));
+static void StackOverflow_Handler(uint32_t func, uint32_t caller) __attribute__((used, no_instrument_function));
 
 static void
 StackOverflow_Handler(uint32_t func, uint32_t caller)
@@ -111,16 +111,6 @@ __cyg_profile_func_enter(void *func, void *caller)
 			"L__out:				\n"
 			"    bx		lr			\n"
 			);
-	//asm volatile("bx lr");
-	// XXX note, function must be re-entrant
-
-	// determine if we are on the interrupt stack or a task stack
-	// if task, get task stack limit from task structure (13th word of the task structure normally)
-	// if interrupt, get interrupt stack limit from (???)
-
-	// compare current sp with limit
-	// on overflow, reset sp to top of interrupt stack, call panic?
-
 }
 
 void
