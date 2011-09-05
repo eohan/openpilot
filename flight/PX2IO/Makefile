@@ -299,7 +299,7 @@ ifeq ($(CODE_SOURCERY), YES)
 CFLAGS += -fpromote-loop-indices
 endif
 
-CFLAGS += -Wall
+CFLAGS += -Wall 
 CFLAGS += -Werror
 CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 CFLAGS += -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
@@ -329,10 +329,8 @@ MATH_LIB = -lm
 #    --cref:    add cross reference to  map file
 LDFLAGS = -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
-LDFLAGS += -lc
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
-LDFLAGS += -lc -lgcc
 
 # Set linker-script name depending on selected submodel name
 LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F100_PX2IO_memory.ld
