@@ -385,10 +385,7 @@ void PIOS_Board_Init(void)
 		PIOS_Assert(0);
 	}
 #endif
-#if 0
 	PIOS_COM_SendFormattedString(PIOS_COM_AUX, "PX2IO starting...\r\n");
-#endif
-	PIOS_COM_SendChar(PIOS_COM_DEBUG, 'A');
 
 	PIOS_Servo_Init();
 //	PIOS_ADC_INIT();
