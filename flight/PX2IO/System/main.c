@@ -28,8 +28,8 @@
 
 /* Local Variables */
 #define INIT_TASK_STACK			(1024 / 4)
-#define PROTOCOL_TASK_STACK		(256 / 4)
-#define FAILSAFE_TASK_STACK		(256 / 4)
+#define PROTOCOL_TASK_STACK		(512 / 4)
+#define FAILSAFE_TASK_STACK		(512 / 4)
 static xTaskHandle initTaskHandle;
 static xTaskHandle protocolTaskHandle;
 static xTaskHandle failsafeTaskHandle;
@@ -114,21 +114,25 @@ initTask(void *parameters)
 	vTaskDelete(NULL);
 }
 
-#if 0
+static int flag = 0;
+
 static void
 protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg)
 {
-
+	flag = 1;
 }
-#endif
 
 static void
 protocolTask(void *parameters)
 {
-	//PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "protocol task start\r\n");
-	//PIOS_I2C_Slave_Open(0, protocol_callback);
+	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "protocol task start\r\n");
+	PIOS_I2C_Slave_Open(0, protocol_callback);
 
 	for (;;) {
+		if (flag) {
+			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "flag\r\n");
+			flag = 0;
+		}
 		PIOS_LED_Toggle(LED1);
 		vTaskDelay(500 / portTICK_RATE_MS);
 	}
@@ -137,6 +141,7 @@ protocolTask(void *parameters)
 static void
 failsafeTask(void *parameters)
 {
+	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "failsafe task start\r\n");
 	for (;;) {
 		PIOS_LED_Toggle(LED2);
 		vTaskDelay(100 / portTICK_RATE_MS);
