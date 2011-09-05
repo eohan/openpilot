@@ -157,13 +157,12 @@ static struct fsm_context *context_for_id(uint32_t i2c_id)
 }
 
 int
-PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg, pios_i2c_slave_callback callback)
+PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
 
 	ctx->i2c_id = i2c_id;
 	ctx->regs = cfg->regs;
-	ctx->callback = callback;
 
 	/* Enable the associated peripheral clock */
 	/* XXX this is bogus, clocks should always be on */
@@ -189,6 +188,18 @@ PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg, pio
 	I2C_Init(ctx->regs, &cfg->init);
 
 	return 0;
+}
+
+void
+PIOS_I2C_Slave_Open(uint32_t i2c_id, pios_i2c_slave_callback callback)
+{
+	struct fsm_context	*ctx = context_for_id(i2c_id);
+
+	// hook up the callback
+	ctx->callback = callback;
+
+	// and open for business
+	PIOS_I2C_SLAVE_Enable(i2c_id, true);
 }
 
 void
