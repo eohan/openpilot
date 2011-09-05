@@ -290,31 +290,23 @@ void prvSetupTimerInterrupt( void )
 
 void	__cyg_profile_func_enter(void *func, void *caller) __attribute__((naked, no_instrument_function));
 void	__cyg_profile_func_exit(void *func, void *caller)  __attribute__((naked, no_instrument_function));
-static void stackOverflowHandler(uint32_t func, uint32_t caller) __attribute__((used, no_instrument_function));
-
-static void
-stackOverflowHandler(uint32_t func, uint32_t caller)
-{
-	for (;;);
-}
 
 void
 __cyg_profile_func_enter(void *func, void *caller)
 {
-	asm volatile (
-			"    mrs	r2, ipsr	\n"
-			"    cmp    r2, #0		\n"
-			"    bne    L__out		\n"		/* ignore this test if we are in interrupt mode */
-			"    cmp	sp, r10		\n"
-			"    bgt    L__out	 	\n"		/* stack is above limit and thus OK */
-			"    cpsid	f			\n"		/* switch to hardfault-level, ignore exceptions, etc. */
-			"    mov    r2, r10		\n"		/* push the stack back up 64 bytes XXX this is ho-key */
-			"    add	r2, r2, #64	\n"		/* we should probably switch to the MSP and run from there ... */
-			"    mov	sp, r2		\n"
-			"    b      stackOverflowHandler\n"
-			"L__out:				\n"
-			"    bx		lr			\n"
-			);
+    asm volatile (
+        "    mrs    r2, ipsr        \n"
+        "    cmp    r2, #0          \n"
+        "    bne    L__out          \n"             /* ignore this test if we are in interrupt mode */
+        "    cmp    sp, r10         \n"
+        "    bgt    L__out          \n"             /* stack is above limit and thus OK */
+        "    mov    r2, #0xac       \n"             /* force a hard fault with a distinctive address 0x57ac ('stac') */
+	"    add    r2, r2, #0x5700 \n"
+	"    ldr    r2, [r2]        \n"
+        "    b      .               \n"
+        "L__out:                    \n"
+        "    bx     lr              \n"
+    );
 }
 
 void

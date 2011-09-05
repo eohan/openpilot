@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 #include "dcc_stdio.h"
-#include "stm32f10x.h"
+#include "stm32f2xx.h"
 
 #define FAULT_TRAMPOLINE(_vec)										\
 __attribute__((naked))												\
