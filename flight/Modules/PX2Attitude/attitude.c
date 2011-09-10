@@ -380,9 +380,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	attitudeActual.Pitch = angles.y * 57.2957795f;
 	attitudeActual.Yaw   = angles.z * 57.2957795f;
 
-	attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
-	attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
-	attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
+	//attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
+	//attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
+	//attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
 
 	AttitudeActualSet(&attitudeActual);
 

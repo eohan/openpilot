@@ -482,9 +482,9 @@ static void processObjEvent(UAVObjEvent * ev)
 			attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
 			attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
 
-			attitude.rollspeed  = (attitudeActual.RollSpeed/180.0f)*3.14159265f;
-			attitude.pitchspeed = (attitudeActual.PitchSpeed/180.0f)*3.14159265f;
-			attitude.yawspeed   = (attitudeActual.YawSpeed/180.0f)*3.14159265f;
+			attitude.rollspeed  = 0;//(attitudeActual.RollSpeed/180.0f)*3.14159265f;
+			attitude.pitchspeed = 0;//(attitudeActual.PitchSpeed/180.0f)*3.14159265f;
+			attitude.yawspeed   = 0;//(attitudeActual.YawSpeed/180.0f)*3.14159265f;
 
 			mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
 			// Copy the message to the send buffer
@@ -855,9 +855,10 @@ static void telemetryRxTask(void *parameters)
 				att.Roll = hil.roll;
 				att.Pitch = hil.pitch;
 				att.Yaw = hil.yaw;
-				att.RollSpeed = hil.rollspeed;
-				att.PitchSpeed = hil.pitchspeed;
-				att.YawSpeed = hil.yawspeed;
+				// FIXME
+				//att.RollSpeed = hil.rollspeed;
+				//att.PitchSpeed = hil.pitchspeed;
+				//att.YawSpeed = hil.yawspeed;
 
 				// Convert to quaternion formulation
 				RPY2Quaternion(&attitudeActual.Roll, &attitudeActual.q1);
