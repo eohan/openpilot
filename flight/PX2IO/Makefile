@@ -69,6 +69,8 @@ PIOS			= ../PiOS
 PIOSINC			= $(PIOS)/inc
 PIOSSTM32F10X	= $(PIOS)/STM32F10x
 PIOSCOMMON		= $(PIOS)/Common
+PIOSCOMMONLIB	= $(PIOS)/Common/Libraries
+ZALLOCLIB		= $(PIOSCOMMONLIB)/zalloc
 PIOSBOARDS		= $(PIOS)/Boards
 APPLIBDIR		= $(PIOSSTM32F10X)/Libraries
 STMLIBDIR		= $(APPLIBDIR)
@@ -96,6 +98,7 @@ SRC += $(PIOSSTM32F10X)/pios_led.c
 SRC += $(PIOSSTM32F10X)/pios_delay.c
 SRC += $(PIOSSTM32F10X)/pios_usart.c
 SRC += $(PIOSSTM32F10X)/pios_irq.c
+SRC += $(PIOSSTM32F10X)/pios_i2c_slave.c
 #SRC += $(PIOSSTM32F10X)/pios_adc.c  XXX we either need this or a replacement like the F2xx module
 SRC += $(PIOSSTM32F10X)/pios_servo.c
 SRC += $(PIOSSTM32F10X)/pios_ppm.c
@@ -139,7 +142,12 @@ SRC += $(RTOSSRCDIR)/tasks.c
 
 ## RTOS Portable
 SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
-SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+#SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+
+## Better malloc/free
+SRC += $(ZALLOCLIB)/malloc.c
+SRC += $(ZALLOCLIB)/zalloc.c
+SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
 
 # List C source files here which must be compiled in ARM-Mode (no -mthumb).
 # use file-extension c for "c-only"-files
@@ -180,6 +188,7 @@ EXTRAINCDIRS  += $(PIOSBOARDS)
 EXTRAINCDIRS  += $(STMSPDINCDIR)
 EXTRAINCDIRS  += $(CMSISDIR)
 EXTRAINCDIRS  += $(RTOSINCDIR)
+EXTRAINCDIRS  += $(ZALLOCLIB)
 #EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 
@@ -290,7 +299,7 @@ ifeq ($(CODE_SOURCERY), YES)
 CFLAGS += -fpromote-loop-indices
 endif
 
-CFLAGS += -Wall
+CFLAGS += -Wall 
 CFLAGS += -Werror
 CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 CFLAGS += -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
@@ -320,10 +329,8 @@ MATH_LIB = -lm
 #    --cref:    add cross reference to  map file
 LDFLAGS = -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
-LDFLAGS += -lc
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
-LDFLAGS += -lc -lgcc
 
 # Set linker-script name depending on selected submodel name
 LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F100_PX2IO_memory.ld

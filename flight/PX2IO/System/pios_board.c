@@ -22,6 +22,7 @@
 #include <pios_usart_priv.h>
 #include <pios_rtc_priv.h>
 #include <pios_rcvr_priv.h>
+#include <pios_i2c_slave.h>
 
 /*
  * Clocking
@@ -44,7 +45,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
   .regs = USART1,
   .init = {
 	.USART_BaudRate            = PIOS_COM_AUX_BAUDRATE,
-    .USART_BaudRate            = 115200,
     .USART_WordLength          = USART_WordLength_8b,
     .USART_Parity              = USART_Parity_No,
     .USART_StopBits            = USART_StopBits_1,
@@ -59,7 +59,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
       .NVIC_IRQChannelCmd                = ENABLE,
     },
   },
-  .remap = GPIO_Remap_USART1,
   .rx   = {
     .gpio = GPIOA,
     .init = {
@@ -166,7 +165,7 @@ const struct pios_servo_cfg pios_servo_cfg = {
 	.num_channels = NELEMENTS(pios_servo_channels),
 };
 
-
+#if defined(PIOS_INCLUDE_PPM)
 /*
  * PPM Input
  */
@@ -209,7 +208,7 @@ void PIOS_TIM1_CC_irq_handler()
 {
 	PIOS_PPM_irq_handler();
 }
-
+#endif
 
 #if defined(PIOS_INCLUDE_RTC)
 /*
@@ -240,6 +239,71 @@ void PIOS_RTC_IRQ_Handler (void)
 #endif
 
 
+/*
+ * I2C slave interface
+ */
+static uint32_t	pios_i2c_slave_id = 0;
+static void
+I2C_SLAVE_EV_IRQ_Handler(void)
+{
+	PIOS_I2C_SLAVE_EV_IRQ_Handler(pios_i2c_slave_id);
+}
+void I2C1_EV_IRQHandler() __attribute__((alias ("I2C_SLAVE_EV_IRQ_Handler")));
+
+static void
+I2C_SLAVE_ER_IRQ_Handler(void)
+{
+	PIOS_I2C_SLAVE_ER_IRQ_Handler(pios_i2c_slave_id);
+}
+void I2C1_ER_IRQHandler() __attribute__((alias ("I2C_SLAVE_ER_IRQ_Handler")));
+
+static const struct pios_i2c_adapter_cfg i2c_slave_cfg = {
+		.regs	= I2C1,
+		.init = {
+				.I2C_Mode					= I2C_Mode_I2C,
+				.I2C_OwnAddress1			= 0x11,
+				.I2C_Ack					= I2C_Ack_Enable,
+				.I2C_AcknowledgedAddress	= I2C_AcknowledgedAddress_7bit,
+				.I2C_DutyCycle				= I2C_DutyCycle_2,
+				.I2C_ClockSpeed				= 400000,
+		},
+		.transfer_timeout_ms = 50,
+		.transfer_timeout_ms = 50,
+		.scl = {
+				.gpio = GPIOB,
+				.init = {
+						.GPIO_Pin   = GPIO_Pin_10,
+						.GPIO_Speed = GPIO_Speed_10MHz,
+						.GPIO_Mode  = GPIO_Mode_AF_OD,
+				},
+		},
+		.sda = {
+				.gpio = GPIOB,
+				.init = {
+						.GPIO_Pin   = GPIO_Pin_11,
+						.GPIO_Speed = GPIO_Speed_10MHz,
+						.GPIO_Mode  = GPIO_Mode_AF_OD,
+				},
+		},
+		.event = {
+				.flags   = 0,		/* FIXME: check this */
+				.init = {
+						.NVIC_IRQChannel                   = I2C2_EV_IRQn,
+						.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
+						.NVIC_IRQChannelSubPriority        = 0,
+						.NVIC_IRQChannelCmd                = ENABLE,
+				},
+		},
+		.error = {
+				.flags   = 0,		/* FIXME: check this */
+				.init = {
+						.NVIC_IRQChannel                   = I2C2_ER_IRQn,
+						.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
+						.NVIC_IRQChannelSubPriority        = 0,
+						.NVIC_IRQChannelCmd                = ENABLE,
+				},
+		},
+};
 
 uint32_t pios_com_aux_id;
 #if defined(PIOS_INCLUDE_SPEKTRUM)
@@ -267,8 +331,6 @@ void PIOS_Board_Init(void)
 #if defined(PIOS_INCLUDE_RTC)
 	/* Initialize the real-time clock and its associated tick */
 	PIOS_RTC_Init(&pios_rtc_main_cfg);
-#else
-#warning Need RTC for PPM
 #endif
 	
 	/* Initialize the alarms library */
@@ -276,6 +338,9 @@ void PIOS_Board_Init(void)
 
 	/* Initialize the task monitor library */
 //	TaskMonitorInitialize();
+
+	/* Bring up the I2C slave interface */
+	PIOS_I2C_Slave_Init(pios_i2c_slave_id, &i2c_slave_cfg);
 
 #if 0 // XXX this is all very wrong now
 #if defined(PIOS_INCLUDE_SBUS)
@@ -311,10 +376,9 @@ void PIOS_Board_Init(void)
 	if (PIOS_USART_Init(&pios_usart_aux_id, &pios_usart_aux_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
-	uint8_t * rx_buffer = (uint8_t *) pvPortMalloc(128);
-	uint8_t * tx_buffer = (uint8_t *) pvPortMalloc(128);
-	PIOS_Assert(rx_buffer);
-	PIOS_Assert(tx_buffer);
+	static uint8_t rx_buffer[128];
+	static uint8_t tx_buffer[128];
+
 	if (PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, pios_usart_aux_id,
 			  rx_buffer, 128,
 			  tx_buffer, 128)) {
@@ -330,6 +394,9 @@ void PIOS_Board_Init(void)
 	/* Configure the selected receiver */
 	/* XXX we don't have these settings until we have config from FMU ... */
 #if defined(PIOS_INCLUDE_PPM)
+#if !defined(PIOS_INCLUDE_RTC)
+# error PPM requires RTC
+#endif
 		PIOS_PPM_Init();
 		uint32_t pios_ppm_rcvr_id;
 		if (PIOS_RCVR_Init(&pios_ppm_rcvr_id, &pios_ppm_rcvr_driver, 0)) {

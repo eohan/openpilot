@@ -72,7 +72,7 @@ HANDLER(DMA2_Channel4_5_IRQHandler);      // DMA2 Channel 4
 
 /** stm32f100 interrupt vector table */
 vector *io_vectors[] __attribute__((section(".io_vectors"))) = {
-	WWDG_IRQHandler,
+	WWDG_IRQHandler,			// exception #16
 	PVD_IRQHandler,
 	TAMPER_IRQHandler,
 	RTC_WKUP_IRQHandler,
