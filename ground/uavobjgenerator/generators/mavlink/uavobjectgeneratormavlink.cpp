@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  *
- * @file       uavobjectgeneratorflight.cpp
+ * @file       UAVObjectGeneratorMAVLink.cpp
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
  * @brief      produce flight code for uavobjects
  *
@@ -24,11 +24,11 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "uavobjectgeneratorflight.h"
+#include "uavobjectgeneratormavlink.h"
 
 using namespace std;
 
-bool UAVObjectGeneratorFlight::generate(UAVObjectParser* parser,QString templatepath,QString outputpath) {
+bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templatepath,QString outputpath) {
 
     fieldTypeStrC << "int8_t" << "int16_t" << "int32_t" <<"uint8_t"
             <<"uint16_t" << "uint32_t" << "float" << "uint8_t";
@@ -86,7 +86,7 @@ bool UAVObjectGeneratorFlight::generate(UAVObjectParser* parser,QString template
 /**
  * Generate the Flight object files
 **/
-bool UAVObjectGeneratorFlight::process_object(ObjectInfo* info)
+bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
 {
     if (info == NULL)
         return false;

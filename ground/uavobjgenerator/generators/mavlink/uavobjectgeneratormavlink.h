@@ -24,12 +24,12 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef UAVOBJECTGENERATORFLIGHT_H
-#define UAVOBJECTGENERATORFLIGHT_H
+#ifndef UAVOBJECTGENERATORMAVLINK_H
+#define UAVOBJECTGENERATORMAVLINK_H
 
 #include "../generator_common.h"
 
-class UAVObjectGeneratorFlight
+class UAVObjectGeneratorMAVLink
 {
 public:
     bool generate(UAVObjectParser* gen,QString templatepath,QString outputpath);
