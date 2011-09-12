@@ -80,4 +80,3 @@ UsageFault_Handler2(struct cm3_frame *frame)
 	dbg_write_char('\n');
 	for (;;);
 }
-
