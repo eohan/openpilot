@@ -115,8 +115,18 @@ int32_t PX2AttitudeStart()
  */
 int32_t PX2AttitudeInitialize(void)
 {
-	// Connect settings update callback
-	//AttitudeSettingsConnectCallback(&settingsUpdatedCb);
+	AttitudeActualInitialize();
+	AttitudeRawInitialize();
+//	AttitudeSettingsInitialize();
+
+	// Initialize quaternion
+	AttitudeActualData attitude;
+	AttitudeActualGet(&attitude);
+	attitude.q1 = 1;
+	attitude.q2 = 0;
+	attitude.q3 = 0;
+	attitude.q4 = 0;
+	AttitudeActualSet(&attitude);
 
 	return 0;
 }
@@ -227,7 +237,7 @@ static void sensorTask(void *parameters)
 		}
 
 		// accumulate mag reading if available
-		if (PIOS_HMC5883_NewDataAvailable() && (mc <= MAX_SAMPLES_PER_UPDATE)) {
+		if (/*PIOS_HMC5883_NewDataAvailable() && */(mc <= MAX_SAMPLES_PER_UPDATE)) {
 			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&sb->mag[mc]);
 			sb->mag_count = mc + 1;
 		}

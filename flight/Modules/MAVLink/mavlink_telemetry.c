@@ -459,49 +459,6 @@ static void processObjEvent(UAVObjEvent * ev)
 				}
 		}
 		break;
-		case ATTITUDEACTUAL_OBJID:
-		{
-			AttitudeActualGet(&attitudeActual);
-			AttitudeRawGet(&attitudeRaw);
-
-			// Copy data
-			attitude_raw.xacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_X];
-			attitude_raw.yacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Y];
-			attitude_raw.zacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Z];
-			attitude_raw.xgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_X];
-			attitude_raw.ygyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Y];
-			attitude_raw.zgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Z];
-			attitude_raw.xmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_X];
-			attitude_raw.ymag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Y];
-			attitude_raw.zmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Z];
-
-			mavlink_msg_raw_imu_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude_raw);
-			// Copy the message to the send buffer
-			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-			// Send buffer
-			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-
-			attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
-			attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
-			attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
-
-			attitude.rollspeed  = 0;//(attitudeActual.RollSpeed/180.0f)*3.14159265f;
-			attitude.pitchspeed = 0;//(attitudeActual.PitchSpeed/180.0f)*3.14159265f;
-			attitude.yawspeed   = 0;//(attitudeActual.YawSpeed/180.0f)*3.14159265f;
-
-			mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
-			// Copy the message to the send buffer
-			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-			// Send buffer
-			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-			//
-			//				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
-			//						attitudeActual.Pitch,attitudeActual.Yaw,
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
-			break;
-		}
 		case BAROALTITUDE_OBJID:
 		{
 			BaroAltitudeGet(&baroAltitude);
@@ -612,6 +569,49 @@ static void processObjEvent(UAVObjEvent * ev)
 			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+//			break; // FIXME ON PURPOSE, NEEDS FIXING
+		}
+		//case ATTITUDEACTUAL_OBJID:
+		{
+			AttitudeActualGet(&attitudeActual);
+			AttitudeRawGet(&attitudeRaw);
+
+			// Copy data
+			attitude_raw.xacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_X];
+			attitude_raw.yacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Y];
+			attitude_raw.zacc = attitudeRaw.accels[ATTITUDERAW_ACCELS_Z];
+			attitude_raw.xgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_X];
+			attitude_raw.ygyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Y];
+			attitude_raw.zgyro = attitudeRaw.gyros[ATTITUDERAW_GYROS_Z];
+			attitude_raw.xmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_X];
+			attitude_raw.ymag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Y];
+			attitude_raw.zmag = attitudeRaw.magnetometers[ATTITUDERAW_MAGNETOMETERS_Z];
+
+			mavlink_msg_raw_imu_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude_raw);
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+
+			attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
+			attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
+			attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
+
+			attitude.rollspeed  = 0;//(attitudeActual.RollSpeed/180.0f)*3.14159265f;
+			attitude.pitchspeed = 0;//(attitudeActual.PitchSpeed/180.0f)*3.14159265f;
+			attitude.yawspeed   = 0;//(attitudeActual.YawSpeed/180.0f)*3.14159265f;
+
+			mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
+			// Copy the message to the send buffer
+			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			//
+			//				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
+			//						attitudeActual.Pitch,attitudeActual.Yaw,
+			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
+			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
+			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
 			break;
 		}
 		case GPSPOSITION_OBJID:
