@@ -47,9 +47,6 @@ extern void msheap_init(void *base, void *limit);
 /**
  * Allocate memory from the heap.
  *
- * Note that zero-sized allocations are legal, and will correctly
- * result in two markers immediately adjacent to one another.
- *
  * @param   size        The number of bytes required (more may be allocated).
  */
 extern void *msheap_alloc(uint32_t size);

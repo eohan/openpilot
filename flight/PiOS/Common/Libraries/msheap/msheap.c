@@ -34,7 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#include <stdint.h>
 #include "msheap.h"
 
 /*
@@ -241,14 +240,6 @@ msheap_init(void *base, void *limit)
     region_check(heap_limit);
 }
 
-/**
- * Allocate memory from the heap.
- *
- * @note Zero-sized allocations are legal, and will correctly
- * result in two markers immediately adjacent to one another.
- *
- * @param   size        The number of bytes required (more may be allocated).
- */
 void *
 msheap_alloc(uint32_t size)
 {
@@ -274,8 +265,8 @@ restart:
 
         ASSERT(1, region_check(cursor));
 
-        /* if the region is free */
-        if (cursor->next.free) {
+        /* if the region is free and large enough */
+        if ((cursor->next.free) && (cursor->next.size >= size)) {
 
             /* if we have no candidate, or the new one is smaller, take it */
             if (!best || (cursor->next.size < best->next.size))
@@ -309,11 +300,6 @@ restart:
     return (void *)(best + 1);
 }
 
-/**
- * Free memory back to the heap.
- *
- * @param   ptr     Pointer being freed to the heap.
- */
 void
 msheap_free(void *ptr)
 {
@@ -348,14 +334,6 @@ msheap_free(void *ptr)
         free_hint = marker;
 }
 
-
-/**
- * Validate the heap.
- *
- * @note If DEBUG is defined, this will throw an assertion if the heap is corrupt.
- *
- * @return          0 if the heap is corrupt, nonzero if it is OK.
- */
 int
 msheap_check(void)
 {
@@ -382,14 +360,6 @@ msheap_check(void)
     return 1;
 }
 
-/**
- * Walk the heap
- *
- * @param   callback    Called for each allocation in the heap.
- *                      The ptr argument gives the allocated address or
- *                      the free region address, size is the region size 
- *                      in bytes and free is nonzero if the region is free.
- */
 void
 msheap_walk(void (* callback)(void *ptr, uint32_t size, int free))
 {
@@ -404,22 +374,12 @@ msheap_walk(void (* callback)(void *ptr, uint32_t size, int free))
     }
 }
 
-/**
- * Return the amount of free space in the heap.
- *
- * @return          The total number of bytes available for allocation.
- */
 uint32_t
 msheap_free_space(void)
 {
     return heap_free * marker_size;
 }
 
-/**
- * Extend the heap.
- *
- * @param   size        The size of the extension in bytes.
- */
 void
 msheap_extend(uint32_t size)
 {

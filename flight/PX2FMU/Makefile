@@ -74,7 +74,6 @@ PIOSSTM32F2XX = $(PIOS)/STM32F2xx
 PIOSSTM32F2XXINC = $(PIOSSTM32F2XX)/inc
 PIOSCOMMON = $(PIOS)/Common
 PIOSCOMMONLIB = $(PIOS)/Common/Libraries
-ZALLOCLIB = $(PIOSCOMMONLIB)/zalloc
 PIOSBOARDS = $(PIOS)/Boards
 APPLIBDIR = $(PIOSSTM32F2XX)/Libraries
 STMLIBDIR = $(APPLIBDIR)
@@ -225,9 +224,8 @@ SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
 #SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
 
 ## Better malloc/free
-SRC += $(ZALLOCLIB)/malloc.c
-SRC += $(ZALLOCLIB)/zalloc.c
-SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
+SRC += $(PIOSCOMMONLIB)/msheap/msheap.c
+SRC += $(PIOSCOMMONLIB)/msheap/pios_msheap.c
 
 ## Dosfs file system
 SRC += $(DOSFSDIR)/dosfs.c
@@ -287,7 +285,6 @@ EXTRAINCDIRS  += $(RTOSINCDIR)
 EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 EXTRAINCDIRS  += $(PYMITEINC)
-EXTRAINCDIRS  += $(ZALLOCLIB)
 
 EXTRAINCDIRS += ${foreach MOD, ${MODULES} ${PYMODULES}, $(OPMODULEDIR)/${MOD}/inc} ${OPMODULEDIR}/System/inc
 
