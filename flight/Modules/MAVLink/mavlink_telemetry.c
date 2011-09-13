@@ -303,6 +303,9 @@ int32_t MAVLinkInitialize(void)
 	// Initialize waypoint protocol
 	mavlink_wpm_init(&wpm);
 
+	// Start specific update rates
+
+
 	// Create periodic event that will be used to update the telemetry stats
 	txErrors = 0;
 	txRetries = 0;
@@ -544,19 +547,31 @@ static void processObjEvent(UAVObjEvent * ev)
 			switch (flightStatus.FlightMode)
 			{
 			case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
-				base_mode = MAV_MODE_MANUAL;
+				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
+				{
+					base_mode = MAV_MODE_MANUAL_ARMED;
+				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
 				base_mode = MAV_MODE_PREFLIGHT;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED1:
-				base_mode = MAV_MODE_STABILIZE;
+				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
+				{
+					base_mode = MAV_MODE_STABILIZE_ARMED;
+				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED2:
-				base_mode = MAV_MODE_GUIDED;
+				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
+				{
+					base_mode = MAV_MODE_GUIDED_ARMED;
+				}
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED3:
-				base_mode = MAV_MODE_AUTO;
+				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
+				{
+					base_mode = MAV_MODE_AUTO_ARMED;
+				}
 				break;
 
 			}
@@ -592,7 +607,7 @@ static void processObjEvent(UAVObjEvent * ev)
 
 
 
-			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0, 0);
+			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0);
 			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
 			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
@@ -625,7 +640,7 @@ static void processObjEvent(UAVObjEvent * ev)
 		{
 			PositionActualData pos;
 			PositionActualGet(&pos);
-			mavlink_local_position_t m_pos;
+			mavlink_local_position_ned_t m_pos;
 			m_pos.time_boot_ms = 0;
 			m_pos.x = pos.North;
 			m_pos.y = pos.East;
@@ -634,7 +649,7 @@ static void processObjEvent(UAVObjEvent * ev)
 			m_pos.vy = 0.0f;
 			m_pos.vz = 0.0f;
 
-			mavlink_msg_local_position_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &m_pos);
+			mavlink_msg_local_position_ned_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &m_pos);
 
 			// Copy the message to the send buffer
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
@@ -792,10 +807,16 @@ static void telemetryRxTask(void *parameters)
 
 					switch (mode.base_mode)
 					{
-					case MAV_MODE_MANUAL:
+					case MAV_MODE_MANUAL_ARMED:
 					{
 						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
 						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
+					}
+					break;
+					case MAV_MODE_MANUAL_DISARMED:
+					{
+						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_MANUAL;
+						flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
 					}
 					break;
 					case MAV_MODE_PREFLIGHT:
@@ -803,19 +824,19 @@ static void telemetryRxTask(void *parameters)
 						flightStatus.Armed = FLIGHTSTATUS_ARMED_DISARMED;
 					}
 					break;
-					case MAV_MODE_STABILIZE:
+					case MAV_MODE_STABILIZE_ARMED:
 					{
 						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED1;
 						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
 					}
 					break;
-					case MAV_MODE_GUIDED:
+					case MAV_MODE_GUIDED_ARMED:
 					{
 						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED2;
 						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
 					}
 					break;
-					case MAV_MODE_AUTO:
+					case MAV_MODE_AUTO_ARMED:
 					{
 						flightStatus.FlightMode = FLIGHTSTATUS_FLIGHTMODE_STABILIZED3;
 						flightStatus.Armed = FLIGHTSTATUS_ARMED_ARMED;
