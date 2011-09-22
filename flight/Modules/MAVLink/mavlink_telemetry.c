@@ -407,7 +407,7 @@ static uint32_t lastOperatorHeartbeat = 0;
  */
 static void processObjEvent(UAVObjEvent * ev)
 {
-	//	UAVObjMetadata metadata;
+		UAVObjMetadata metadata;
 	//	FlightTelemetryStatsData flightStats;
 	//	GCSTelemetryStatsData gcsTelemetryStatsData;
 	//	int32_t retries;
@@ -420,6 +420,15 @@ static void processObjEvent(UAVObjEvent * ev)
 	} else if (ev->obj == TelemetrySettingsHandle()) {
 		updateSettings();
 	} else {
+
+		// Get object metadata
+		UAVObjGetMetadata(ev->obj, &metadata);
+
+		// If this is a metaobject then make necessary telemetry updates
+		if (UAVObjIsMetaobject(ev->obj)) {
+			updateObject(UAVObjGetLinkedObj(ev->obj));	// linked object will be the actual object the metadata are for
+		}
+
 		mavlink_message_t msg;
 
 		mavlink_system.sysid = 20;
@@ -429,11 +438,8 @@ static void processObjEvent(UAVObjEvent * ev)
 
 		AlarmsClear(SYSTEMALARMS_ALARM_TELEMETRY);
 
-
-		uint32_t objId;
-
 		// Setup type and object id fields
-		objId = UAVObjGetID(ev->obj);
+		uint32_t objId = UAVObjGetID(ev->obj);
 
 		//		uint64_t timeStamp = 0;
 		switch(objId) {
@@ -569,9 +575,9 @@ static void processObjEvent(UAVObjEvent * ev)
 			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-//			break; // FIXME ON PURPOSE, NEEDS FIXING
+			break;
 		}
-		//case ATTITUDEACTUAL_OBJID:
+		case ATTITUDEACTUAL_OBJID:
 		{
 			AttitudeActualGet(&attitudeActual);
 			AttitudeRawGet(&attitudeRaw);
