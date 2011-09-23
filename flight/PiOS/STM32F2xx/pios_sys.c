@@ -33,23 +33,39 @@
 /* Project Includes */
 #include "pios.h"
 
+#include "stm32f2xx_rcc.h"
+#include "stm32f2xx_flash.h"
+
 #if defined(PIOS_INCLUDE_SYS)
 
 /* Private Function Prototypes */
 static void NVIC_Configuration(void);
+static int	PIOS_SYS_ClockInit(const struct pios_clock_cfg *cfg) __attribute__((used));
+
+#if defined(PIOS_CLOCK_CONFIG_BYPASS)
+static struct pios_clock_cfg	*clk_cfg = NULL;
+#else
+# if !defined(PIOS_CLOCK_CONFIG)
+#  error Must define PIOS_CLOCK_CONFIG or PIOS_CLOCK_CONFIG_BYPASS
+# endif
+extern struct pios_clock_cfg PIOS_CLOCK_CONFIG;
+static struct pios_clock_cfg *clk_cfg = &PIOS_CLOCK_CONFIG;
+#endif
 
 /**
 * Initialises all system peripherals
 */
 void PIOS_SYS_Init(void)
 {
-	/* Setup STM32 system (RCC, clock, PLL and Flash configuration) - CMSIS Function */
-	SystemInit();
-	SystemCoreClockUpdate();	/* update SystemCoreClock for use elsewhere */
-	/*
-	 * @todo might make sense to fetch the bus clocks and save them somewhere to avoid
-	 * having to use the clunky get-all-clocks API everytime we need one.
-	 */
+	/* do clock and clock-related initialisation */
+	PIOS_SYS_ClockInit(clk_cfg);
+
+	/* enable the flash prefetch and caches */
+	FLASH_PrefetchBufferCmd(ENABLE);
+	FLASH_InstructionCacheReset();
+	FLASH_InstructionCacheCmd(ENABLE);
+	FLASH_DataCacheReset();
+	FLASH_DataCacheCmd(ENABLE);
 
 	/* Init the delay system */
 	PIOS_DELAY_Init();
@@ -266,6 +282,70 @@ static void NVIC_Configuration(void)
 	/* Configure HCLK clock as SysTick clock source. */
 	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
 }
+
+
+uint32_t	SystemCoreClock = 16000000;	// sensible default for startup conditions
+
+/*
+ * Simplified clock init for F2xx and F4xx devices.
+ *
+ * Always assumes that the PLL will be used.
+ *
+ * @param			The desired clock configuration.
+ * @return			Zero if the clock(s) started correctly.
+ */
+static int
+PIOS_SYS_ClockInit(const struct pios_clock_cfg *cfg)
+{
+	/* restore RCC to a sane state */
+	RCC_DeInit();
+
+	/* if we don't have a clock configuration structure, leave the clock (HSI) alone */
+	if (cfg == NULL)
+		return 0;
+
+	/* set flash latency for the eventual PLL clock */
+	FLASH_SetLatency(cfg->flash_latency);
+
+	/* configure bus prescalers */
+	RCC_HCLKConfig(cfg->hclk_prescale);
+	RCC_PCLK1Config(cfg->pclk1_prescale);
+	RCC_PCLK2Config(cfg->pclk2_prescale);
+
+	/* HSI has fixed frequency and prescale */
+	if (cfg->source == RCC_PLLSource_HSI) {
+		/* HSI (internal clock) is always running - nothing to do here */
+	} else {
+
+		/* start the HSE (external oscillator) and wait for it to stabilise */
+		RCC_HSEConfig(RCC_HSE_ON);
+		if (!RCC_WaitForHSEStartUp()) {
+			return -1;
+		}
+	}
+
+	/* configure the PLL */
+	RCC_PLLConfig(cfg->source, cfg->pll_m, cfg->pll_n, cfg->pll_p, cfg->pll_q);
+
+	/* start the PLL and wait for it */
+	RCC_PLLCmd(ENABLE);
+	while (!RCC_GetFlagStatus(RCC_FLAG_PLLRDY)) {
+	}
+
+	/* switch the system clock to the PLL */
+	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
+
+	/* and update the SystemCoreClock value */
+	SystemCoreClock = cfg->refclock_frequency / cfg->pll_m * cfg->pll_n / cfg->pll_p / cfg->hclk_prescale;
+
+	/*
+	 * @todo might make sense to fetch the bus clocks and save them somewhere to avoid
+	 * having to use the clunky get-all-clocks API everytime we need one.
+	 */
+
+	return 0;
+}
+
 
 #ifdef USE_FULL_ASSERT
 /**

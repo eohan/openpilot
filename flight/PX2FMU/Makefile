@@ -191,7 +191,6 @@ SRC += $(FLIGHTLIB)/CoordinateConversions.c
 ## CMSIS for STM32
 # XXX  should just link with a .a
 SRC += $(CMSISDIR)/core_cm3.c
-SRC += $(CMSISDIR)/system_stm32f2xx.c
 
 ## Used parts of the STM-Library
 # XXX  should just link with a .a

@@ -41,7 +41,8 @@ _main(void)
 {
 	asm volatile ("mov r10, %0" : : "r" (&irq_stack[0]) : );
 
-	//*(volatile unsigned long*)0xe000ed24 = 3 << 17;
+	/* enable additional faults for more info */
+	*(volatile unsigned long*)0xe000ed24 = 3 << 17;
 
 	/* copy initialised data from flash to RAM */
 	memcpy(&_sdata, &_sidata, &_edata - &_sdata);

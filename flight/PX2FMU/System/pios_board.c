@@ -49,6 +49,38 @@
 #define PIOS_COM_CONTROL_RX_BUF_LEN		96
 #define PIOS_COM_CONTROL_TX_BUF_LEN		96
 
+/*
+ * Clocking
+ *
+ * Note that it would be nice to run the F2 with a 2MHz PLL input, but the VCO output
+ * needs to be 240MHz if we are to have a USB clock, and the STM32 RCC driver (erroneously)
+ * confuses the PLL_N constraint with the VCO output frequency constraint.
+ */
+const struct pios_clock_cfg px2fmu_clock_config = {
+		.source				= RCC_PLLSource_HSE,
+		.refclock_frequency = HSE_VALUE,
+		.pll_m				= HSE_VALUE / 2000000,	// assumes HSE_VALUE is whole number of MHz, gives 1MHz PLL input
+		.pll_n				= 240,					// gives 240MHz VCO output
+		.pll_p				= 2,					// gives 120MHz SYSCLK
+		.pll_q				= 5,					// gives 48MHz USB clock
+		.hclk_prescale		= RCC_SYSCLK_Div1,		// AHB at 120MHz
+		.pclk1_prescale		= RCC_HCLK_Div4,		// APB1 at 30MHz
+		.pclk2_prescale		= RCC_HCLK_Div2,		// APB2 at 60MHz
+		.flash_latency		= FLASH_Latency_5,		// for 3.3V operation
+};
+
+const struct pios_clock_cfg px4fmu_clock_config = {
+		.source				= RCC_PLLSource_HSE,
+		.refclock_frequency = HSE_VALUE,
+		.pll_m				= HSE_VALUE / 2000000,	// assumes HSE_VALUE is an even number of MHz, gives 2MHz PLL input
+		.pll_n				= 168,					// gives 336MHz VCO output
+		.pll_p				= 2,					// gives 168MHz SYSCLK
+		.pll_q				= 7,					// gives 48MHz USB clock
+		.hclk_prescale		= RCC_SYSCLK_Div1,		// AHB at 168MHz
+		.pclk1_prescale		= RCC_HCLK_Div4,		// APB1 at 42MHz
+		.pclk2_prescale		= RCC_HCLK_Div2,		// APB2 at 84MHz
+		.flash_latency		= FLASH_Latency_7,		// for 3.3V operation
+};
 
 /* XXX this should be more comprehensively abstracted */
 void PIOS_SPI_main_irq_handler(void);

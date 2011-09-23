@@ -51,6 +51,11 @@
 #define BOARD_WRITABLE			TRUE
 
 //------------------------
+// Clock configuration
+//------------------------
+#define PIOS_CLOCK_CONFIG				px2fmu_clock_config
+
+//------------------------
 // WATCHDOG_SETTINGS
 //------------------------
 #define PIOS_WATCHDOG_TIMEOUT	250

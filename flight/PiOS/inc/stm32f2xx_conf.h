@@ -53,6 +53,48 @@
 #include "misc.h" /* High level functions for NVIC and SysTick (add-on to CMSIS functions) */
 
 /* Exported types ------------------------------------------------------------*/
+struct pios_clock_cfg {
+	/**
+	 * RCC_PLLSource_HSI always selects HSI as the PLL
+	 * clock source.  RCC_PLLSource_HSE selects HSE (the external
+	 * crystal oscillator).
+	 */
+	uint32_t source;
+
+	/**
+	 * The reference clock frequency, not required if
+	 * source is RCC_PLLSource_HSI (always 16MHz).
+	 *
+	 * This is the frequency of the HSE external clock.
+	 */
+	uint32_t refclock_frequency;
+
+	/**
+	 * The PLL terms.
+	 *
+	 * See the SoC reference manual and datasheet for more details.  In summary:
+	 * - refclock_frequency / pll_m must be 1-2MHz, closer to 2MHz is better.
+	 * - refclock_frequency / pll_m * pll_n must be within the allowed PLL VCO range
+	 * - refclock_frequency / pll_m * pll_n / pll_p is SYSCLK
+	 * - refclock_frequency / pll_m * pll_n / pll_q must be 48MHz for USB to work
+	 */
+	uint32_t pll_m;
+	uint32_t pll_n;
+	uint32_t pll_p;
+	uint32_t pll_q;
+
+	/** Divider from SYSCLK to HCLK, a value from RCC_SYSCLK_Div* */
+	uint32_t hclk_prescale;
+
+	/** Divider from HCLK to PCLK1, a value from RCC_HCLK_Div* */
+	uint32_t pclk1_prescale;
+
+	/** Divider from HCLK to PCLK2, a value from RCC_HCLK_Div* */
+	uint32_t pclk2_prescale;
+
+	/** Flash memory waitstates as required for HCLK, a value from FLASH_Latency_* */
+	uint32_t flash_latency;
+};
 /* Exported constants --------------------------------------------------------*/
 
 /* If an external clock source is used, then the value of the following define 
