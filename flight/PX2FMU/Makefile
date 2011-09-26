@@ -51,7 +51,8 @@ FLASH_TOOL = OPENOCD
 # List of modules to include
 MODULES = PX2Attitude Actuator Stabilization ManualControl Altitude GPS Guidance # Batt module is crashing: Battery
 # Telemetry must be last to grab the optional modules
-MODULES += MAVLink #Telemetry
+MODULES += MAVLink
+#MODULES += Telemetry
 #MODULES = Telemetry Actuator Stabilization ManualControl Altitude Guidance GPS
 PYMODULES = FlightPlan
 #MODULES = PX2Test
