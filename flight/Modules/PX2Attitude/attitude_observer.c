@@ -158,12 +158,14 @@ void attitude_observer_get_angles(float_vect3* angles, float_vect3* angular_rate
 	float_vect3 accel_rot = { state_accel.y, state_accel.x, -state_accel.z };
 
 	angles->x = atan2(-accel_rot.y, -accel_rot.z);
-	angles->y = asin(accel_rot.x / 9.81f);
+	//angles->y = asin(accel_rot.x / 9.81f);
+	angles->y = asin(accel_rot.x);
 
-//	float x = cos(angles->y) * state_magnet.x + sin(angles->x) * sin(angles->y)
-//			* state_magnet.y + cos(angles->x) * sin(angles->y) * state_magnet.z;
-//	float y = cos(angles->x) * state_magnet.y - sin(angles->x) * state_magnet.z;
-//	angles->z = atan2(x, y);
+	float x = cos(angles->y) * state_magnet.x + sin(angles->x) * sin(angles->y)
+			* state_magnet.y + cos(angles->x) * sin(angles->y) * state_magnet.z;
+	float y = cos(angles->x) * state_magnet.y - sin(angles->x) * state_magnet.z;
+	angles->z = atan2(y, x);
+	//angles->z=angles->y;
 
 	// write out the offset corrected body angular rates. Also change the coordinate system.
 	angular_rates->x =  (state_gyro.y - state_gyro_offset.y);
