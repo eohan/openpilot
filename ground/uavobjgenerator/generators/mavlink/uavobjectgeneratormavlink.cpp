@@ -35,7 +35,7 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
 
     QString flightObjInit,objInc,objFileNames,objNames;
     flightCodePath = QDir( templatepath + QString("flight/UAVObjects"));
-    flightOutputPath = QDir( outputpath + QString("flight") );
+    flightOutputPath = QDir( outputpath + QString("flight_adapter") );
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
 
     flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjecttemplate.c") );

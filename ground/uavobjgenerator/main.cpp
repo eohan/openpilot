@@ -104,10 +104,11 @@ int main(int argc, char *argv[])
     bool do_flight=(arguments_stringlist.removeAll("-flight")>0);
     bool do_java=(arguments_stringlist.removeAll("-java")>0);
     bool do_python=(arguments_stringlist.removeAll("-python")>0);
+    bool do_mavlink=(arguments_stringlist.removeAll("-mavlink")>0);
     bool do_matlab=(arguments_stringlist.removeAll("-matlab")>0);
     bool do_none=(arguments_stringlist.removeAll("-none")>0); //
 
-    bool do_all=((do_gcs||do_flight||do_java||do_python||do_matlab)==false);
+    bool do_all=((do_gcs||do_flight||do_java||do_python||do_matlab||do_mavlink)==false);
     bool do_allObjects=true;
 
     if (arguments_stringlist.length() >= 2) {
@@ -223,6 +224,13 @@ int main(int argc, char *argv[])
         cout << "generating python code" << endl ;
         UAVObjectGeneratorPython pygen;
         pygen.generate(parser,templatepath,outputpath);
+    }
+
+    // generate mavlink adapter code if wanted
+    if (do_mavlink|do_all) {
+        cout << "generating mavlink settings adapter code" << endl ;
+        UAVObjectGeneratorMAVLink mavlinkgen;
+        mavlinkgen.generate(parser,templatepath,outputpath);
     }
 
     // generate matlab code if wanted
