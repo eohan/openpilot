@@ -10,9 +10,9 @@
 
 *.pnproj
 *.pnps
-*.cproject
+.cproject
 *.metadata
-*.project
+.project
 *.settings
 build
 
