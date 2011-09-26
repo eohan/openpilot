@@ -11,7 +11,7 @@
 *.pnproj
 *.pnps
 .cproject
-*.metadata
+.metadata
 .project
 *.settings
 build
