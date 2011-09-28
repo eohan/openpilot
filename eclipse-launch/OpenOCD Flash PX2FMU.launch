@@ -5,6 +5,6 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE" value="${none}"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="${workspace_loc:/openpilot-flight/tools/openocd/bin/openocd}"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="--search flight/Project/OpenOCD -f olimex-jtag-tiny.cfg -f stm32f2x.cfg  -c init -c &quot;reset halt&quot; &#10;                         -c &quot;flash write_image erase build/fw_px2fmu/fw_px2fmu.elf&quot; -c &quot;reset run&quot; -c shutdown"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="--search flight/Project/OpenOCD -f olimex-jtag-tiny.cfg -f stm32f2x.cfg  -c init -c &quot;reset halt&quot; &#10;                         -c &quot;flash write_image build/fw_px2fmu/fw_px2fmu.elf&quot; -c &quot;reset run&quot; -c shutdown"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY" value="${workspace_loc:/openpilot-flight}"/>
 </launchConfiguration>
