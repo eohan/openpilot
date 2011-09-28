@@ -17,7 +17,6 @@
 
  ****************************************************************************/
 
-#include "testing/mavlink_missionlib_data.h"
 #include "mavlink_parameters_openpilot.h"
 #include "mavlink_settings_adapter.h"
 #include "math.h" /* isinf / isnan checks */
@@ -215,10 +214,10 @@ void mavlink_pm_queued_send(void)
 	//send parameters one by one
 	if (next_param < getParamCount())
 	{
+		mavlink_param_union_t param;
 		//for (int i.. all active comm links)
 #ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 		mavlink_message_t tx_msg;
-		mavlink_param_union_t param;
 		uint8_t ret = getParamByIndex(next_param, &param);
 		if (ret != MAVLINK_RET_VAL_PARAM_SUCCESS)
 		{

@@ -9,6 +9,8 @@
 #define MAVLINK_HELPER
 #endif
 
+extern mavlink_system_t mavlink_system;
+
 /*
   internal function to give access to the channel status for each channel
  */
@@ -469,19 +471,23 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
 }
  */
 
+#ifndef mavlink_send_uart_bytes
+void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t* buffer, uint16_t len);
+#endif
+
 MAVLINK_HELPER void _mavlink_send_uart(mavlink_channel_t chan, const char *buf, uint16_t len)
 {
-#ifdef MAVLINK_SEND_UART_BYTES
-	/* this is the more efficient approach, if the platform
-	   defines it */
-	MAVLINK_SEND_UART_BYTES(chan, (uint8_t *)buf, len);
-#else
-	/* fallback to one byte at a time */
-	uint16_t i;
-	for (i = 0; i < len; i++) {
-		comm_send_ch(chan, (uint8_t)buf[i]);
-	}
-#endif
+//#ifdef MAVLINK_SEND_UART_BYTES
+//	/* this is the more efficient approach, if the platform
+//	   defines it */
+	mavlink_send_uart_bytes(chan, (uint8_t *)buf, len);
+//#else
+//	/* fallback to one byte at a time */
+//	uint16_t i;
+//	for (i = 0; i < len; i++) {
+//		comm_send_ch(chan, (uint8_t)buf[i]);
+//	}
+//#endif
 }
 #endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
 

@@ -37,7 +37,7 @@
 #include "mavlink_settings_adapter.h"
 
 #include "openpilot.h"
-#include "mavlink.h"
+#include "mavlink_types.h"
 
 // START INCLUSION OF SETTINGS HEADERS
 #include "actuatorsettings.h"

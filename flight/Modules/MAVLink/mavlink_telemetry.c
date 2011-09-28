@@ -100,6 +100,9 @@ static void gcsTelemetryStatsUpdated();
 static void updateSettings();
 
 #include "mavlink_types.h"
+mavlink_system_t mavlink_system;
+
+#include "mavlink_send_bridge.h"
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -111,43 +114,10 @@ static void updateSettings();
 
    Lines also in your main.c, e.g. by reading these parameter from EEPROM.
  */
-mavlink_system_t mavlink_system;
 static mavlink_message_t rx_msg;
 //static mavlink_message_t tx_msg;
 static mavlink_status_t rx_status;
 static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
-
-/**
- * @brief Send one char (uint8_t) over a comm channel
- *
- * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
- * @param ch Character to send
- */
-static inline void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t* buffer, uint16_t len)
-{
-    if (chan == MAVLINK_COMM_0)
-    {
-    	uint32_t outputPort;
-
-    	// Determine input port (USB takes priority over telemetry port)
-    #if defined(PIOS_INCLUDE_USB_HID)
-    	if (PIOS_USB_HID_CheckAvailable(0)) {
-    		outputPort = PIOS_COM_TELEM_USB;
-    	} else
-    #endif /* PIOS_INCLUDE_USB_HID */
-    	{
-    		outputPort = telemetryPort;
-    	}
-
-    	PIOS_COM_SendBufferNonBlocking(outputPort, buffer, len);
-    }
-    if (chan == MAVLINK_COMM_1)
-    {
-    	PIOS_COM_SendBufferNonBlocking(PIOS_COM_AUX, buffer, len);
-    }
-}
-
-#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
 
 #include "common/mavlink.h"
 #include "mavlink_settings_adapter.h"
@@ -552,12 +522,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				break;
 			}
 
-			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
-			//mavlink_msg_cpu_load_pack(mavlink_system.sysid, mavlink_system.compid, &msg,ucCpuLoad,ucCpuLoad,0);
-			// Copy the message to the send buffer
-			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-			// Send buffer
-			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			mavlink_msg_heartbeat_send(MAVLINK_COMM_0, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
 
 			uint8_t ucCpuLoad;
 			SystemStatsCPULoadGet(&ucCpuLoad);
@@ -565,16 +530,7 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint16_t current_battery = 0;
 			uint8_t watt = 0;
 			int8_t battery_percent = -1;
-
-
-
-
-
-			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0);
-			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
-			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-			// Send buffer
-			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0);
 			break;
 		}
 		case ATTITUDEACTUAL_OBJID:
