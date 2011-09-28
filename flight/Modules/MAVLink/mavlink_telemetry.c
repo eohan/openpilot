@@ -53,7 +53,7 @@
 
 // Private constants
 #define MAX_QUEUE_SIZE   MAVLINK_QUEUE_SIZE
-#define STACK_SIZE_BYTES PIOS_MAVLINK_STACK_SIZE
+#define STACK_SIZE_BYTES (PIOS_MAVLINK_STACK_SIZE)
 #define TASK_PRIORITY_RX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_TX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_STATE_MACHINE (tskIDLE_PRIORITY + 2)
@@ -103,6 +103,7 @@ static void updateSettings();
 mavlink_system_t mavlink_system;
 
 #include "mavlink_send_bridge.h"
+#include "mavlink_debug.h"
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -137,6 +138,7 @@ mavlink_wpm_storage wpm;
 
 #include "mavlink_missionlib_data.h"
 #include "mavlink_parameters.h"
+
 
 /* Provide the interface functions for the waypoint manager */
 
@@ -531,6 +533,22 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint8_t watt = 0;
 			int8_t battery_percent = -1;
 			mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0);
+
+			static float i=0;
+			i++;
+//			debug_message_buffer_sprintf("Hallo %03d",i);
+//			debug_message_buffer_sprintf("Hallo %03d",i);
+//			debug_message_buffer_sprintf("Hallo %03d",i);
+			debug_message_buffer("Hallo Test1");
+			debug_message_buffer("Hallo Test2");
+			debug_message_buffer("Hallo Test3");
+			debug_message_buffer("Hallo Test4");
+			debug_message_buffer("Hallo Test5");
+			debug_message_buffer("Hallo Test6");
+			debug_message_send_one();
+			debug_vect("test2",i,i,2*i);
+			debug_vect("test",i,i,2*i);
+			debug_vect("test",i,i,2*i);
 			break;
 		}
 		case ATTITUDEACTUAL_OBJID:
