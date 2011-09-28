@@ -203,7 +203,7 @@ void attitude_tobi_laurens_init(void)
 
 }
 
-void attitude_tobi_laurens(void)
+void attitude_tobi_laurens(const float_vect3 *accel, const float_vect3 *mag, const float_vect3 *gyro)
 {
 	//Transform accelerometer used in all directions
 	//	float_vect3 acc_nav;
@@ -221,11 +221,11 @@ void attitude_tobi_laurens(void)
 	m_elem measurement[9] =
 	{ };
 	m_elem mask[9] =
-	{ 1, 1, 1, 0, 0, 0, 1, 1, 1 };
+	{ 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
-	float_vect3 acc;
-	float_vect3 mag;
-	float_vect3 gyro;
+//	float_vect3 acc;
+//	float_vect3 mag;
+//	float_vect3 gyro;
 
 
 
@@ -259,37 +259,38 @@ void attitude_tobi_laurens(void)
 
 
 
-	measurement[0] = acc.x;
-	measurement[1] = acc.y;
-	measurement[2] = acc.z;
+	measurement[0] = accel->x;
+	measurement[1] = accel->y;
+	measurement[2] = accel->z;
 
-	measurement[3] = mag.x;
-	measurement[4] = mag.y;
-	measurement[5] = mag.z;
+	measurement[3] = mag->x;
+	measurement[4] = mag->y;
+	measurement[5] = mag->z;
 
-	measurement[6] = gyro.x;
-	measurement[7] = gyro.y;
-	measurement[8] = gyro.z;
+	measurement[6] = gyro->x;
+	measurement[7] = gyro->y;
+	measurement[8] = gyro->z;
 
 	//Put measurements into filter
 
 
-	static int j = 0;
-	if (j >= 3)
-	{
-		j = 0;
-
-		mask[3]=1;
-		mask[4]=1;
-		mask[5]=1;
-		j=0;
-
-	}else{
-		j++;}
+//	static int j = 0;
+//	if (j >= 3)
+//	{
+//		j = 0;
+//
+//		mask[3]=1;
+//		mask[4]=1;
+//		mask[5]=1;
+//		j=0;
+//
+//	}else{
+//		j++;}
 
 	kalman_correct(&attitude_tobi_laurens_kal, measurement, mask);
 
-
+}
+void attitude_tobi_laurens_get_euler(float_vect3 * angles){
 	//debug
 
 	// save outputs
@@ -332,9 +333,9 @@ void attitude_tobi_laurens(void)
 
 
 	//save euler angles
-//	global_data.attitude.x = atan2(z_n_b.y, z_n_b.z);
-//	global_data.attitude.y = -asin(z_n_b.x);
-//	global_data.attitude.z = atan2(y_n_b.x, x_n_b.x);
+	angles->x = atan2(z_n_b.y, z_n_b.z);
+	angles->y = -asin(z_n_b.x);
+	angles->z = atan2(y_n_b.x, x_n_b.x);
 
 	//save state omega
 //	global_data.omega_si.x=kal_w.x;

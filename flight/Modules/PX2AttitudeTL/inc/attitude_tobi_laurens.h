@@ -19,6 +19,7 @@ void attitude_tobi_laurens_update_a(void);
 
 void attitude_tobi_laurens_init(void);
 
-void attitude_tobi_laurens(void);
+void attitude_tobi_laurens(const float_vect3 *accel, const float_vect3 *mag, const float_vect3 *gyro);
 
+void attitude_tobi_laurens_get_euler(float_vect3 * angles);
 #endif /* ATTITUDE_TOBI_LAURENS_H_ */

@@ -55,7 +55,8 @@
 #include "attitudesettings.h"
 #include "flightstatus.h"
 #include "CoordinateConversions.h"
-#include "attitude_observer.h"
+//#include "attitude_observer.h"
+#include "attitude_tobi_laurens.h"
 
 #include "pios_i2c_esc.h"
 
@@ -155,9 +156,10 @@ static void attitudeTask(void *parameters)
 	vTaskDelay(1);
 
 	// initialize observer
-	float_vect3 accel_init = {0,0,9.81};
-	float_vect3 mag_init = {0,0,0};
-	attitude_observer_init(accel_init,mag_init);
+//	float_vect3 accel_init = {0,0,9.81};
+//	float_vect3 mag_init = {0,0,0};
+//	attitude_observer_init(accel_init,mag_init);
+	attitude_tobi_laurens_init();
 
 	// Do one-time gyro/accel calibration here (?)
 	// Load saved bias values, etc (?)
@@ -373,19 +375,23 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	mag.z = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] - MAG_OFFSET_Z) / MAG_SCALE_Z;
 #endif
 
+	attitude_tobi_laurens(&accel, &mag, &gyro);
+
+
+//	attitude_observer_correct_accel(accel, 1/200.0f);
+//
+//#if 1
+//	attitude_observer_correct_magnet(mag, 1/200.0f);
+//#endif
+//
+//	attitude_observer_correct_gyro(gyro);
+
+	float_vect3 angles;//, angularRates;
+	attitude_tobi_laurens_get_euler(&angles);
+//	attitude_observer_get_angles(&angles, &angularRates);
+
+
 	AttitudeActualData attitudeActual;
-
-	attitude_observer_correct_accel(accel, 1/200.0f);
-
-#if 1
-	attitude_observer_correct_magnet(mag, 1/200.0f);
-#endif
-
-	attitude_observer_correct_gyro(gyro);
-
-	float_vect3 angles, angularRates;
-	attitude_observer_get_angles(&angles, &angularRates);
-
 	attitudeActual.Roll  = angles.x * 57.2957795f;
 	attitudeActual.Pitch = angles.y * 57.2957795f;
 	attitudeActual.Yaw   = angles.z * 57.2957795f;
@@ -396,7 +402,7 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 
 	AttitudeActualSet(&attitudeActual);
 
-	attitude_observer_predict(1/200.0f);
+	//attitude_observer_predict(1/200.0f);
 }
 
 //// Filter states
