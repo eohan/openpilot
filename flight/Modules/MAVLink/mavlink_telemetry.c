@@ -546,9 +546,9 @@ static void processObjEvent(UAVObjEvent * ev)
 			debug_message_buffer("Hallo Test5");
 			debug_message_buffer("Hallo Test6");
 //			debug_message_send_one();
-			debug_vect("test2",i,i,2*i);
-			debug_vect("test",i,i,2*i);
-			debug_vect("test",i,i,2*i);
+//			debug_vect("test2",i,i,2*i);
+//			debug_vect("test",i,i,2*i);
+//			debug_vect("test",i,i,2*i);
 			break;
 		}
 		case ATTITUDEACTUAL_OBJID:

@@ -60,6 +60,7 @@
 #include "attitude_tobi_laurens.h"
 
 #include "pios_i2c_esc.h"
+#include "mavlink_debug.h"
 
 // Private constants
 #define STACK_SIZE_BYTES		5120						// XXX re-evaluate
@@ -118,6 +119,7 @@ int32_t PX2AttitudeTLStart()
 int32_t PX2AttitudeTLInitialize(void)
 {
 	AttitudeActualInitialize();
+	//AttitudeMatrixInitialize();
 	AttitudeRawInitialize();
 //	AttitudeSettingsInitialize();
 
@@ -130,6 +132,11 @@ int32_t PX2AttitudeTLInitialize(void)
 	attitude.q4 = 0;
 	AttitudeActualSet(&attitude);
 
+	//AttitudeMatrixData attitudeMatrix;
+	//AttitudeMatrixGet(&attitudeMatrix);
+//TODO make identity matrix
+
+	//AttitudeMatrixSet(&attitudeMatrix);
 	return 0;
 }
 MODULE_INITCALL(PX2AttitudeTLInitialize, PX2AttitudeTLStart)
@@ -395,10 +402,12 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	AttitudeMatrixData attitudeMatrix;
 
 	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
+	//AttitudeMatrixSet(&attitudeMatrix);
+
 //	attitudeMatrix.Roll=tmp.x;
 //	attitudeMatrix.Pitch=tmp.y;
 //	attitudeMatrix.Yaw=tmp.z;
-
+//	debug_vect("rates",attitudeMatrix.AngularRates[0],attitudeMatrix.AngularRates[1],attitudeMatrix.AngularRates[2]);
 
 	AttitudeActualData attitudeActual;
 	attitudeActual.Roll  = attitudeMatrix.Roll * 57.2957795f;
@@ -410,6 +419,7 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	//attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
 
 	AttitudeActualSet(&attitudeActual);
+
 
 	//attitude_observer_predict(1/200.0f);
 }
