@@ -41,6 +41,7 @@
 #include "manualcontrolcommand.h"  /* Remote control / manual commands */
 #include "baroaltitude.h"          /* Pressure sensor */
 #include "attitudeactual.h"        /* Estimated attitude */
+#include "attitudematrix.h"        /* Estimated attitude */
 #include "attituderaw.h"           /* Raw attitude sensor measurements */
 #include "gpsposition.h"		   /* GPS position */
 #include "gpssatellites.h"		   /* GPS satellites */
@@ -361,6 +362,7 @@ static void updateObject(UAVObjHandle obj)
 FlightTelemetryStatsData flightStats;
 GCSTelemetryStatsData gcsTelemetryStatsData;
 static AttitudeActualData attitudeActual;
+static AttitudeMatrixData attitudeMatrix;
 static AttitudeRawData attitudeRaw;
 static BaroAltitudeData baroAltitude;
 static GPSPositionData gpsPosition;
@@ -551,9 +553,8 @@ static void processObjEvent(UAVObjEvent * ev)
 //			debug_vect("test",i,i,2*i);
 			break;
 		}
-		case ATTITUDEACTUAL_OBJID:
+		case ATTITUDERAW_OBJID:
 		{
-			AttitudeActualGet(&attitudeActual);
 			AttitudeRawGet(&attitudeRaw);
 
 			// Copy data
@@ -572,26 +573,27 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			break;
+		}
+		case ATTITUDEMATRIX_OBJID:
+		{
+			AttitudeMatrixGet(&attitudeMatrix);
 
-			attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
-			attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
-			attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
+			// Copy data
+			attitude.roll = attitudeMatrix.Roll;
+			attitude.pitch = attitudeMatrix.Pitch;
+			attitude.yaw = attitudeMatrix.Yaw;
 
-			attitude.rollspeed  = 0;//(attitudeActual.RollSpeed/180.0f)*3.14159265f;
-			attitude.pitchspeed = 0;//(attitudeActual.PitchSpeed/180.0f)*3.14159265f;
-			attitude.yawspeed   = 0;//(attitudeActual.YawSpeed/180.0f)*3.14159265f;
+			attitude.rollspeed = attitudeMatrix.AngularRates[0];
+			attitude.pitchspeed = attitudeMatrix.AngularRates[1];
+			attitude.yawspeed = attitudeMatrix.AngularRates[2];
 
-			mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
+			mavlink_msg_attitude_encode(mavlink_system.sysid,
+					mavlink_system.compid, &msg, &attitude);
 			// Copy the message to the send buffer
-			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-			//
-			//				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
-			//						attitudeActual.Pitch,attitudeActual.Yaw,
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
 			break;
 		}
 		case GPSPOSITION_OBJID:
