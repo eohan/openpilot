@@ -168,7 +168,9 @@ static void systemTask(void *parameters)
 
 		// Turn on the error LED if an alarm is set
 #if (PIOS_LED_NUM > 1)
-		if (AlarmsHasWarnings()) {
+		if (AlarmsHasErrors()) {
+			PIOS_LED_Toggle(LED2);
+		} else if (AlarmsHasWarnings())	{
 			PIOS_LED_On(LED2);
 		} else {
 			PIOS_LED_Off(LED2);
