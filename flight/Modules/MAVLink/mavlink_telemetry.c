@@ -539,16 +539,16 @@ static void processObjEvent(UAVObjEvent * ev)
 //			debug_message_buffer_sprintf("Hallo %03d",i);
 //			debug_message_buffer_sprintf("Hallo %03d",i);
 //			debug_message_buffer_sprintf("Hallo %03d",i);
-			debug_message_buffer("Hallo Test1");
-			debug_message_buffer("Hallo Test2");
-			debug_message_buffer("Hallo Test3");
-			debug_message_buffer("Hallo Test4");
-			debug_message_buffer("Hallo Test5");
-			debug_message_buffer("Hallo Test6");
-			debug_message_send_one();
-			debug_vect("test2",i,i,2*i);
-			debug_vect("test",i,i,2*i);
-			debug_vect("test",i,i,2*i);
+//			debug_message_buffer("Hallo Test1");
+//			debug_message_buffer("Hallo Test2");
+//			debug_message_buffer("Hallo Test3");
+//			debug_message_buffer("Hallo Test4");
+//			debug_message_buffer("Hallo Test5");
+//			debug_message_buffer("Hallo Test6");
+//			debug_message_send_one();
+//			debug_vect("test2",i,i,2*i);
+//			debug_vect("test",i,i,2*i);
+//			debug_vect("test",i,i,2*i);
 			break;
 		}
 		case ATTITUDEACTUAL_OBJID:
