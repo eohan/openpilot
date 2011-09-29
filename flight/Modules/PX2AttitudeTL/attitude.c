@@ -349,31 +349,33 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 }
 
 #define MAG_OFFSET_X 0
-#define MAG_OFFSET_Y 0
+#define MAG_OFFSET_Y (-200)
 #define MAG_OFFSET_Z 0
 
-#define MAG_SCALE_X 100.0f
-#define MAG_SCALE_Y 100.0f
-#define MAG_SCALE_Z 100.0f
+#define MAG_SCALE_X (0.4f*1090.0f)
+#define MAG_SCALE_Y (0.4f*1090.0f)
+#define MAG_SCALE_Z (0.4f*1090.0f)
 
 static void updateAttitude(AttitudeRawData * attitudeRaw)
 {
-	float_vect3 gyro;
-	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
-	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
-	gyro.z = attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+	//all measurement vectors need to be turn into the body frame
+	//z negative; x and y exchanged.
 
-	float_vect3 accel;
-	accel.x = attitudeRaw->accels[ATTITUDERAW_ACCELS_X] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
-	accel.y = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
-	accel.z = attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+	float_vect3 gyro; //rad/s
+	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 
-#if 1
-	float_vect3 mag;
-	mag.x = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] - MAG_OFFSET_X) / MAG_SCALE_X;
-	mag.y = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] - MAG_OFFSET_Y) / MAG_SCALE_Y;
-	mag.z = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] - MAG_OFFSET_Z) / MAG_SCALE_Z;
-#endif
+	float_vect3 accel; //length 1 = / 4096
+	accel.x = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+	accel.y = attitudeRaw->accels[ATTITUDERAW_ACCELS_X] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+	accel.z = - attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+
+	float_vect3 mag; //length 1
+	mag.x = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] - MAG_OFFSET_Y) / MAG_SCALE_Y;
+	mag.y = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] - MAG_OFFSET_X) / MAG_SCALE_X;
+	mag.z = - (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] - MAG_OFFSET_Z) / MAG_SCALE_Z;
+
 
 	attitude_tobi_laurens(&accel, &mag, &gyro);
 
