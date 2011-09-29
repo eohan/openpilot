@@ -32,6 +32,7 @@ UAVOBJSRCFILENAMES += ahrscalibration
 UAVOBJSRCFILENAMES += ahrssettings
 UAVOBJSRCFILENAMES += ahrsstatus
 UAVOBJSRCFILENAMES += attitudeactual
+UAVOBJSRCFILENAMES += attitudematrix
 UAVOBJSRCFILENAMES += attituderaw
 UAVOBJSRCFILENAMES += baroaltitude
 UAVOBJSRCFILENAMES += flightbatterysettings

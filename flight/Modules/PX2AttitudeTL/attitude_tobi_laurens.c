@@ -152,8 +152,8 @@ void attitude_tobi_laurens_init(void)
 			0   ,    0    ,   0   ,    0.015, 	0   ,    0   ,    0   ,    0   ,    0,
 			0   ,    0   ,    0   ,    0    ,   0.015, 	 0   ,    0   ,    0   ,    0,
 			0   ,    0    ,   0   ,    0    ,   0   ,    0.015, 	  0   ,    0   ,    0,
-			0.0000 , +0.000002,0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
-			-0.000002,0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
+			0.0000 , +0.00002,0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
+			-0.00002,0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
 			0,    	 0 ,	  0   ,    0,  	    0,		 0,  	  0,  	   0, 	    0,
 			0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.9 ,   0   ,    0,
 			0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.9 ,   0,
@@ -176,9 +176,9 @@ void attitude_tobi_laurens_init(void)
 
 			0, 0, 0, 0, 0, K, 0, 0, 0,
 
-			0,0.0008, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, K, 0, 0,
 
-			-0.0008 ,0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, K, 0,
 
 			0, 0, 0, 0, 0, 0, 0, 0, K,
 
@@ -196,7 +196,7 @@ void attitude_tobi_laurens_init(void)
 
 	//---> initial states sind aposteriori!? ---> fehler
 	static m_elem kal_x_aposteriori[12 * 1] =
-	{ 0, 0, -9.81f, 0.f, -0.2f, -0.9f, 0, 0, 0, 0, 0, 0 };
+	{ 0, 0, -1.0f, 0.6f, 0.0f, 0.8f, 0, 0, 0, 0, 0, 0 };
 
 	kalman_init(&attitude_tobi_laurens_kal, 12, 9, kal_a, kal_c,
 			kal_gain_start, kal_gain, kal_x_apriori, kal_x_aposteriori, 1000);

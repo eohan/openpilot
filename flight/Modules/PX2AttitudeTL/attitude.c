@@ -119,7 +119,7 @@ int32_t PX2AttitudeTLStart()
 int32_t PX2AttitudeTLInitialize(void)
 {
 	AttitudeActualInitialize();
-	//AttitudeMatrixInitialize();
+	AttitudeMatrixInitialize();
 	AttitudeRawInitialize();
 //	AttitudeSettingsInitialize();
 
@@ -132,11 +132,11 @@ int32_t PX2AttitudeTLInitialize(void)
 	attitude.q4 = 0;
 	AttitudeActualSet(&attitude);
 
-	//AttitudeMatrixData attitudeMatrix;
-	//AttitudeMatrixGet(&attitudeMatrix);
+	AttitudeMatrixData attitudeMatrix;
+	AttitudeMatrixGet(&attitudeMatrix);
 //TODO make identity matrix
 
-	//AttitudeMatrixSet(&attitudeMatrix);
+	AttitudeMatrixSet(&attitudeMatrix);
 	return 0;
 }
 MODULE_INITCALL(PX2AttitudeTLInitialize, PX2AttitudeTLStart)
@@ -401,8 +401,8 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 //	attitude_observer_get_angles(&angles, &angularRates);
 	AttitudeMatrixData attitudeMatrix;
 
-	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
-	//AttitudeMatrixSet(&attitudeMatrix);
+	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
+	AttitudeMatrixSet(&attitudeMatrix);
 
 //	attitudeMatrix.Roll=tmp.x;
 //	attitudeMatrix.Pitch=tmp.y;
