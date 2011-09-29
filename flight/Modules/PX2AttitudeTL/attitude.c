@@ -61,7 +61,7 @@
 #include "pios_i2c_esc.h"
 
 // Private constants
-#define STACK_SIZE_BYTES		540						// XXX re-evaluate
+#define STACK_SIZE_BYTES		5120						// XXX re-evaluate
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 
