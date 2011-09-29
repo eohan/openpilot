@@ -290,11 +290,11 @@ void attitude_tobi_laurens(const float_vect3 *accel, const float_vect3 *mag, con
 	kalman_correct(&attitude_tobi_laurens_kal, measurement, mask);
 
 }
-void attitude_tobi_laurens_get_euler(float_vect3 * angles){
+void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, float_vect3 * x_n_b, float_vect3 * y_n_b, float_vect3 * z_n_b){
 	//debug
 
 	// save outputs
-	float_vect3 kal_acc, kal_mag, kal_w0, kal_w;
+	float_vect3 kal_acc, kal_mag, kal_w0;//, kal_w;
 
 	kal_acc.x = kalman_get_state(&attitude_tobi_laurens_kal, 0);
 	kal_acc.y = kalman_get_state(&attitude_tobi_laurens_kal, 1);
@@ -308,9 +308,9 @@ void attitude_tobi_laurens_get_euler(float_vect3 * angles){
 	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
 	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
 
-	kal_w.x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
-	kal_w.y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
-	kal_w.z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
+	rates->x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
+	rates->y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
+	rates->z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
 
 
 
@@ -320,40 +320,37 @@ void attitude_tobi_laurens_get_euler(float_vect3 * angles){
 
 	//debug_vect("magn", mag);
 
-	float_vect3 x_n_b, y_n_b, z_n_b;
-	z_n_b.x = -kal_acc.x;
-	z_n_b.y = -kal_acc.y;
-	z_n_b.z = -kal_acc.z;
-	vect_norm(&z_n_b);
-	vect_cross_product(&z_n_b, &kal_mag, &y_n_b);
-	vect_norm(&y_n_b);
+	//float_vect3 x_n_b, y_n_b, z_n_b;
+	z_n_b->x = -kal_acc.x;
+	z_n_b->y = -kal_acc.y;
+	z_n_b->z = -kal_acc.z;
+	vect_norm(z_n_b);
+	vect_cross_product(z_n_b, &kal_mag, y_n_b);
+	vect_norm(y_n_b);
 
-	vect_cross_product(&y_n_b, &z_n_b, &x_n_b);
+	vect_cross_product(y_n_b, z_n_b, x_n_b);
 
 
 
 	//save euler angles
-	angles->x = atan2(z_n_b.y, z_n_b.z);
-	angles->y = -asin(z_n_b.x);
-	angles->z = atan2(y_n_b.x, x_n_b.x);
+	euler->x = atan2(z_n_b->y, z_n_b->z);
+	euler->y = -asin(z_n_b->x);
+	euler->z = atan2(y_n_b->x, x_n_b->x);
 
 	//save state omega
 //	global_data.omega_si.x=kal_w.x;
 //	global_data.omega_si.y=kal_w.y;
 //	global_data.omega_si.z=kal_w.z;
-	static int i = 10;
-	if (i++ >= 10)
-	{
-		i = 0;
-		//send the angles
-
+//	static int i = 10;
+//	if (i++ >= 10)
+//	{
+//		i = 0;
+//		//send the angles
+//
 //		debug_vect("kal_w0", kal_w0);
 //		debug_vect("kal_w", kal_w);
 //		debug_vect("acc_norm",acc_n_vect);
-
-
-	}
-
-
-
+//
+//
+//	}
 }

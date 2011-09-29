@@ -21,5 +21,5 @@ void attitude_tobi_laurens_init(void);
 
 void attitude_tobi_laurens(const float_vect3 *accel, const float_vect3 *mag, const float_vect3 *gyro);
 
-void attitude_tobi_laurens_get_euler(float_vect3 * angles);
+void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, float_vect3 * x_n_b, float_vect3 * y_n_b, float_vect3 * z_n_b);
 #endif /* ATTITUDE_TOBI_LAURENS_H_ */

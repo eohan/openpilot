@@ -52,6 +52,7 @@
 #include "attitude.h"
 #include "attituderaw.h"
 #include "attitudeactual.h"
+#include "attitudematrix.h"
 #include "attitudesettings.h"
 #include "flightstatus.h"
 #include "CoordinateConversions.h"
@@ -388,15 +389,21 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 //
 //	attitude_observer_correct_gyro(gyro);
 
-	float_vect3 angles;//, angularRates;
-	attitude_tobi_laurens_get_euler(&angles);
+//	float_vect3 tmp;//, angularRates;
+//	attitude_tobi_laurens_get_euler(&tmp);
 //	attitude_observer_get_angles(&angles, &angularRates);
+	AttitudeMatrixData attitudeMatrix;
+
+	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
+//	attitudeMatrix.Roll=tmp.x;
+//	attitudeMatrix.Pitch=tmp.y;
+//	attitudeMatrix.Yaw=tmp.z;
 
 
 	AttitudeActualData attitudeActual;
-	attitudeActual.Roll  = angles.x * 57.2957795f;
-	attitudeActual.Pitch = angles.y * 57.2957795f;
-	attitudeActual.Yaw   = angles.z * 57.2957795f;
+	attitudeActual.Roll  = attitudeMatrix.Roll * 57.2957795f;
+	attitudeActual.Pitch = attitudeMatrix.Pitch * 57.2957795f;
+	attitudeActual.Yaw   = attitudeMatrix.Yaw* 57.2957795f;
 
 	//attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
 	//attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
