@@ -232,8 +232,9 @@ SRC += $(PIOSCOMMONLIB)/msheap/msheap.c
 SRC += $(PIOSCOMMONLIB)/msheap/pios_msheap.c
 
 ## Dosfs file system
-SRC += $(DOSFSDIR)/dosfs.c
-SRC += $(DOSFSDIR)/dfs_sdcard.c
+## The File system is not enabled and the flight\PiOS\STM32F2xx directory has a wierd linking to the flight\PiOS\STM32F2xx directory . 
+#SRC += $(DOSFSDIR)/dosfs.c
+#SRC += $(DOSFSDIR)/dfs_sdcard.c
 
 # List C source files here which must be compiled in ARM-Mode (no -mthumb).
 # use file-extension c for "c-only"-files
@@ -283,8 +284,9 @@ EXTRAINCDIRS  += $(PIOSBOARDS)
 EXTRAINCDIRS  += $(STMSPDINCDIR)
 EXTRAINCDIRS  += $(STMUSBINCDIR)
 EXTRAINCDIRS  += $(CMSISDIR)
-EXTRAINCDIRS  += $(DOSFSDIR)
-EXTRAINCDIRS  += $(MSDDIR)
+## The File system is not enabled and the flight\PiOS\STM32F2xx directory has a wierd linking to the flight\PiOS\STM32F2xx directory . 
+#EXTRAINCDIRS  += $(DOSFSDIR)
+#EXTRAINCDIRS  += $(MSDDIR)
 EXTRAINCDIRS  += $(RTOSINCDIR)
 EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
