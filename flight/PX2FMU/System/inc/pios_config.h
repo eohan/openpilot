@@ -55,7 +55,7 @@
 #define PIOS_INCLUDE_SPI
 #define PIOS_INCLUDE_SYS
 #define PIOS_INCLUDE_USART
-#define PIOS_INCLUDE_SDCARD
+//#define PIOS_INCLUDE_SDCARD       // XXX needs proper system alarm setup, missing SD card is NOT an alarm event
 
 #define PIOS_INCLUDE_BUZZER
 

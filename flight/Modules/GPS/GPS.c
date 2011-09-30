@@ -44,6 +44,9 @@
 	#ifdef FULL_COLD_RESTART
 #undef FULL_COLD_RESTART
 #endif
+
+//#define FULL_COLD_RESTART
+
 #ifdef DISABLE_GPS_TRESHOLD
 #undef DISABLE_GPS_TRESHOLD
 #endif
@@ -234,7 +237,6 @@ static void gpsTask(void *parameters)
 
 		    while (PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, xDelay) > 0)
 			{
-				PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, 0);
 				int res = GTOP_BIN_CUSTOM_update_position(c, &numChecksumErrors, &numParsingErrors);
 				if (res >= 0)
 				{
@@ -242,7 +244,6 @@ static void gpsTask(void *parameters)
 
 					timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;
 					timeOfLastUpdateMs = timeNowMs;
-					timeOfLastCommandMs = timeNowMs;
 				}
 			}
 		#endif

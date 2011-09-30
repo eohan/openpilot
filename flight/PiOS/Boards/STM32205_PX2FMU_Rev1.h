@@ -240,7 +240,7 @@ extern uint32_t pios_com_aux_id;
 // ADC
 // PIOS_ADC_PinGet(0) = External voltage
 // PIOS_ADC_PinGet(1) = AUX1 (PX2IO external pressure port)
-// PIOS_ADC_PinGet(2) = AUX2
+// PIOS_ADC_PinGet(2) = AUX2 (Current sensor, if available)
 // PIOS_ADC_PinGet(3) = AUX3
 //-------------------------
 

@@ -48,6 +48,8 @@
 #include "flightstatus.h"          /* Main system state machine */
 #include "positionactual.h"
 #include "actuatorcommand.h"
+#include "flightbatterystate.h"
+#include "flightbatterysettings.h"
 
 
 #include "actuatorsettings.h"
@@ -530,27 +532,27 @@ static void processObjEvent(UAVObjEvent * ev)
 
 			uint8_t ucCpuLoad;
 			SystemStatsCPULoadGet(&ucCpuLoad);
-			uint16_t voltage_battery = 11000;
-			uint16_t current_battery = 0;
-			uint8_t watt = 0;
-			int8_t battery_percent = -1;
-			mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0);
+			FlightBatteryStateData flightBatteryData;
+			FlightBatteryStateGet(&flightBatteryData);
+			FlightBatterySettingsData flightBatterySettings;
+			FlightBatterySettingsGet(&flightBatterySettings);
+			uint16_t batteryVoltage = flightBatteryData.Voltage*1000;
+			int16_t batteryCurrent = -1; // -1: Not present / not estimated
+			int8_t batteryPercent = -1; // -1: Not present / not estimated
+//			if (flightBatterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_CURRENTFACTOR] == 0)
+//			{
+				// Factor is zero, sensor is not present
+				// Estimate remaining capacity based on lipo curve
+				batteryPercent = 100.0f*((flightBatteryData.Voltage - 9.6f)/(12.6f - 9.6f));
+//			}
+//			else
+//			{
+//				// Use capacity and current
+//				batteryPercent = 100.0f*((flightBatterySettings.Capacity - flightBatteryData.ConsumedEnergy) / flightBatterySettings.Capacity);
+//				batteryCurrent = flightBatteryData.Current*100;
+//			}
 
-			static float i=0;
-			i++;
-//			debug_message_buffer_sprintf("Hallo %03d",i);
-//			debug_message_buffer_sprintf("Hallo %03d",i);
-//			debug_message_buffer_sprintf("Hallo %03d",i);
-//			debug_message_buffer("Hallo Test1");
-//			debug_message_buffer("Hallo Test2");
-//			debug_message_buffer("Hallo Test3");
-//			debug_message_buffer("Hallo Test4");
-//			debug_message_buffer("Hallo Test5");
-//			debug_message_buffer("Hallo Test6");
-//			debug_message_send_one();
-//			debug_vect("test2",i,i,2*i);
-//			debug_vect("test",i,i,2*i);
-//			debug_vect("test",i,i,2*i);
+			mavlink_msg_sys_status_send(0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0, 0);
 			break;
 		}
 		case ATTITUDERAW_OBJID:
@@ -722,6 +724,8 @@ static void mavlinkStateMachineTask(void* parameters)
 		mavlink_pm_queued_send();
 		// Send setpoints, time out
 		mavlink_wpm_loop();
+		// Send one text message
+		debug_message_send_one();
 		// Wait 20 ms
 		vTaskDelay(20);
 	}
