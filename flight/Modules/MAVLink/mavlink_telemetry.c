@@ -47,6 +47,8 @@
 #include "flightstatus.h"          /* Main system state machine */
 #include "positionactual.h"
 #include "actuatorcommand.h"
+#include "flightbatterystate.h"
+#include "flightbatterysettings.h"
 
 
 #include "actuatorsettings.h"
@@ -561,16 +563,27 @@ static void processObjEvent(UAVObjEvent * ev)
 
 			uint8_t ucCpuLoad;
 			SystemStatsCPULoadGet(&ucCpuLoad);
-			uint16_t voltage_battery = 11000;
-			uint16_t current_battery = 0;
-			uint8_t watt = 0;
-			int8_t battery_percent = -1;
+			FlightBatteryStateData flightBatteryData;
+			FlightBatteryStateGet(&flightBatteryData);
+			FlightBatterySettingsData flightBatterySettings;
+			FlightBatterySettingsGet(&flightBatterySettings);
+			uint16_t batteryVoltage = flightBatteryData.Voltage*1000;
+			int16_t batteryCurrent = -1; // -1: Not present / not estimated
+			int8_t batteryPercent = -1; // -1: Not present / not estimated
+//			if (flightBatterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_CURRENTFACTOR] == 0)
+//			{
+				// Factor is zero, sensor is not present
+				// Estimate remaining capacity based on lipo curve
+				batteryPercent = 100.0f*((flightBatteryData.Voltage - 9.6f)/(12.6f - 9.6f));
+//			}
+//			else
+//			{
+//				// Use capacity and current
+//				batteryPercent = 100.0f*((flightBatterySettings.Capacity - flightBatteryData.ConsumedEnergy) / flightBatterySettings.Capacity);
+//				batteryCurrent = flightBatteryData.Current*100;
+//			}
 
-
-
-
-
-			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, voltage_battery, current_battery, watt, battery_percent, 0, 0, 0, 0, 0);
+			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
 			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
 			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer

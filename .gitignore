@@ -8,6 +8,8 @@
 /flight/.settings
 /flight/Build
 
+eclipse-launch-custom
+
 *.pnproj
 *.pnps
 .cproject

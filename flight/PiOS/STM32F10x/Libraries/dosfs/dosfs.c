@@ -7,6 +7,8 @@
 
         You cannot re-copyright or restrict use of the code as released by Lewin Edwards.
 */
+// Fixme only compiled if SD Card is activated
+#ifdef PIOS_INCLUDE_SDCARD
 
 //#include "common.h"
 #include <string.h>
@@ -1334,3 +1336,4 @@ uint32_t DFS_Close(PFILEINFO fileinfo)
   return DFS_OK;
 }
 
+#endif

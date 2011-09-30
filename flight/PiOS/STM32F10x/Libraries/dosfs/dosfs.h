@@ -6,6 +6,9 @@
 #ifndef _DOSFS_H
 #define _DOSFS_H
 
+// Fixme only compiled if SD Card is activated
+#ifdef PIOS_INCLUDE_SDCARD
+
 #include <stdint.h>
 
 //===================================================================
@@ -401,5 +404,5 @@ char *DFS_DirToCanonical(char *dest, char *src);
 #include "hostemu.h"
 #endif
 
-
+#endif
 #endif // _DOSFS_H
