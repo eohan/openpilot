@@ -49,11 +49,10 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-MODULES = PX2Attitude Actuator Stabilization ManualControl Altitude Guidance GPS Battery # Batt module is crashing: Battery
+MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Guidance Battery
 # Telemetry must be last to grab the optional modules
-#MODULES += MAVLink
-MODULES += Telemetry
-#MODULES = Telemetry Actuator Stabilization ManualControl Altitude Guidance GPS
+MODULES += MAVLink
+#MODULES += Telemetry
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
@@ -129,6 +128,7 @@ SRC += $(OPSYSTEM)/openpilot.c
 SRC += $(OPSYSTEM)/pios_board.c
 SRC += $(OPSYSTEM)/alarms.c
 SRC += $(OPSYSTEM)/taskmonitor.c
+SRC += $(OPSYSTEM)/mavlink_debug.c
 SRC += $(OPUAVTALK)/uavtalk.c
 SRC += $(OPUAVOBJ)/uavobjectmanager.c
 SRC += $(OPUAVOBJ)/eventdispatcher.c
@@ -333,7 +333,7 @@ DEBUGF = dwarf-2
 # -U options for C here.
 CDEFS = -DSTM32F2XX
 #CDEFS += -DMAVLINK_SEPARATE_HELPERS
-#CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
+CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
 CDEFS += -D__ARM_ARCH_7M__
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER

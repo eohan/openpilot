@@ -41,6 +41,7 @@
 #include "manualcontrolcommand.h"  /* Remote control / manual commands */
 #include "baroaltitude.h"          /* Pressure sensor */
 #include "attitudeactual.h"        /* Estimated attitude */
+#include "attitudematrix.h"        /* Estimated attitude */
 #include "attituderaw.h"           /* Raw attitude sensor measurements */
 #include "gpsposition.h"		   /* GPS position */
 #include "gpssatellites.h"		   /* GPS satellites */
@@ -55,7 +56,7 @@
 
 // Private constants
 #define MAX_QUEUE_SIZE   MAVLINK_QUEUE_SIZE
-#define STACK_SIZE_BYTES PIOS_MAVLINK_STACK_SIZE
+#define STACK_SIZE_BYTES (PIOS_MAVLINK_STACK_SIZE)
 #define TASK_PRIORITY_RX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_TX (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_STATE_MACHINE (tskIDLE_PRIORITY + 2)
@@ -102,6 +103,10 @@ static void gcsTelemetryStatsUpdated();
 static void updateSettings();
 
 #include "mavlink_types.h"
+mavlink_system_t mavlink_system;
+
+#include "mavlink_send_bridge.h"
+#include "mavlink_debug.h"
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -113,43 +118,10 @@ static void updateSettings();
 
    Lines also in your main.c, e.g. by reading these parameter from EEPROM.
  */
-mavlink_system_t mavlink_system;
 static mavlink_message_t rx_msg;
 //static mavlink_message_t tx_msg;
 static mavlink_status_t rx_status;
 static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
-
-/**
- * @brief Send one char (uint8_t) over a comm channel
- *
- * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
- * @param ch Character to send
- */
-static inline void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t* buffer, uint16_t len)
-{
-    if (chan == MAVLINK_COMM_0)
-    {
-    	uint32_t outputPort;
-
-    	// Determine input port (USB takes priority over telemetry port)
-    #if defined(PIOS_INCLUDE_USB_HID)
-    	if (PIOS_USB_HID_CheckAvailable(0)) {
-    		outputPort = PIOS_COM_TELEM_USB;
-    	} else
-    #endif /* PIOS_INCLUDE_USB_HID */
-    	{
-    		outputPort = telemetryPort;
-    	}
-
-    	PIOS_COM_SendBufferNonBlocking(outputPort, buffer, len);
-    }
-    if (chan == MAVLINK_COMM_1)
-    {
-    	PIOS_COM_SendBufferNonBlocking(PIOS_COM_AUX, buffer, len);
-    }
-}
-
-#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
 
 #include "common/mavlink.h"
 #include "mavlink_settings_adapter.h"
@@ -169,6 +141,7 @@ mavlink_wpm_storage wpm;
 
 #include "mavlink_missionlib_data.h"
 #include "mavlink_parameters.h"
+
 
 /* Provide the interface functions for the waypoint manager */
 
@@ -391,6 +364,7 @@ static void updateObject(UAVObjHandle obj)
 FlightTelemetryStatsData flightStats;
 GCSTelemetryStatsData gcsTelemetryStatsData;
 static AttitudeActualData attitudeActual;
+static AttitudeMatrixData attitudeMatrix;
 static AttitudeRawData attitudeRaw;
 static BaroAltitudeData baroAltitude;
 static GPSPositionData gpsPosition;
@@ -554,12 +528,7 @@ static void processObjEvent(UAVObjEvent * ev)
 				break;
 			}
 
-			mavlink_msg_heartbeat_pack(mavlink_system.sysid, mavlink_system.compid, &msg, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
-			//mavlink_msg_cpu_load_pack(mavlink_system.sysid, mavlink_system.compid, &msg,ucCpuLoad,ucCpuLoad,0);
-			// Copy the message to the send buffer
-			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-			// Send buffer
-			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			mavlink_msg_heartbeat_send(MAVLINK_COMM_0, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
 
 			uint8_t ucCpuLoad;
 			SystemStatsCPULoadGet(&ucCpuLoad);
@@ -583,16 +552,11 @@ static void processObjEvent(UAVObjEvent * ev)
 //				batteryCurrent = flightBatteryData.Current*100;
 //			}
 
-			mavlink_msg_sys_status_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
-			//mavlink_msg_debug_pack(mavlink_system.sysid, mavlink_system.compid, &msg, 0, (float)ucCpuLoad);
-			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
-			// Send buffer
-			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			mavlink_msg_sys_status_send(0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0, 0);
 			break;
 		}
-		case ATTITUDEACTUAL_OBJID:
+		case ATTITUDERAW_OBJID:
 		{
-			AttitudeActualGet(&attitudeActual);
 			AttitudeRawGet(&attitudeRaw);
 
 			// Copy data
@@ -611,26 +575,27 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			break;
+		}
+		case ATTITUDEMATRIX_OBJID:
+		{
+			AttitudeMatrixGet(&attitudeMatrix);
 
-			attitude.roll  = (attitudeActual.Roll/180.0f)*3.14159265f;
-			attitude.pitch = (attitudeActual.Pitch/180.0f)*3.14159265f;
-			attitude.yaw   = (attitudeActual.Yaw/180.0f)*3.14159265f;
+			// Copy data
+			attitude.roll = attitudeMatrix.Roll;
+			attitude.pitch = attitudeMatrix.Pitch;
+			attitude.yaw = attitudeMatrix.Yaw;
 
-			attitude.rollspeed  = 0;//(attitudeActual.RollSpeed/180.0f)*3.14159265f;
-			attitude.pitchspeed = 0;//(attitudeActual.PitchSpeed/180.0f)*3.14159265f;
-			attitude.yawspeed   = 0;//(attitudeActual.YawSpeed/180.0f)*3.14159265f;
+			attitude.rollspeed = attitudeMatrix.AngularRates[0];
+			attitude.pitchspeed = attitudeMatrix.AngularRates[1];
+			attitude.yawspeed = attitudeMatrix.AngularRates[2];
 
-			mavlink_msg_attitude_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &attitude);
+			mavlink_msg_attitude_encode(mavlink_system.sysid,
+					mavlink_system.compid, &msg, &attitude);
 			// Copy the message to the send buffer
-			len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
-			//
-			//				mavlink_msg_attitude_send(MAVLINK_COMM_0, timeStamp,attitudeActual.Roll,
-			//						attitudeActual.Pitch,attitudeActual.Yaw,
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_X],
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Y],
-			//						attitudeRaw.gyros[ATTITUDERAW_GYROS_Z]);
 			break;
 		}
 		case GPSPOSITION_OBJID:
@@ -759,6 +724,8 @@ static void mavlinkStateMachineTask(void* parameters)
 		mavlink_pm_queued_send();
 		// Send setpoints, time out
 		mavlink_wpm_loop();
+		// Send one text message
+		debug_message_send_one();
 		// Wait 20 ms
 		vTaskDelay(20);
 	}

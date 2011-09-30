@@ -52,15 +52,18 @@
 #include "attitude.h"
 #include "attituderaw.h"
 #include "attitudeactual.h"
+#include "attitudematrix.h"
 #include "attitudesettings.h"
 #include "flightstatus.h"
 #include "CoordinateConversions.h"
-#include "attitude_observer.h"
+//#include "attitude_observer.h"
+#include "attitude_tobi_laurens.h"
 
 #include "pios_i2c_esc.h"
+#include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES		540						// XXX re-evaluate
+#define STACK_SIZE_BYTES		5120						// XXX re-evaluate
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 
@@ -99,7 +102,7 @@ static void updateSensors(AttitudeRawData *attitudeRaw);
 static void updateAttitude(AttitudeRawData *attitudeRaw);
 //static void settingsUpdatedCb(UAVObjEvent * objEv);
 
-int32_t PX2AttitudeStart()
+int32_t PX2AttitudeTLStart()
 {
 	// Start the attitude task
 	xTaskCreate(attitudeTask, (signed char *)"Attitude", STACK_SIZE_BYTES/4, NULL, ATTITUDE_TASK_PRIORITY, &attitudeTaskHandle);
@@ -113,9 +116,10 @@ int32_t PX2AttitudeStart()
  * Initialise the module, called on startup
  * \returns 0 on success or -1 if initialisation failed
  */
-int32_t PX2AttitudeInitialize(void)
+int32_t PX2AttitudeTLInitialize(void)
 {
 	AttitudeActualInitialize();
+	AttitudeMatrixInitialize();
 	AttitudeRawInitialize();
 //	AttitudeSettingsInitialize();
 
@@ -128,9 +132,14 @@ int32_t PX2AttitudeInitialize(void)
 	attitude.q4 = 0;
 	AttitudeActualSet(&attitude);
 
+	AttitudeMatrixData attitudeMatrix;
+	AttitudeMatrixGet(&attitudeMatrix);
+//TODO make identity matrix
+
+	AttitudeMatrixSet(&attitudeMatrix);
 	return 0;
 }
-MODULE_INITCALL(PX2AttitudeInitialize, PX2AttitudeStart)
+MODULE_INITCALL(PX2AttitudeTLInitialize, PX2AttitudeTLStart)
 
 /**
  * Module thread, should not return.
@@ -155,9 +164,10 @@ static void attitudeTask(void *parameters)
 	vTaskDelay(1);
 
 	// initialize observer
-	float_vect3 accel_init = {0,0,9.81};
-	float_vect3 mag_init = {0,0,0};
-	attitude_observer_init(accel_init,mag_init);
+//	float_vect3 accel_init = {0,0,9.81};
+//	float_vect3 mag_init = {0,0,0};
+//	attitude_observer_init(accel_init,mag_init);
+	attitude_tobi_laurens_init();
 
 	// Do one-time gyro/accel calibration here (?)
 	// Load saved bias values, etc (?)
@@ -347,48 +357,62 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 }
 
 #define MAG_OFFSET_X 0
-#define MAG_OFFSET_Y 0
+#define MAG_OFFSET_Y (-200)
 #define MAG_OFFSET_Z 0
 
-#define MAG_SCALE_X 100.0f
-#define MAG_SCALE_Y 100.0f
-#define MAG_SCALE_Z 100.0f
+#define MAG_SCALE_X (0.4f*1090.0f)
+#define MAG_SCALE_Y (0.4f*1090.0f)
+#define MAG_SCALE_Z (0.4f*1090.0f)
 
 static void updateAttitude(AttitudeRawData * attitudeRaw)
 {
-	float_vect3 gyro;
-	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
-	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
-	gyro.z = attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+	//all measurement vectors need to be turn into the body frame
+	//z negative; x and y exchanged.
 
-	float_vect3 accel;
-	accel.x = attitudeRaw->accels[ATTITUDERAW_ACCELS_X] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
-	accel.y = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
-	accel.z = attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+	float_vect3 gyro; //rad/s
+	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 
-#if 1
-	float_vect3 mag;
-	mag.x = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] - MAG_OFFSET_X) / MAG_SCALE_X;
-	mag.y = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] - MAG_OFFSET_Y) / MAG_SCALE_Y;
-	mag.z = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] - MAG_OFFSET_Z) / MAG_SCALE_Z;
-#endif
+	float_vect3 accel; //length 1 = / 4096
+	accel.x = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+	accel.y = attitudeRaw->accels[ATTITUDERAW_ACCELS_X] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+	accel.z = - attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+
+	float_vect3 mag; //length 1
+	mag.x = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] - MAG_OFFSET_Y) / MAG_SCALE_Y;
+	mag.y = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] - MAG_OFFSET_X) / MAG_SCALE_X;
+	mag.z = - (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] - MAG_OFFSET_Z) / MAG_SCALE_Z;
+
+
+	attitude_tobi_laurens(&accel, &mag, &gyro);
+
+
+//	attitude_observer_correct_accel(accel, 1/200.0f);
+//
+//#if 1
+//	attitude_observer_correct_magnet(mag, 1/200.0f);
+//#endif
+//
+//	attitude_observer_correct_gyro(gyro);
+
+//	float_vect3 tmp;//, angularRates;
+//	attitude_tobi_laurens_get_euler(&tmp);
+//	attitude_observer_get_angles(&angles, &angularRates);
+	AttitudeMatrixData attitudeMatrix;
+
+	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
+	AttitudeMatrixSet(&attitudeMatrix);
+
+//	attitudeMatrix.Roll=tmp.x;
+//	attitudeMatrix.Pitch=tmp.y;
+//	attitudeMatrix.Yaw=tmp.z;
+//	debug_vect("rates",attitudeMatrix.AngularRates[0],attitudeMatrix.AngularRates[1],attitudeMatrix.AngularRates[2]);
 
 	AttitudeActualData attitudeActual;
-
-	attitude_observer_correct_accel(accel, 1/200.0f);
-
-#if 1
-	attitude_observer_correct_magnet(mag, 1/200.0f);
-#endif
-
-	attitude_observer_correct_gyro(gyro);
-
-	float_vect3 angles, angularRates;
-	attitude_observer_get_angles(&angles, &angularRates);
-
-	attitudeActual.Roll  = angles.x * 57.2957795f;
-	attitudeActual.Pitch = angles.y * 57.2957795f;
-	attitudeActual.Yaw   = angles.z * 57.2957795f;
+	attitudeActual.Roll  = attitudeMatrix.Roll * 57.2957795f;
+	attitudeActual.Pitch = attitudeMatrix.Pitch * 57.2957795f;
+	attitudeActual.Yaw   = attitudeMatrix.Yaw* 57.2957795f;
 
 	//attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
 	//attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
@@ -396,7 +420,8 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 
 	AttitudeActualSet(&attitudeActual);
 
-	attitude_observer_predict(1/200.0f);
+
+	//attitude_observer_predict(1/200.0f);
 }
 
 //// Filter states

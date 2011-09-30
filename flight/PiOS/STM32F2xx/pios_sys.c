@@ -46,10 +46,15 @@ void PIOS_SYS_Init(void)
 	/* Setup STM32 system (RCC, clock, PLL and Flash configuration) - CMSIS Function */
 	SystemInit();
 	SystemCoreClockUpdate();	/* update SystemCoreClock for use elsewhere */
+
 	/*
 	 * @todo might make sense to fetch the bus clocks and save them somewhere to avoid
 	 * having to use the clunky get-all-clocks API everytime we need one.
 	 */
+
+	/* Initialise Basic NVIC */
+	/* do this early to ensure that we take exceptions in the right place */
+	NVIC_Configuration();
 
 	/* Init the delay system */
 	PIOS_DELAY_Init();
@@ -168,9 +173,6 @@ void PIOS_SYS_Init(void)
 	GPIO_Init(GPIOG, &GPIO_InitStructure);
 	GPIO_Init(GPIOH, &GPIO_InitStructure);
 	GPIO_Init(GPIOI, &GPIO_InitStructure);
-
-	/* Initialise Basic NVIC */
-	NVIC_Configuration();
 
 #if defined(PIOS_INCLUDE_LED)
 	/* Initialise LEDs */

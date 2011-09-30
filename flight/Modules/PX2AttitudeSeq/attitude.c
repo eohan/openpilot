@@ -99,7 +99,7 @@ static void updateSensors(AttitudeRawData *attitudeRaw);
 static void updateAttitude(AttitudeRawData *attitudeRaw);
 //static void settingsUpdatedCb(UAVObjEvent * objEv);
 
-int32_t PX2AttitudeStart()
+int32_t PX2AttitudeSeqStart()
 {
 	// Start the attitude task
 	xTaskCreate(attitudeTask, (signed char *)"Attitude", STACK_SIZE_BYTES/4, NULL, ATTITUDE_TASK_PRIORITY, &attitudeTaskHandle);
@@ -113,7 +113,7 @@ int32_t PX2AttitudeStart()
  * Initialise the module, called on startup
  * \returns 0 on success or -1 if initialisation failed
  */
-int32_t PX2AttitudeInitialize(void)
+int32_t PX2AttitudeSeqInitialize(void)
 {
 	AttitudeActualInitialize();
 	AttitudeRawInitialize();
@@ -130,7 +130,7 @@ int32_t PX2AttitudeInitialize(void)
 
 	return 0;
 }
-MODULE_INITCALL(PX2AttitudeInitialize, PX2AttitudeStart)
+MODULE_INITCALL(PX2AttitudeSeqInitialize, PX2AttitudeSeqStart)
 
 /**
  * Module thread, should not return.
