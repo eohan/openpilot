@@ -57,6 +57,8 @@
 #define PIOS_INCLUDE_USART
 #define PIOS_INCLUDE_SDCARD
 
+#define PIOS_INCLUDE_BUZZER
+
 //#define PIOS_INCLUDE_USB_HID		// XXX needs PiOS support work
 //#define PIOS_INCLUDE_HCSR04		// XXX needs PiOS support work
 //#define PIOS_INCLUDE_WDG			// XXX needs PiOS support work

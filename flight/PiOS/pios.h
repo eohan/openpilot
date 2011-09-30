@@ -64,6 +64,7 @@
 #include <msd.h>
 #endif
 
+
 /* Generic initcall infrastructure */
 #include "pios_initcall.h"
 
@@ -94,6 +95,10 @@
 #include <pios_exti.h>
 #endif
 #include <pios_wdg.h>
+
+#if defined(PIOS_INCLUDE_BUZZER)
+#include <pios_buzzer.h>
+#endif
 
 /* PIOS Hardware Includes (Common) */
 #include <pios_sdcard.h>

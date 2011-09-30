@@ -1021,7 +1021,7 @@ typedef struct
 
 /* TimeBase management ********************************************************/
 void TIM_DeInit(TIM_TypeDef* TIMx);
-void TIM_TimeBaseInit(TIM_TypeDef* TIMx, TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct);
+void TIM_TimeBaseInit(TIM_TypeDef* TIMx, const TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct);
 void TIM_TimeBaseStructInit(TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct);
 void TIM_PrescalerConfig(TIM_TypeDef* TIMx, uint16_t Prescaler, uint16_t TIM_PSCReloadMode);
 void TIM_CounterModeConfig(TIM_TypeDef* TIMx, uint16_t TIM_CounterMode);

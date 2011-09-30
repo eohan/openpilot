@@ -49,7 +49,7 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Guidance # Batt module is crashing: Battery
+MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Guidance PX2Buzzer # Batt module is crashing: Battery
 # Telemetry must be last to grab the optional modules
 MODULES += MAVLink
 #MODULES += Telemetry
@@ -171,6 +171,7 @@ SRC += $(PIOSSTM32F2XX)/pios_debug.c
 SRC += $(PIOSSTM32F2XX)/pios_gpio.c
 SRC += $(PIOSSTM32F2XX)/pios_exti.c
 SRC += $(PIOSSTM32F2XX)/pios_wdg.c
+SRC += $(PIOSSTM32F2XX)/pios_buzzer.c
 
 ## PIOS Hardware (Common)
 SRC += $(PIOSCOMMON)/pios_bmp085.c
