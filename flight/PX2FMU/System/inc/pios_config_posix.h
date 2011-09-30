@@ -45,11 +45,18 @@
 #define STARTUP_LOG_ENABLED		1
 
 /* COM Module */
-#define GPS_BAUDRATE			19200
+//#define GPS_BAUDRATE			19200
 #define TELEM_BAUDRATE			19200
 #define AUXUART_ENABLED			0
 #define AUXUART_BAUDRATE		19200
 
 #define TELEM_QUEUE_SIZE                20
 #define PIOS_TELEM_STACK_SIZE           2048
+
+//------------------------
+// MAVLINK
+//------------------------
+#define MAVLINK_QUEUE_SIZE		20
+#define PIOS_MAVLINK_STACK_SIZE	1400
+
 #endif /* PIOS_CONFIG_POSIX_H */

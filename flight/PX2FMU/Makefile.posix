@@ -316,7 +316,7 @@ CFLAGS += -DARCH_POSIX
 CFLAGS += -O$(OPT)
 CFLAGS += -mtune=$(MCU)
 CFLAGS += $(CDEFS)
-CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
+CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I. -I../Libraries/mavlink/include -I../Libraries/mavlink/include/common -I../Libraries/mavlink/missionlib
 
 CFLAGS += -fomit-frame-pointer
 ifeq ($(CODE_SOURCERY), YES)
@@ -327,6 +327,7 @@ CFLAGS += -Wall
 CFLAGS += -Werror
 # Compiler flags to generate dependency files:
 CFLAGS += -MD -MP -MF $(OUTDIR)/dep/$(@F).d
+CFLAGS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 # flags only for C
 #CONLYFLAGS += -Wnested-externs
