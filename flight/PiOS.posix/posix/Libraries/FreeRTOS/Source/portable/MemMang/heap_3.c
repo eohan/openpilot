@@ -77,6 +77,13 @@ task.h is included from an application file. */
 
 /*-----------------------------------------------------------*/
 
+void
+vPortInitialiseBlocks(void)
+{
+	// Do nothing, no initialization needed
+	// on POSIX
+}
+
 void *pvPortMalloc( size_t xWantedSize )
 {
 void *pvReturn;
