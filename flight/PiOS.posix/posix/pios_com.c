@@ -80,7 +80,7 @@ static bool PIOS_COM_validate(struct pios_com_dev * com_dev)
 //}
 #else
 static struct pios_com_dev pios_com_devs[PIOS_COM_MAX_DEVS];
-static uint8_t pios_com_num_devs;
+static uint8_t pios_com_num_devs = 0;
 static uint32_t PIOS_COM_create(void)
 {
 	struct pios_com_dev * com_dev;

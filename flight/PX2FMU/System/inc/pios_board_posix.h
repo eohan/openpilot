@@ -52,7 +52,14 @@
 //-------------------------
 //#define PIOS_USART_TX_BUFFER_SIZE		256
 #define PIOS_COM_BUFFER_SIZE 1024
+#define PIOS_COM_MAX_DEVS 255
 #define PIOS_UDP_RX_BUFFER_SIZE		PIOS_COM_BUFFER_SIZE
+
+extern uint32_t pios_com_telem_rf_id;
+extern uint32_t pios_com_telem_usb_id;
+extern uint32_t pios_com_gps_id;
+extern uint32_t pios_com_aux_id;
+extern uint32_t pios_com_spectrum_id;
 
 #define PIOS_COM_TELEM_RF                       0
 #define PIOS_COM_GPS                            1
@@ -75,7 +82,8 @@
 
 #define PIOS_FWRITE(file,bufferadr,length,resultadr)	*resultadr=fwrite((uint8_t*)bufferadr,1,length,*file)
 
-
+// FIXME XXX Needs proper implementation, delete all files
+#define PIOS_FLASHFS_Format() 1==1
 
 #define PIOS_FCLOSE(file)		fclose(file)
 
