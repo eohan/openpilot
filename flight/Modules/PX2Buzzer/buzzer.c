@@ -93,7 +93,7 @@ static void onTimer(UAVObjEvent* ev);
  * \returns 0 on success or -1 if initialization failed
  */
 
-int32_t BatteryInitialize(void)
+int32_t BuzzerInitialize(void)
 {
 	static UAVObjEvent ev;
 	memset(&ev,0,sizeof(UAVObjEvent));
@@ -101,7 +101,7 @@ int32_t BatteryInitialize(void)
 	return 0;
 }
 
-MODULE_INITCALL(BatteryInitialize, 0)
+MODULE_INITCALL(BuzzerInitialize, 0)
 
 static void onTimer(UAVObjEvent* ev)
 {
