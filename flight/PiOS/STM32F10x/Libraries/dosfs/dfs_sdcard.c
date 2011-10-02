@@ -26,8 +26,6 @@
 
 /* Include files */
 
-// Fixme only compiled if SD Card is activated
-#ifdef PIOS_INCLUDE_SDCARD
 
 #include <pios.h>
 
@@ -145,4 +143,3 @@ uint32_t DFS_WriteSector(uint8_t unit, uint8_t *buffer, uint32_t sector, uint32_
 	return 0;
 }
 
-#endif
