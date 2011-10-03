@@ -50,7 +50,16 @@
 //
 // Configuration
 //
-#define SAMPLE_PERIOD_MS		300
+#define BUZZER_THREAD
+
+#ifdef BUZZER_THREAD
+#define STACK_SIZE_BYTES		540
+#define BUZZER_TASK_PRIORITY	(tskIDLE_PRIORITY + 0)	// high
+#define CYCLE_LENGTH			40
+#else
+#define SAMPLE_PERIOD_MS		200
+#endif
+
 #define MAX_MELODY_LENGTH		100
 
 //#define ENABLE_DEBUG_MSG
@@ -64,45 +73,109 @@
 
 // Private types
 typedef struct _buzzer_tone {
-	int length_ms;
-	int duty_ms;
+	uint8_t duty_cycles;
+	uint8_t pause_cycles;
 	uint8_t note;
 } buzzer_tone;
 
-// For Elise...
-const uint8_t melody_len = 54;
-uint8_t melody_index = 0;
-uint8_t melody[54] = { 52, 51, 52, 51, 52, 47, 50, 48, 45,
-					   21, 28, 33, 36, 40, 45, 47,
-					   16, 28, 32, 40, 44, 47, 48,
-					   21, 28, 33, 40,
-
-					   52, 51, 52, 51, 52, 47, 50, 48, 45,
-					   21, 28, 33, 36, 40, 45, 47,
-					   16, 28, 32, 38, 48, 47, 45,
-					   45, 45, 45, 45 };
-
 // Private variables
-buzzer_tone current_melody[MAX_MELODY_LENGTH];
+//tetris
+#ifdef BUZZER_THREAD
+	static xTaskHandle buzzerTaskHandle;
+	uint8_t melody_play = 1;
+	uint8_t melody_index = 0;
+	const uint8_t melody_len = 37;
+	buzzer_tone current_melody[MAX_MELODY_LENGTH] = {
+			   {8, 1, 40}, {4, 1, 35}, {4, 1, 36}, {8, 1, 38}, {4, 1, 36}, {4, 1, 35}, {8, 1, 33}, {4, 1, 33},
+			   {4, 1, 36}, {8, 1, 40}, {4, 1, 38}, {4, 1, 36}, {12, 1, 35}, {4, 1, 36}, {8, 1, 38}, {8, 1, 40}, {8, 1, 36}, {8, 1, 33}, {12, 1, 33},	//19
+
+			   {8, 1, 38}, {4, 1, 41}, {8, 1, 45}, {4, 1, 43}, {4, 1, 41}, {12, 1, 40}, {4, 1, 36}, {8, 1, 40}, {4, 1, 38}, {4, 1, 36}, {8, 1, 35},
+			   {4, 1, 35}, {4, 1, 36}, {8, 1, 38}, {8, 1, 40}, {8, 1, 36}, {8, 1, 33}, {12, 1, 33} };	//18
+#else
+	// For Elise...
+	//const uint8_t melody_len = 54;
+	//uint8_t melody_index = 0;
+	//uint8_t melody[54] = { 52, 51, 52, 51, 52, 47, 50, 48, 45,
+	//					   21, 28, 33, 36, 40, 45, 47,
+	//					   16, 28, 32, 40, 44, 47, 48,
+	//					   21, 28, 33, 40,
+	//
+	//					   52, 51, 52, 51, 52, 47, 50, 48, 45,
+	//					   21, 28, 33, 36, 40, 45, 47,
+	//					   16, 28, 32, 38, 48, 47, 45,
+	//					   45, 45, 45, 45 };
+
+	const uint8_t melody_len = 57;
+	uint8_t melody_index = 0;
+	uint8_t melody[57] = { 40, 40, 35, 36, 38, 38, 36, 35, 33,
+						   33, 33, 36, 40, 40, 38, 36,
+						   35, 35, 36, 38, 38, 40, 40,
+						   36, 36, 33, 33, 33, 33,
+
+						   38, 38, 41, 45, 45, 43, 41, 40, 40,
+						   36, 40, 40, 38, 36, 35, 35,
+						   35, 36, 38, 38, 40, 40,
+						   36, 36, 33, 33, 33, 33 };
+#endif
 
 // Private functions
+#ifdef BUZZER_THREAD
+static void buzzerTask(void *parameters);
+#else
 static void onTimer(UAVObjEvent* ev);
+#endif
 
 /**
  * Initialize the module, called on startup
  * \returns 0 on success or -1 if initialization failed
  */
 
-int32_t BatteryInitialize(void)
+int32_t PX2BuzzerInitialize(void)
 {
+#ifdef BUZZER_THREAD
+	xTaskCreate(buzzerTask, (signed char *)"Buzzer", STACK_SIZE_BYTES/4, NULL, BUZZER_TASK_PRIORITY, &buzzerTaskHandle);
+#else
 	static UAVObjEvent ev;
 	memset(&ev,0,sizeof(UAVObjEvent));
 	EventPeriodicCallbackCreate(&ev, onTimer, SAMPLE_PERIOD_MS / portTICK_RATE_MS);
+#endif
 	return 0;
 }
 
-MODULE_INITCALL(BatteryInitialize, 0)
+MODULE_INITCALL(PX2BuzzerInitialize, 0)
 
+/**
+ * Module thread, should not return.
+ */
+#ifdef BUZZER_THREAD
+static void buzzerTask(void *parameters)
+{
+	portTickType lastSysTime  = xTaskGetTickCount();
+	while(1)
+	{
+		if (melody_play)
+		{
+			//Set Buzzer PWM frequency
+			PIOS_Buzzer_SetNote(current_melody[melody_index].note);
+			//activate buzzer timer (PWM signal starts here)
+			PIOS_Buzzer_Ctrl(1);
+			//delay duty
+			vTaskDelayUntil(&lastSysTime, CYCLE_LENGTH*current_melody[melody_index].duty_cycles);
+			//turn off PWM signal
+			PIOS_Buzzer_Ctrl(0);
+			//delay rest of note length
+			vTaskDelayUntil(&lastSysTime, CYCLE_LENGTH*current_melody[melody_index].pause_cycles);
+
+			melody_index = (melody_index+1) % melody_len;
+			if (melody_index == 0) melody_play = 0;
+		}
+		else
+		{
+			vTaskDelayUntil(&lastSysTime, 500);
+		}
+	}
+}
+#else
 static void onTimer(UAVObjEvent* ev)
 {
 	static bool firstRun = true;
@@ -117,7 +190,7 @@ static void onTimer(UAVObjEvent* ev)
 	melody_index = (melody_index+1) % melody_len;
 	if (melody_index == 0)
 	{
-		PIOS_Buzzer_Ctrl(0);
+		//PIOS_Buzzer_Ctrl(0);
 	}
 }
-
+#endif
