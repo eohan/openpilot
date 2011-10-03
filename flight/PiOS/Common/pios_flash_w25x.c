@@ -34,6 +34,7 @@
 PIOS_FLASHFS_Driver PIOS_Flash_W25X_Driver = {
 		0x1000,							/* flash sector size */
 		PIOS_Flash_W25X_EraseSector,
+		PIOS_Flash_W25X_EraseChip,
 		PIOS_Flash_W25X_WriteData,
 		PIOS_Flash_W25X_ReadData
 };
@@ -44,7 +45,7 @@ static uint8_t device_type;
 static int8_t PIOS_Flash_W25X_ClaimBus();
 static void PIOS_Flash_W25X_ReleaseBus();
 static uint8_t PIOS_Flash_W25X_WriteEnable();
-static uint8_t PIOS_Flash_W25X_Busy() ;
+static uint8_t PIOS_Flash_W25X_Busy();
 
 static uint32_t PIOS_SPI_FLASH;
 

@@ -28,7 +28,9 @@
 
 #include <stdint.h>
 
+#ifndef bool
 typedef enum {FALSE = 0, TRUE = !FALSE} bool;
+#endif
 
 #ifndef false
 	#define false FALSE

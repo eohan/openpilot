@@ -130,7 +130,7 @@ static void onTimer(UAVObjEvent* ev);
  * \returns 0 on success or -1 if initialization failed
  */
 
-int32_t PX2BuzzerInitialize(void)
+int32_t BuzzerInitialize(void)
 {
 #ifdef BUZZER_THREAD
 	xTaskCreate(buzzerTask, (signed char *)"Buzzer", STACK_SIZE_BYTES/4, NULL, BUZZER_TASK_PRIORITY, &buzzerTaskHandle);
@@ -142,7 +142,7 @@ int32_t PX2BuzzerInitialize(void)
 	return 0;
 }
 
-MODULE_INITCALL(PX2BuzzerInitialize, 0)
+MODULE_INITCALL(BuzzerInitialize, 0)
 
 /**
  * Module thread, should not return.

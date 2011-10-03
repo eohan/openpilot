@@ -19,8 +19,11 @@ void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t* buffer, uint16_t l
 #endif
 		PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, buffer, len);
     }
+
+#ifdef PIOS_COM_AUX
     if (chan == MAVLINK_COMM_1)
     {
     	PIOS_COM_SendBufferNonBlocking(PIOS_COM_AUX, buffer, len);
     }
+#endif
 }
