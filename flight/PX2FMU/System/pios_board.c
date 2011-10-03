@@ -55,7 +55,7 @@
 void PIOS_SPI_main_irq_handler(void);
 void DMA2_Stream0_IRQ_Handler(void) __attribute__((alias("PIOS_SPI_main_irq_handler")));
 void DMA2_Stream3_IRQ_Handler(void) __attribute__((alias("PIOS_SPI_main_irq_handler")));
-const struct pios_spi_cfg pios_spi_main_cfg = {
+static const struct pios_spi_cfg pios_spi_main_cfg = {
     .regs    = SPI1,
     .remap   = GPIO_AF_SPI1,
     .use_crc = false,
@@ -179,6 +179,132 @@ const struct pios_spi_cfg pios_spi_main_cfg = {
     },
 };
 
+#if defined(PIOS_INCLUDE_SDCARD)
+void PIOS_SPI_sdcard_irq_handler(void);
+void DMA1_Stream0_IRQ_Handler(void) __attribute__((alias("PIOS_SPI_sdcard_irq_handler")));
+void DMA1_Stream3_IRQ_Handler(void) __attribute__((alias("PIOS_SPI_sdcard_irq_handler")));
+static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
+	    .regs    = SPI3,
+	    .remap   = GPIO_AF_SPI3,
+	    .use_crc = true,
+	    .init    = {
+	        .SPI_Mode              = SPI_Mode_Master,
+	        .SPI_Direction         = SPI_Direction_2Lines_FullDuplex,
+	        .SPI_DataSize          = SPI_DataSize_8b,
+	        .SPI_NSS               = SPI_NSS_Soft,
+	        .SPI_FirstBit          = SPI_FirstBit_MSB,
+	        .SPI_CRCPolynomial     = 7,
+	        .SPI_CPOL              = SPI_CPOL_High,
+	        .SPI_CPHA              = SPI_CPHA_2Edge,
+	        .SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8,
+	    },
+	    .dma     = {
+	        /* .ahb_clk - not required */
+	        .irq = {
+	            .flags   = (DMA_IT_TCIF4 | DMA_IT_TEIF4 | DMA_IT_HTIF4),
+	            .init    = {
+	                .NVIC_IRQChannel                   = DMA1_Stream0_IRQn,
+	                .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGH,
+	                .NVIC_IRQChannelSubPriority        = 0,
+	                .NVIC_IRQChannelCmd                = ENABLE,
+	            },
+	        },
+	        .rx = {
+	            .channel = DMA1_Stream0,
+	            .init = {
+	                .DMA_Channel            = DMA_Channel_4,
+	                .DMA_PeripheralBaseAddr = (uint32_t)&(SPI3->DR),
+	                /* .DMA_Memory0BaseAddr */
+	                .DMA_DIR                = DMA_DIR_PeripheralToMemory,
+	                /* .DMA_BufferSize */
+	                .DMA_PeripheralInc      = DMA_PeripheralInc_Disable,
+	                /* .DMA_BufferSize */
+	                .DMA_PeripheralInc      = DMA_PeripheralInc_Disable,
+	                .DMA_MemoryInc          = DMA_MemoryInc_Enable,
+	                .DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte,
+	                .DMA_MemoryDataSize     = DMA_MemoryDataSize_Byte,
+	                .DMA_Mode               = DMA_Mode_Normal,
+	                .DMA_Priority           = DMA_Priority_High,
+	                .DMA_FIFOMode           = DMA_FIFOMode_Disable,
+	                /* .DMA_FIFOThreshold */
+	                .DMA_MemoryBurst        = DMA_MemoryBurst_Single,
+	                .DMA_PeripheralBurst    = DMA_PeripheralBurst_Single,
+	            },
+	        },
+	        .tx = {
+	            .channel = DMA1_Stream3,
+	            .init = {
+	                .DMA_Channel            = DMA_Channel_4,
+	                /* .DMA_Memory0BaseAddr */
+	                .DMA_PeripheralBaseAddr = (uint32_t)&(SPI3->DR),
+	                .DMA_DIR                = DMA_DIR_MemoryToPeripheral,
+	                /* .DMA_BufferSize */
+	                .DMA_PeripheralInc      = DMA_PeripheralInc_Disable,
+	                .DMA_MemoryInc          = DMA_MemoryInc_Enable,
+	                .DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte,
+	                .DMA_MemoryDataSize     = DMA_MemoryDataSize_Byte,
+	                .DMA_Mode               = DMA_Mode_Normal,
+	                .DMA_Priority           = DMA_Priority_High,
+	                .DMA_FIFOMode           = DMA_FIFOMode_Disable,
+	                /* .DMA_FIFOThreshold */
+	                .DMA_MemoryBurst        = DMA_MemoryBurst_Single,
+	                .DMA_PeripheralBurst    = DMA_PeripheralBurst_Single,
+	            },
+	        },
+	    },
+	    .sclk = {
+	        .gpio = GPIOC,
+	        .init = {
+	            .GPIO_Pin   = GPIO_Pin_10,
+	            .GPIO_Mode  = GPIO_Mode_AF,
+	            .GPIO_Speed = GPIO_Speed_100MHz,
+	            .GPIO_OType = GPIO_OType_PP,
+	            .GPIO_PuPd  = GPIO_PuPd_UP,
+	        },
+	    },
+	    .miso = {
+	        .gpio = GPIOC,
+	        .init = {
+	            .GPIO_Pin   = GPIO_Pin_11,
+	            .GPIO_Mode  = GPIO_Mode_AF,
+	            .GPIO_Speed = GPIO_Speed_50MHz,
+	            .GPIO_OType = GPIO_OType_PP,
+	            .GPIO_PuPd  = GPIO_PuPd_UP,
+	        },
+	    },
+	    .mosi = {
+	        .gpio = GPIOB,
+	        .init = {
+	            .GPIO_Pin   = GPIO_Pin_5,
+	            .GPIO_Mode  = GPIO_Mode_AF,
+	            .GPIO_Speed = GPIO_Speed_50MHz,
+	            .GPIO_OType = GPIO_OType_PP,
+	            .GPIO_PuPd  = GPIO_PuPd_UP,
+	        },
+	    },
+	    .slave_count = 1,
+	    .ssel = {
+	        {
+	            .gpio = GPIOA,
+	            .init = {
+	                .GPIO_Pin   = GPIO_Pin_4,
+	                .GPIO_Mode  = GPIO_Mode_OUT,
+	                .GPIO_Speed = GPIO_Speed_50MHz,
+	                .GPIO_OType = GPIO_OType_PP,
+	                .GPIO_PuPd  = GPIO_PuPd_UP,
+	            },
+	        },
+	    },
+	};
+
+uint32_t pios_spi_sdcard_id;
+void PIOS_SPI_sdcard_irq_handler(void)
+{
+  /* Call into the generic code to handle the IRQ for this specific device */
+	PIOS_SPI_IRQ_Handler(pios_spi_sdcard_id);
+}
+#endif
+
 #if defined(PIOS_INCLUDE_BUZZER)
 const struct pios_buzzer_cfg pios_buzzer_cfg = {
 	.tim_base_init = {
@@ -219,6 +345,8 @@ void PIOS_SPI_main_irq_handler(void)
   /* Call into the generic code to handle the IRQ for this specific device */
 	PIOS_SPI_IRQ_Handler(pios_spi_main_id);
 }
+
+
 
 /*
  * ADC system
@@ -476,7 +604,12 @@ void PIOS_Board_Init(void)
 	PIOS_L3G4200_Attach(pios_spi_main_id);
 	PIOS_LIS331_Attach(pios_spi_main_id);
 
-	/* XXX sdcard init here */
+	/* sdcard init */
+#if defined(PIOS_INCLUDE_SDCARD)
+	if (PIOS_SPI_Init(&pios_spi_sdcard_id, &pios_spi_sdcard_cfg)) {
+		PIOS_DEBUG_Assert(0);
+	}
+#endif
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "SPI ");
 
@@ -524,6 +657,11 @@ void PIOS_Board_Init(void)
 #if defined(PIOS_INCLUDE_WDG)
 	PIOS_WDG_Init();
 #endif /* PIOS_INCLUDE_WDG */
+
+#if defined(PIOS_INCLUDE_SDCARD)
+	PIOS_SDCARD_Init(pios_spi_sdcard_id);
+	PIOS_SDCARD_MountFS(0);
+#endif
 
 #if defined(PIOS_INCLUDE_BUZZER)
 	PIOS_Buzzer_Init();

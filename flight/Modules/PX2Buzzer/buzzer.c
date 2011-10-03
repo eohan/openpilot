@@ -47,19 +47,14 @@
 
 #include "openpilot.h"
 
+#ifdef PIOS_INCLUDE_BUZZER
+
 //
 // Configuration
 //
-#define BUZZER_THREAD
-
-#ifdef BUZZER_THREAD
-#define STACK_SIZE_BYTES		540
-#define BUZZER_TASK_PRIORITY	(tskIDLE_PRIORITY + 0)	// high
+#define STACK_SIZE_BYTES		128
+#define BUZZER_TASK_PRIORITY	(tskIDLE_PRIORITY + 0)
 #define CYCLE_LENGTH			40
-#else
-#define SAMPLE_PERIOD_MS		200
-#endif
-
 #define MAX_MELODY_LENGTH		100
 
 //#define ENABLE_DEBUG_MSG
@@ -79,19 +74,19 @@ typedef struct _buzzer_tone {
 } buzzer_tone;
 
 // Private variables
-//tetris
-#ifdef BUZZER_THREAD
-	static xTaskHandle buzzerTaskHandle;
-	uint8_t melody_play = 1;
-	uint8_t melody_index = 0;
-	const uint8_t melody_len = 37;
-	buzzer_tone current_melody[MAX_MELODY_LENGTH] = {
-			   {8, 1, 40}, {4, 1, 35}, {4, 1, 36}, {8, 1, 38}, {4, 1, 36}, {4, 1, 35}, {8, 1, 33}, {4, 1, 33},
-			   {4, 1, 36}, {8, 1, 40}, {4, 1, 38}, {4, 1, 36}, {12, 1, 35}, {4, 1, 36}, {8, 1, 38}, {8, 1, 40}, {8, 1, 36}, {8, 1, 33}, {12, 1, 33},	//19
+static xTaskHandle buzzerTaskHandle;
+static uint8_t melody_play = 1;
+static uint8_t melody_index = 0;
 
-			   {8, 1, 38}, {4, 1, 41}, {8, 1, 45}, {4, 1, 43}, {4, 1, 41}, {12, 1, 40}, {4, 1, 36}, {8, 1, 40}, {4, 1, 38}, {4, 1, 36}, {8, 1, 35},
-			   {4, 1, 35}, {4, 1, 36}, {8, 1, 38}, {8, 1, 40}, {8, 1, 36}, {8, 1, 33}, {12, 1, 33} };	//18
-#else
+//Tetris Theme
+static const uint8_t melody_len = 37;
+static const buzzer_tone current_melody[MAX_MELODY_LENGTH] = {
+		   {8, 1, 40}, {4, 1, 35}, {4, 1, 36}, {8, 1, 38}, {4, 1, 36}, {4, 1, 35}, {8, 1, 33}, {4, 1, 33},
+		   {4, 1, 36}, {8, 1, 40}, {4, 1, 38}, {4, 1, 36}, {12, 1, 35}, {4, 1, 36}, {8, 1, 38}, {8, 1, 40}, {8, 1, 36}, {8, 1, 33}, {12, 1, 33},	//19
+
+		   {8, 1, 38}, {4, 1, 41}, {8, 1, 45}, {4, 1, 43}, {4, 1, 41}, {12, 1, 40}, {4, 1, 36}, {8, 1, 40}, {4, 1, 38}, {4, 1, 36}, {8, 1, 35},
+		   {4, 1, 35}, {4, 1, 36}, {8, 1, 38}, {8, 1, 40}, {8, 1, 36}, {8, 1, 33}, {12, 1, 33} };	//18
+#if 0
 	// For Elise...
 	//const uint8_t melody_len = 54;
 	//uint8_t melody_index = 0;
@@ -104,26 +99,10 @@ typedef struct _buzzer_tone {
 	//					   21, 28, 33, 36, 40, 45, 47,
 	//					   16, 28, 32, 38, 48, 47, 45,
 	//					   45, 45, 45, 45 };
-
-	const uint8_t melody_len = 57;
-	uint8_t melody_index = 0;
-	uint8_t melody[57] = { 40, 40, 35, 36, 38, 38, 36, 35, 33,
-						   33, 33, 36, 40, 40, 38, 36,
-						   35, 35, 36, 38, 38, 40, 40,
-						   36, 36, 33, 33, 33, 33,
-
-						   38, 38, 41, 45, 45, 43, 41, 40, 40,
-						   36, 40, 40, 38, 36, 35, 35,
-						   35, 36, 38, 38, 40, 40,
-						   36, 36, 33, 33, 33, 33 };
 #endif
 
 // Private functions
-#ifdef BUZZER_THREAD
 static void buzzerTask(void *parameters);
-#else
-static void onTimer(UAVObjEvent* ev);
-#endif
 
 /**
  * Initialize the module, called on startup
@@ -132,13 +111,7 @@ static void onTimer(UAVObjEvent* ev);
 
 int32_t BuzzerInitialize(void)
 {
-#ifdef BUZZER_THREAD
 	xTaskCreate(buzzerTask, (signed char *)"Buzzer", STACK_SIZE_BYTES/4, NULL, BUZZER_TASK_PRIORITY, &buzzerTaskHandle);
-#else
-	static UAVObjEvent ev;
-	memset(&ev,0,sizeof(UAVObjEvent));
-	EventPeriodicCallbackCreate(&ev, onTimer, SAMPLE_PERIOD_MS / portTICK_RATE_MS);
-#endif
 	return 0;
 }
 
@@ -147,7 +120,6 @@ MODULE_INITCALL(BuzzerInitialize, 0)
 /**
  * Module thread, should not return.
  */
-#ifdef BUZZER_THREAD
 static void buzzerTask(void *parameters)
 {
 	portTickType lastSysTime  = xTaskGetTickCount();
@@ -173,24 +145,6 @@ static void buzzerTask(void *parameters)
 		{
 			vTaskDelayUntil(&lastSysTime, 500);
 		}
-	}
-}
-#else
-static void onTimer(UAVObjEvent* ev)
-{
-	static bool firstRun = true;
-
-	if (firstRun)
-	{
-		firstRun = false;
-		PIOS_Buzzer_Ctrl(1);
-	}
-
-	PIOS_Buzzer_SetNote(melody[melody_index]);
-	melody_index = (melody_index+1) % melody_len;
-	if (melody_index == 0)
-	{
-		//PIOS_Buzzer_Ctrl(0);
 	}
 }
 #endif
