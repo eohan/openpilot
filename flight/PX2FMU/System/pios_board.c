@@ -440,6 +440,7 @@ const struct pios_ppm_cfg pios_ppm_cfg = {
 	},
 	.irq = {
 		.init    = {
+			.NVIC_IRQChannel                   = TIM1_CC_IRQn,
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
 			.NVIC_IRQChannelSubPriority        = 0,
 			.NVIC_IRQChannelCmd                = ENABLE,
@@ -455,6 +456,7 @@ void PIOS_TIM1_CC_irq_handler()
 }
 
 #endif //PPM
+
 
 
 /*
@@ -659,8 +661,32 @@ void PIOS_Board_Init(void)
 #endif /* PIOS_INCLUDE_WDG */
 
 #if defined(PIOS_INCLUDE_SDCARD)
-	PIOS_SDCARD_Init(pios_spi_sdcard_id);
-	PIOS_SDCARD_MountFS(0);
+//	FILEINFO file;
+//	static uint8_t buffer[200];
+//	uint32_t res;
+//	int resi;
+//
+//	res = PIOS_SDCARD_Init(pios_spi_sdcard_id);
+//	sprintf((char *)buffer, "\nPIOS_SDCARD_Init Res: %u\n", (unsigned int) res);
+//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
+//
+//	resi = PIOS_SDCARD_PowerOn();
+//	sprintf((char *)buffer, "PIOS_SDCARD_PowerOn Res: %d\n", resi);
+//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
+//
+//	resi = PIOS_SDCARD_MountFS(0);
+//	sprintf((char *)buffer, "PIOS_SDCARD_MountFS Res: %d\n", resi);
+//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
+//
+//	res = DFS_OpenFile(&PIOS_SDCARD_VolInfo, (uint8_t *)("test.txt"), DFS_READ, PIOS_SDCARD_Sector, &file);
+//	sprintf((char *)buffer, "DFS_OpenFile Res: %u\n", (unsigned int) res);
+//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
+
+	//	if(!PIOS_FOPEN_READ("test.txt", file))
+//	{
+//		PIOS_SDCARD_ReadLine(&file, buffer, 199);
+//	}
+
 #endif
 
 #if defined(PIOS_INCLUDE_BUZZER)
