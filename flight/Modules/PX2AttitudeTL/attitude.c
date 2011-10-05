@@ -63,13 +63,13 @@
 #include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES		5120						// XXX re-evaluate
+#define STACK_SIZE_BYTES		4096						// XXX re-evaluate
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 
 // update/polling rates
 #define UPDATE_INTERVAL_TICKS		(5 / portTICK_RATE_MS)			// update every 5ms
-#define SENSOR_POLL_INTERVAL_TICKS	(1  / portTICK_RATE_MS)			// poll sensors every 2ms
+#define SENSOR_POLL_INTERVAL_TICKS	(5  / portTICK_RATE_MS)			// poll sensors every 5ms (we get heavy problems if faster!!! XXX FIXME TODO)
 
 // allow 100% extra sample space to allow the attitude update to run a bit late
 #define MAX_SAMPLES_PER_UPDATE		(2 * (UPDATE_INTERVAL_TICKS / SENSOR_POLL_INTERVAL_TICKS))
@@ -89,7 +89,7 @@ static xTaskHandle attitudeTaskHandle;
 static xTaskHandle sensorTaskHandle;
 static volatile struct sample_buffer sampleBuffer[2];
 static struct pios_hmc5883_data savedMagData;
-static volatile int activeSample;
+static volatile int activeSample = 0;
 //static float accelKi = 0;
 //static float accelKp = 0;
 //static float yawBiasRate = 0;
@@ -195,7 +195,6 @@ static void attitudeTask(void *parameters)
 		PIOS_WDG_UpdateFlag(PIOS_WDG_ATTITUDE);
 		
 		// perform an attitude update
-		AttitudeRawGet(&attitudeRaw);
 		updateSensors(&attitudeRaw);
 		updateAttitude(&attitudeRaw);
 		AttitudeRawSet(&attitudeRaw);
@@ -247,7 +246,7 @@ static void sensorTask(void *parameters)
 		}
 
 		// accumulate mag reading if available
-		if (/*PIOS_HMC5883_NewDataAvailable() && */(mc <= MAX_SAMPLES_PER_UPDATE)) {
+		if ((mc < MAX_SAMPLES_PER_UPDATE) && PIOS_HMC5883_NewDataAvailable()) {
 			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&sb->mag[mc]);
 			sb->mag_count = mc + 1;
 		}
