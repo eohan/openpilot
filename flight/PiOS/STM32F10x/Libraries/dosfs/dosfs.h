@@ -6,6 +6,7 @@
 #ifndef _DOSFS_H
 #define _DOSFS_H
 
+
 #include <stdint.h>
 
 //===================================================================
@@ -400,6 +401,5 @@ char *DFS_DirToCanonical(char *dest, char *src);
 #ifdef HOSTVER
 #include "hostemu.h"
 #endif
-
 
 #endif // _DOSFS_H

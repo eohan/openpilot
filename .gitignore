@@ -8,11 +8,13 @@
 /flight/.settings
 /flight/Build
 
+eclipse-launch-custom
+
 *.pnproj
 *.pnps
-*.cproject
-*.metadata
-*.project
+.cproject
+.metadata
+.project
 *.settings
 build
 
@@ -79,3 +81,5 @@ flight/.project
 flight/.cproject
 flight/.settings
 
+ground/openpilotgcs/src/experimental/upload-build-desktop
+upload.pro.user

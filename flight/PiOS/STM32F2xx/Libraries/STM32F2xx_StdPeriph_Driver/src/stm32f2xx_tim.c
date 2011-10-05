@@ -279,7 +279,7 @@ void TIM_DeInit(TIM_TypeDef* TIMx)
   *         that contains the configuration information for the specified TIM peripheral.
   * @retval None
   */
-void TIM_TimeBaseInit(TIM_TypeDef* TIMx, TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct)
+void TIM_TimeBaseInit(TIM_TypeDef* TIMx, const TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct)
 {
   uint16_t tmpcr1 = 0;
 

@@ -68,6 +68,12 @@
 #define PIOS_TELEM_STACK_SIZE	624
 
 //------------------------
+// MAVLINK
+//------------------------
+#define MAVLINK_QUEUE_SIZE		20
+#define PIOS_MAVLINK_STACK_SIZE	1400
+
+//------------------------
 // PIOS_LED
 //------------------------
 #define PIOS_LED_LED1_GPIO_PORT                 GPIOB
@@ -173,14 +179,14 @@ extern uint32_t pios_i2c_external_adapter_id;
 extern uint32_t pios_com_telem_rf_id;
 #define PIOS_COM_TELEM_RF               (pios_com_telem_rf_id)
 
-#define PIOS_COM_GPS_BAUDRATE           57600
+#define PIOS_COM_GPS_BAUDRATE           38400
 extern uint32_t pios_com_gps_id;
 #define PIOS_COM_GPS                    (pios_com_gps_id)
 
 extern uint32_t pios_com_telem_usb_id;
 #define PIOS_COM_TELEM_USB              (pios_com_telem_usb_id)
 
-#define PIOS_COM_CONTROL_BAUDRATE		115200
+#define PIOS_COM_CONTROL_BAUDRATE		921600
 extern uint32_t pios_com_control_id;
 #define PIOS_COM_CONTROL				(pios_com_control_id)
 
@@ -201,11 +207,6 @@ extern uint32_t pios_com_aux_id;
 //-------------------------
 #define PIOS_MASTER_CLOCK				120000000					// XXX should really get this from the BSP
 #define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)		// XXX should really get this from the BSP
-#if defined(USE_BOOTLOADER)
-#define PIOS_NVIC_VECTTAB_FLASH			(START_OF_USER_CODE)		// XXX should be getting this from the symbol table
-#else
-#define PIOS_NVIC_VECTTAB_FLASH			((uint32_t)0x08000000)		// XXX should be getting this from the symbol table
-#endif
 
 //-------------------------
 // Interrupt Priorities
@@ -239,7 +240,7 @@ extern uint32_t pios_com_aux_id;
 // ADC
 // PIOS_ADC_PinGet(0) = External voltage
 // PIOS_ADC_PinGet(1) = AUX1 (PX2IO external pressure port)
-// PIOS_ADC_PinGet(2) = AUX2
+// PIOS_ADC_PinGet(2) = AUX2 (Current sensor, if available)
 // PIOS_ADC_PinGet(3) = AUX3
 //-------------------------
 

@@ -14,14 +14,30 @@ define showtask
 #		x/i $frame->lr
 #	end
 end
+document showtask
+	showtask tcb_ptr
+	Prints details of a FreeRTOS task
+end
 
-define showtasklist
+# Iterate a a list of tasks
+define _showtasklist
 	set $list = (struct xLIST *)$arg0
 	set $entry = $list->xListEnd.pxNext
 
 	while $entry != &$list->xListEnd
        		showtask $entry->pvOwner
 		set $entry = $entry->pxNext
+	end
+end
+
+# Iterate a list
+define _showlist
+	set $list = (struct xLIST *)$arg0
+	printf "0x%08x: %d items\n", $list, $list->uxNumberOfItems
+	set $list_entry = $list->xListEnd.pxNext
+	while $list != 0
+		printf "0x%08x: value 0x%08x owner 0x%08x container 0x%08x\n", $list, $list->xItemValue, $list->pvOwner, $list->pvContainer
+		set $list = $list->pxNext;
 	end
 end
 
@@ -34,28 +50,22 @@ define showtasks
 	while $priority > 0
 		set $priority = $priority - 1
 		printf "ready @ pri %d:\n", $priority
-		showtasklist &pxReadyTasksLists[$priority]
+		_showtasklist &pxReadyTasksLists[$priority]
 	end
 	printf "ready - pending:\n"
-	showtasklist &xPendingReadyList
+	_showtasklist &xPendingReadyList
 	printf "delayed:\n"
-	showtasklist pxDelayedTaskList
-	showtasklist pxOverflowDelayedTaskList
+	_showtasklist pxDelayedTaskList
+	_showtasklist pxOverflowDelayedTaskList
 	printf "suspended:\n"
-	showtasklist &xSuspendedTaskList
+	_showtasklist &xSuspendedTaskList
 	printf "waiting termination:\n"
-	showtasklist &xTasksWaitingTermination
+	_showtasklist &xTasksWaitingTermination
 	
 end
-
-define showlist
-	set $list = (struct xLIST *)$arg0
-	printf "0x%08x: %d items\n", $list, $list->uxNumberOfItems
-	set $list_entry = $list->xListEnd.pxNext
-	while $list != 0
-		printf "0x%08x: value 0x%08x owner 0x%08x container 0x%08x\n", $list, $list->xItemValue, $list->pvOwner, $list->pvContainer
-		set $list = $list->pxNext;
-	end
+document showtasks
+	showtasks
+	Prints details of the current FreeRTOS tasks.
 end
 
 define showheap2
@@ -66,4 +76,8 @@ define showheap2
 		printf "0x%08x free 0x%08x\n", $block, $block->xBlockSize
 		set $block = $block->pxNextFreeBlock
 	end
+end
+document showheap2
+	showheap2
+	Print details of free space in the heap2 allocator.
 end

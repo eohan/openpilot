@@ -36,8 +36,15 @@
 #define PIOS_INCLUDE_SDCARD
 #define PIOS_INCLUDE_FREERTOS
 #define PIOS_INCLUDE_COM
+#define PIOS_INCLUDE_GPS
+#define PIOS_INCLUDE_IRQ
+#define PIOS_INCLUDE_TELEMETRY_RF
 #define PIOS_INCLUDE_UDP
 #define PIOS_INCLUDE_SERVO
+#define PIOS_INCLUDE_RCVR
+
+#define PIOS_RCVR_MAX_CHANNELS			12
+#define PIOS_RCVR_MAX_DEVS              3
 
 
 /* Defaults for Logging */
@@ -45,11 +52,18 @@
 #define STARTUP_LOG_ENABLED		1
 
 /* COM Module */
-#define GPS_BAUDRATE			19200
+//#define GPS_BAUDRATE			19200
 #define TELEM_BAUDRATE			19200
 #define AUXUART_ENABLED			0
 #define AUXUART_BAUDRATE		19200
 
 #define TELEM_QUEUE_SIZE                20
 #define PIOS_TELEM_STACK_SIZE           2048
+
+//------------------------
+// MAVLINK
+//------------------------
+#define MAVLINK_QUEUE_SIZE		20
+#define PIOS_MAVLINK_STACK_SIZE	1400
+
 #endif /* PIOS_CONFIG_POSIX_H */

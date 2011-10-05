@@ -74,9 +74,8 @@ typedef enum {
 } DFUCommands;
 
 typedef enum {
-	High_Density,
-	Medium_Density
-}DeviceType;
+	High_Density, Medium_Density
+} DeviceType;
 /**************************************************/
 /* OP_DFU transfer types                       */
 /**************************************************/
@@ -98,7 +97,8 @@ typedef enum {
 /**************************************************/
 typedef enum {
 	Self_flash, //0
-//	Remote_flash_via_spi //1   XXX unsupported
+	Remote_flash_via_spi
+//1
 } DFUProgType;
 /**************************************************/
 /* OP_DFU programable sources			          */

@@ -24,7 +24,6 @@
         .USART_Mode                = USART_Mode_Rx | USART_Mode_Tx,     \
     },                                                                  \
     .irq = {                                                            \
-        .handler = NULL,                                                \
         .init    = {                                                    \
             .NVIC_IRQChannel                   = _usart ## _IRQn,       \
             .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGH,	\

@@ -32,22 +32,27 @@
 /*
  * Telemetry USART
  */
-static uint32_t	pios_usart_telem_rf_id;
+const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_BAUDRATE);
+#define PIOS_COM_TELEM_RF_RX_BUF_LEN 192
+#define PIOS_COM_TELEM_RF_TX_BUF_LEN 192
 
-/* USART2 IRQ handler */
-void USART2_IRQHandler() __attribute__ ((alias ("PIOS_USART_telem_irq_handler")));
-void PIOS_USART_telem_irq_handler(void)
-{
-	PIOS_USART_IRQ_Handler(pios_usart_telem_rf_id);
-}
+static uint8_t pios_com_telem_rf_rx_buffer[PIOS_COM_TELEM_RF_RX_BUF_LEN];
+static uint8_t pios_com_telem_rf_tx_buffer[PIOS_COM_TELEM_RF_TX_BUF_LEN];
 
-/* USART2 config */
-const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_BAUDRATE, PIOS_USART_telem_irq_handler);
 
-extern const struct pios_com_driver pios_usb_com_driver;
+/*
+ * Debug USART
+ */
+const struct pios_usart_cfg pios_usart_aux_cfg = USART1_CONFIG(PIOS_COM_AUX_BAUDRATE);
+#define PIOS_COM_AUX_RX_BUF_LEN 64
+#define PIOS_COM_AUX_TX_BUF_LEN 64
+
+static uint8_t pios_com_aux_rx_buffer[PIOS_COM_AUX_RX_BUF_LEN];
+static uint8_t pios_com_aux_tx_buffer[PIOS_COM_AUX_TX_BUF_LEN];
+
 
 uint32_t pios_com_telem_rf_id;
-uint32_t pios_com_telem_usb_id;
+uint32_t pios_com_aux_id;
 
 /**
  * PIOS_Board_Init()
@@ -56,30 +61,38 @@ uint32_t pios_com_telem_usb_id;
  */
 void PIOS_Board_Init(void)
 {
+	uint32_t	usart_id;
 
+	// XXX is any of this crap necessary?
 	/* Enable Prefetch Buffer */
 	FLASH_PrefetchBufferCmd(ENABLE);
 
 	/* Flash 2 wait state */
 	FLASH_SetLatency(FLASH_Latency_2);
 
-	/* Delay system */
-	PIOS_DELAY_Init();	
-	
-	PIOS_GPIO_Init();
+	/* configure the USB VBUS detect pin with an internal pulldown */
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+	GPIO_InitStructure.GPIO_Pin = PIOS_USB_DETECT_GPIO_PIN;
+	GPIO_Init(PIOS_USB_DETECT_GPIO_PORT, &GPIO_InitStructure);
 
-	/* Initialize the PiOS library */
-	if (PIOS_USART_Init(&pios_usart_telem_rf_id, &pios_usart_telem_cfg)) {
+	/* configure the USARTs */
+	if (PIOS_USART_Init(&usart_id, &pios_usart_telem_cfg) ||
+		PIOS_COM_Init(&pios_com_telem_rf_id, &pios_usart_com_driver, 
+			      usart_id,
+			      pios_com_telem_rf_rx_buffer, sizeof(pios_com_telem_rf_rx_buffer), 
+			      pios_com_telem_rf_tx_buffer, sizeof(pios_com_telem_rf_tx_buffer))) {
 		PIOS_DEBUG_Assert(0);
 	}
-	if (PIOS_COM_Init(&pios_com_telem_rf_id, &pios_usart_com_driver, pios_usart_telem_rf_id)) {
+	if (PIOS_USART_Init(&usart_id, &pios_usart_aux_cfg) ||
+		PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver,
+			      usart_id,
+			      pios_com_aux_rx_buffer, sizeof(pios_com_aux_rx_buffer),
+			      pios_com_aux_tx_buffer, sizeof(pios_com_aux_tx_buffer))) {
 		PIOS_DEBUG_Assert(0);
 	}
 
-	PIOS_USB_HID_Init(0);
-	if (PIOS_COM_Init(&pios_com_telem_usb_id, &pios_usb_com_driver, 0)) {
-		PIOS_DEBUG_Assert(0);
-	}
 }
 
 /**

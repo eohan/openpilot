@@ -1,0 +1,14 @@
+<xml>
+    <object name="AttitudeMatrix" singleinstance="true" settings="false">
+        <description>The updated Attitude estimation from @ref PX2AttitudeTLModule</description>
+        <field name="RotationMatrix" units="" type="float" elementnames="r11,r12,r13,r21,r22,r23,r31,r32,r33" defaultvalue="0"/>
+        <field name="AngularRates" units="rad/s" type="float" elementnames="X,Y,Z" defaultvalue="0"/>
+        <field name="Roll" units="rad" type="float" elements="1"/>
+        <field name="Pitch" units="rad" type="float" elements="1"/>
+        <field name="Yaw" units="rad" type="float" elements="1"/>
+        <access gcs="readwrite" flight="readwrite"/>
+        <telemetrygcs acked="false" updatemode="manual" period="0"/>
+        <telemetryflight acked="false" updatemode="periodic" period="100"/>
+        <logging updatemode="never" period="0"/>
+    </object>
+</xml>

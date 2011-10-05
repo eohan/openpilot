@@ -30,7 +30,8 @@
 #include "pios.h"
 #include "op_dfu.h"
 #include "pios_bl_helper.h"
-#include "pios_opahrs.h"
+#include <pios_board_info.h>
+#include <pios_opahrs.h>
 #include "ssp.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -78,7 +79,7 @@ extern Port_t ssp_port;
 extern DFUPort ProgPort;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
-void sendData(uint8_t * buf,uint16_t size);
+void sendData(uint8_t * buf, uint16_t size);
 uint32_t CalcFirmCRC(void);
 
 void DataDownload(DownloadAction action) {
@@ -101,8 +102,8 @@ void DataDownload(DownloadAction action) {
 		for (uint8_t x = 0; x < packetSize; ++x) {
 			partoffset = (downPacketCurrent * 14 * 4) + (x * 4);
 			offset = baseOfAdressType(downType) + partoffset;
-			if(!flash_read(SendBuffer+(6+x*4),offset,currentProgrammingDestination))
-			{
+			if (!flash_read(SendBuffer + (6 + x * 4), offset,
+					currentProgrammingDestination)) {
 				DeviceState = Last_operation_failed;
 			}
 		}
@@ -111,14 +112,14 @@ void DataDownload(DownloadAction action) {
 			DeviceState = Last_operation_Success;
 			Aditionals = (uint32_t) Download;
 		}
-		sendData(SendBuffer+1,63);
+		sendData(SendBuffer + 1, 63);
 	}
 }
 void processComand(uint8_t *xReceive_Buffer) {
 
 	Command = xReceive_Buffer[COMMAND];
 #ifdef DEBUG_SSP
-	char str[63]={0};
+	char str[63]= {0};
 	sprintf(str,"Received COMMAND:%d|",Command);
 	PIOS_COM_SendString(PIOS_COM_TELEM_USB,str);
 #endif
@@ -158,7 +159,10 @@ void processComand(uint8_t *xReceive_Buffer) {
 			uint8_t result = 0;
 			switch (currentProgrammingDestination) {
 			case Self_flash:
-				result = FLASH_Ini();
+				result = PIOS_BL_HELPER_FLASH_Ini();
+				break;
+			case Remote_flash_via_spi:
+				result = TRUE;
 				break;
 			default:
 				DeviceState = Last_operation_failed;
@@ -188,10 +192,32 @@ void processComand(uint8_t *xReceive_Buffer) {
 					Aditionals = (uint32_t) Command;
 				} else {
 					uint8_t result = 1;
+// XXX					struct opahrs_msg_v0 rsp;
 					if (TransferType == FW) {
 						switch (currentProgrammingDestination) {
 						case Self_flash:
-							result = FLASH_Start();
+							result = PIOS_BL_HELPER_FLASH_Start();
+							break;
+						case Remote_flash_via_spi:
+#if XXX
+							PIOS_OPAHRS_bl_FwupStart(&rsp);
+							result = FALSE;
+							for (int i = 0; i < 5; ++i) {
+								PIOS_DELAY_WaitmS(1000);
+								PIOS_OPAHRS_bl_resync();
+								if (PIOS_OPAHRS_bl_FwupStatus(&rsp)
+										== OPAHRS_RESULT_OK) {
+									if (rsp.payload.user.v.rsp.fwup_status.status
+											== started) {
+										result = TRUE;
+										break;
+									} else {
+										result = FALSE;
+										break;
+									}
+								}
+							}
+#endif
 							break;
 						default:
 							break;
@@ -215,6 +241,8 @@ void processComand(uint8_t *xReceive_Buffer) {
 					{
 						numberOfWords = SizeOfLastPacket;
 					}
+///XXX					struct opahrs_msg_v0 rsp;
+///XXX					struct opahrs_msg_v0 req;
 					uint8_t result = 0;
 					switch (currentProgrammingDestination) {
 					case Self_flash:
@@ -234,6 +262,35 @@ void processComand(uint8_t *xReceive_Buffer) {
 								}
 							}
 						}
+						break;
+					case Remote_flash_via_spi:
+#if XXX
+						for (uint8_t x = 0; x < numberOfWords; ++x) {
+							offset = 4 * x;
+							Data = xReceive_Buffer[DATA + offset] << 24;
+							Data += xReceive_Buffer[DATA + 1 + offset] << 16;
+							Data += xReceive_Buffer[DATA + 2 + offset] << 8;
+							Data += xReceive_Buffer[DATA + 3 + offset];
+							req.payload.user.v.req.fwup_data.data[x] = Data;
+						}
+						aux = (baseOfAdressType(TransferType) + (uint32_t)(
+								Count * 14 * 4));
+						req.payload.user.v.req.fwup_data.adress = aux;
+						req.payload.user.v.req.fwup_data.size = numberOfWords;
+						if (PIOS_OPAHRS_bl_FwupData(&req, &rsp)
+								== OPAHRS_RESULT_OK) {
+							if (rsp.payload.user.v.rsp.fwup_status.status
+									== write_error) {
+								result = FALSE;
+							} else if (rsp.payload.user.v.rsp.fwup_status.status
+									== outside_dev_capabilities) {
+								result = TRUE;
+								DeviceState = outsideDevCapabilities;
+							} else
+								result = TRUE;
+						} else
+							result = FALSE;
+#endif
 						break;
 					default:
 						result = 0;
@@ -287,17 +344,28 @@ void processComand(uint8_t *xReceive_Buffer) {
 			Buffer[11] = devicesTable[Data0 - 1].FW_Crc >> 16;
 			Buffer[12] = devicesTable[Data0 - 1].FW_Crc >> 8;
 			Buffer[13] = devicesTable[Data0 - 1].FW_Crc;
-			Buffer[14] = devicesTable[Data0 - 1].devID>>8;
+			Buffer[14] = devicesTable[Data0 - 1].devID >> 8;
 			Buffer[15] = devicesTable[Data0 - 1].devID;
 		}
 		sendData(Buffer + 1, 63);
 		break;
 	case JumpFW:
 		if (numberOfDevices > 1) {
-			// XXX boot other device(s)
+#if XXX
+			struct opahrs_msg_v0 rsp;
+			PIOS_OPAHRS_bl_boot(0);
+			if (PIOS_OPAHRS_bl_FwupStatus(&rsp) == OPAHRS_RESULT_OK) {
+				DeviceState = failed_jump;
+				break;
+			} else {
+				FLASH_Lock();
+				JumpToApp = 1;
+			}
+#endif
+		} else {
+			FLASH_Lock();
+			JumpToApp = 1;
 		}
-		FLASH_Lock();
-		JumpToApp = 1;
 		break;
 	case Reset:
 		PIOS_SYS_Reset();
@@ -326,8 +394,8 @@ void processComand(uint8_t *xReceive_Buffer) {
 		break;
 	case Download_Req:
 #ifdef DEBUG_SSP
-			sprintf(str,"COMMAND:DOWNLOAD_REQ 1 Status=%d|",DeviceState);
-			PIOS_COM_SendString(PIOS_COM_TELEM_USB,str);
+		sprintf(str,"COMMAND:DOWNLOAD_REQ 1 Status=%d|",DeviceState);
+		PIOS_COM_SendString(PIOS_COM_TELEM_USB,str);
 #endif
 		if (DeviceState == DFUidle) {
 #ifdef DEBUG_SSP
@@ -386,21 +454,58 @@ void processComand(uint8_t *xReceive_Buffer) {
 	return;
 }
 void OPDfuIni(uint8_t discover) {
+	const struct pios_board_info * bdinfo = &pios_board_info_blob;
 	Device dev;
+
 	dev.programmingType = Self_flash;
-	dev.readWriteFlags = (BOARD_READABLE | (BOARD_WRITABLA << 1));
-	dev.startOfUserCode = START_OF_USER_CODE;
-	dev.sizeOfCode = SIZE_OF_CODE;
-	dev.sizeOfDescription = SIZE_OF_DESCRIPTION;
-	dev.BL_Version = BOOTLOADER_VERSION;
+	dev.readWriteFlags = (BOARD_READABLE | (BOARD_WRITABLE << 1));
+	dev.startOfUserCode = bdinfo->fw_base;
+	dev.sizeOfCode = bdinfo->fw_size;
+	dev.sizeOfDescription = bdinfo->desc_size;
+	dev.BL_Version = bdinfo->bl_rev;
 	dev.FW_Crc = CalcFirmCRC();
-	dev.devID = (BOARD_TYPE << 8) | BOARD_REVISION;
-	dev.devType = HW_TYPE;
+	dev.devID = (bdinfo->board_type << 8) | (bdinfo->board_rev);
+	dev.devType = bdinfo->hw_type;
 	numberOfDevices = 1;
 	devicesTable[0] = dev;
+#if XXX
 	if (discover) {
-		//TODO check other devices trough spi or whatever
+		uint8_t found_spi_device = FALSE;
+
+		for (int t = 0; t < 3; ++t) {
+			if (PIOS_OPAHRS_bl_resync() == OPAHRS_RESULT_OK) {
+				found_spi_device = TRUE;
+				dev.FW_Crc = 0;
+				break;
+			}
+			PIOS_DELAY_WaitmS(100);
+		}
+		if (found_spi_device == TRUE) {
+			struct opahrs_msg_v0 rsp;
+			if (PIOS_OPAHRS_bl_GetVersions(&rsp) == OPAHRS_RESULT_OK) {
+				dev.programmingType = Remote_flash_via_spi;
+				dev.BL_Version = rsp.payload.user.v.rsp.versions.bl_version;
+				dev.FW_Crc = rsp.payload.user.v.rsp.versions.fw_crc;
+				dev.devID = rsp.payload.user.v.rsp.versions.hw_version;
+				if (PIOS_OPAHRS_bl_GetMemMap(&rsp) == OPAHRS_RESULT_OK) {
+					dev.readWriteFlags
+							= rsp.payload.user.v.rsp.mem_map.rw_flags;
+					dev.startOfUserCode
+							= rsp.payload.user.v.rsp.mem_map.start_of_user_code;
+					dev.sizeOfCode
+							= rsp.payload.user.v.rsp.mem_map.size_of_code_memory;
+					dev.sizeOfDescription
+							= rsp.payload.user.v.rsp.mem_map.size_of_description;
+					dev.devType = rsp.payload.user.v.rsp.mem_map.density;
+					numberOfDevices = 2;
+					devicesTable[1] = dev;
+				}
+			}
+		} else
+			PIOS_OPAHRS_ForceSlaveSelected(true);
 	}
+#endif
+	//TODO check other devices trough spi or whatever
 }
 uint32_t baseOfAdressType(DFUTransfer type) {
 	switch (type) {
@@ -428,9 +533,23 @@ uint8_t isBiggerThanAvailable(DFUTransfer type, uint32_t size) {
 }
 
 uint32_t CalcFirmCRC() {
+///XXX	struct opahrs_msg_v0 rsp;
 	switch (currentProgrammingDestination) {
 	case Self_flash:
-		return crc_memory_calc();
+		return PIOS_BL_HELPER_CRC_Memory_Calc();
+		break;
+	case Remote_flash_via_spi:
+#if XXX
+		PIOS_OPAHRS_bl_FwupVerify(&rsp);
+		for (int i = 0; i < 5; ++i) {
+			PIOS_DELAY_WaitmS(1000);
+			PIOS_OPAHRS_bl_resync();
+			if (PIOS_OPAHRS_bl_GetVersions(&rsp) == OPAHRS_RESULT_OK) {
+				return rsp.payload.user.v.rsp.versions.fw_crc;
+			}
+		}
+#endif
+		return 0;
 		break;
 	default:
 		return 0;
@@ -438,24 +557,31 @@ uint32_t CalcFirmCRC() {
 	}
 
 }
-void sendData(uint8_t * buf,uint16_t size)
-{
-if (ProgPort == Usb) {
-
-			PIOS_COM_SendBuffer(PIOS_COM_TELEM_USB, buf, size);
-			if(DeviceState == downloading)
-				PIOS_DELAY_WaitmS(10);
-
-		} else if (ProgPort == Serial) {
-			ssp_SendData(&ssp_port, buf, size);
-		}
+void sendData(uint8_t * buf, uint16_t size) {
+	if (ProgPort == Serial) {
+		ssp_SendData(&ssp_port, buf, size);
+	}
 }
 
 bool flash_read(uint8_t * buffer, uint32_t adr, DFUProgType type) {
+///XXX	struct opahrs_msg_v0 rsp;
+///XXX	struct opahrs_msg_v0 req;
 	switch (type) {
+	case Remote_flash_via_spi:
+#if XXX
+		req.payload.user.v.req.fwdn_data.adress = adr;
+		if (PIOS_OPAHRS_bl_FwDlData(&req, &rsp) == OPAHRS_RESULT_OK) {
+			for (uint8_t x = 0; x < 4; ++x) {
+				buffer[x] = rsp.payload.user.v.rsp.fw_dn.data[x];
+			}
+			return TRUE;
+		}
+#endif
+		return FALSE;
+		break;
 	case Self_flash:
 		for (uint8_t x = 0; x < 4; ++x) {
-			buffer[x] = *FLASH_If_Read(adr + x);
+			buffer[x] = *PIOS_BL_HELPER_FLASH_If_Read(adr + x);
 		}
 		return TRUE;
 		break;

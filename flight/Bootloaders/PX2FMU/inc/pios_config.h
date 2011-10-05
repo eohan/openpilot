@@ -27,38 +27,22 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-
 #ifndef PIOS_CONFIG_H
 #define PIOS_CONFIG_H
 #define PIOS_INCLUDE_BL_HELPER
-//#define USB_HID
+#define PIOS_INCLUDE_BL_HELPER_WRITE_SUPPORT
+#define USB_HID
 /* Enable/Disable PiOS Modules */
 #define PIOS_INCLUDE_DELAY
+#define PIOS_INCLUDE_I2C
 #define PIOS_INCLUDE_IRQ
 #define PIOS_INCLUDE_LED
-//#define PIOS_INCLUDE_SPI
 #define PIOS_INCLUDE_SYS
 #define PIOS_INCLUDE_USART
-#define PIOS_INCLUDE_USB_HID
-//#define PIOS_INCLUDE_OPAHRS
 #define PIOS_INCLUDE_COM
 #define PIOS_INCLUDE_GPIO
 #define PIOS_NO_GPS
 //#define DEBUG_SSP
-
-/* Defaults for Logging */
-#define LOG_FILENAME 			"PIOS.LOG"
-#define STARTUP_LOG_ENABLED		1
-
-/* COM Module */
-#define GPS_BAUDRATE			19200
-#define TELEM_BAUDRATE			PIOS_COM_TELEM_BAUDRATE
-#define AUXUART_ENABLED			0
-#define AUXUART_BAUDRATE		19200
-
-/* Servos */
-#define SERVOS_POSITION_MIN		800
-#define SERVOS_POSITION_MAX		2200
 
 #endif /* PIOS_CONFIG_H */
 /**

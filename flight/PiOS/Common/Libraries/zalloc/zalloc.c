@@ -1,4 +1,15 @@
-
+/**
+ * @file	zalloc.c
+ * @brief	self contained low-overhead memory pool/allocation subsystem
+ *
+ * This is a lightly modified version of the Dillon zalloc as documented below.
+ *
+ * Modifications (c) 2011 Michael Smith.
+ *
+ * Note that the original was distributed without explicit copyright or
+ * license information associated, but it is believed to be (c) Matt Dillon
+ * and to be generally available for use without restrictions.
+ */
 /*
  * LIB/MEMORY/ZALLOC.C	- self contained low-overhead memory pool/allocation 
  *			  subsystem
@@ -37,7 +48,28 @@
  *	Allocation and frees of 0 bytes are valid operations.
  */
 
-#include "zalloc_defs.h"
+#include "zalloc_private.h"
+#include <string.h>
+
+/*
+ * _zlock() - Lock the allocator
+ */
+static void
+_zlock(void)
+{
+	if (&zlock)
+		zlock();
+}
+
+/*
+ * _zunlock() - Unlock the allocator
+ */
+static void
+_zunlock(void)
+{
+	if (&zunlock)
+		zunlock();
+}
 
 /*
  * znop() - panic function if none supplied.
@@ -60,8 +92,6 @@ znot(struct MemPool *memPool, iaddr_t bytes)
 	return(-1);
 }
 
-#ifndef MALLOCLIB
-
 /*
  * zalloc() -	allocate and zero memory from pool.  Call reclaim
  *		and retry if appropriate, return NULL if unable to allocate
@@ -74,7 +104,7 @@ zalloc(MemPool *mp, iaddr_t bytes)
 	void *ptr;
 
 	if ((ptr = znalloc(mp, bytes)) != NULL)
-		bzero(ptr, bytes);
+		memset(ptr, 0, bytes);
 	return(ptr);
 }
 
@@ -92,12 +122,10 @@ zallocAlign(struct MemPool *mp, iaddr_t bytes, iaddr_t align)
 	bytes = (bytes + align) & ~align;
 
 	if ((ptr = znalloc(mp, bytes)) != NULL) {
-		bzero(ptr, bytes);
+		memset(ptr, 0, bytes);
 	}
 	return(ptr);
 }
-
-#endif
 
 /*
  * znalloc() -	allocate memory (without zeroing) from pool.  Call reclaim
@@ -110,7 +138,7 @@ znalloc(MemPool *mp, iaddr_t bytes)
 {
 	void	*result = NULL;
 
-	zlock();
+	_zlock();
 
 	/*
 	 * align according to pool object size (can be 0).  This is
@@ -162,11 +190,9 @@ znalloc(MemPool *mp, iaddr_t bytes)
 	}
 
 done:
-	zunlock();
+	_zunlock();
 	return(result);
 }
-
-#ifndef MALLOCLIB
 
 /*
  * z[n]xalloc() -  allocate memory from within a specific address region.
@@ -183,7 +209,7 @@ zxalloc(MemPool *mp, void *addr1, void *addr2, iaddr_t bytes)
 	void *ptr;
 
 	if ((ptr = znxalloc(mp, addr1, addr2, bytes)) != NULL)
-		bzero(ptr, bytes);
+		memset(ptr, 0, bytes);
 	return(ptr);
 }
 
@@ -207,7 +233,7 @@ znxalloc(MemPool *mp, void *addr1, void *addr2, iaddr_t bytes)
 	 * Locate freelist entry big enough to hold the object that is within
 	 * the allowed address range.
 	 */
-	zlock();
+	_zlock();
 	if (bytes <= mp->mp_Size - mp->mp_Used) {
 		MemNode **pmn;
 		MemNode *mn;
@@ -281,11 +307,9 @@ znxalloc(MemPool *mp, void *addr1, void *addr2, iaddr_t bytes)
 		}
 	}
 done:
-	zunlock();
+	_zunlock();
 	return(result);
 }
-
-#endif
 
 /*
  * zfree() - free previously allocated memory
@@ -322,7 +346,7 @@ zfree(MemPool *mp, void *ptr, iaddr_t bytes)
 	/*
 	 * free the segment
 	 */
-	zlock();
+	_zlock();
 	{
 		MemNode **pmn;
 		MemNode *mn;
@@ -373,7 +397,7 @@ zfree(MemPool *mp, void *ptr, iaddr_t bytes)
 						mn = (MemNode *)pmn;
 					}
 				}
-				return;
+				goto done;
 				/* NOT REACHED */
 			}
 			if ((char *)ptr < (char *)mn + mn->mr_Bytes) {
@@ -400,10 +424,9 @@ zfree(MemPool *mp, void *ptr, iaddr_t bytes)
 			mn = (MemNode *)pmn;
 		}
 	}
-	zunlock();
+done:
+	_zunlock();
 }
-
-#ifndef MALLOCLIB
 
 /*
  * zallocStr() - allocate memory and copy string.
@@ -417,7 +440,7 @@ zallocStr(MemPool *mp, const char *s, int slen)
 	if (slen < 0)
 		slen = strlen(s);
 	if ((ptr = znalloc(mp, slen + 1)) != NULL) {
-		bcopy(s, ptr, slen);
+		memcpy(ptr, s, slen);
 		ptr[slen] = 0;
 	}
 	return(ptr);
@@ -433,8 +456,6 @@ zfreeStr(MemPool *mp, char *s)
 	zfree(mp, s, strlen(s) + 1);
 }
 
-#endif
-
 /*
  * zinitpool() - initialize a memory pool
  */
@@ -448,6 +469,8 @@ zinitPool(
 		void *pBase,
 		iaddr_t pSize
 ) {
+	iaddr_t	adjust;
+
 	if (fpanic == NULL)
 		fpanic = znop;
 	if (freclaim == NULL)
@@ -455,10 +478,12 @@ zinitPool(
 
 	if (id != (const char *)-1)
 		mp->mp_Ident = id;
-	mp->mp_Base = pBase;
-	mp->mp_End  = (char *)pBase + pSize;
+	adjust = (iaddr_t)pBase;
+	mp->mp_Base = (void *)((adjust + MEMNODE_SIZE_MASK) & ~MEMNODE_SIZE_MASK);
+	adjust = (iaddr_t)pBase + pSize;
+	mp->mp_End = (void *)(adjust & ~MEMNODE_SIZE_MASK);
 	mp->mp_First = NULL;
-	mp->mp_Size = pSize;
+	mp->mp_Size = (iaddr_t)mp->mp_End - (iaddr_t)mp->mp_Base;
 	mp->mp_Used = pSize;
 	mp->mp_Panic = fpanic;
 	mp->mp_Reclaim = freclaim;
@@ -478,7 +503,7 @@ zinitPool(
 void
 zextendPool(MemPool *mp, void *base, iaddr_t bytes)
 {
-	zlock();
+	_zlock();
 	if (mp->mp_Size == 0) {
 		mp->mp_Base = base;
 		mp->mp_Used = bytes;
@@ -498,15 +523,13 @@ zextendPool(MemPool *mp, void *base, iaddr_t bytes)
 		mp->mp_End = (char *)mp->mp_Base + mp->mp_Size;
 	}
 	mp->mp_Size += bytes;
-	zunlock();
+	_zunlock();
 }
-
-#ifndef MALLOCLIB
 
 /*
  * zclearpool() - Free all memory associated with a memory pool,
  *		  destroying any previous allocations.  Commonly
- *		  called afte zinitPool() to make a pool available
+ *		  called after zinitPool() to make a pool available
  *		  for use.
  */
 
@@ -518,9 +541,8 @@ zclearPool(MemPool *mp)
 	mn->mr_Next = NULL;
 	mn->mr_Bytes = mp->mp_Size;
 	mp->mp_First = mn;
+	mp->mp_Used = 0;
 }
-
-#endif
 
 #ifdef ZALLOCDEBUG
 
@@ -532,7 +554,7 @@ zallocstats(MemPool *mp)
 	int fcount = 0;
 	MemNode *mn;
 
-	fprintf(stderr, "Pool %s, %d bytes reserved", mp->mp_Ident, mp->mp_Size);
+//	fprintf(stderr, "Pool %s, %d bytes reserved", mp->mp_Ident, mp->mp_Size);
 
 	mn = mp->mp_First;
 
@@ -549,12 +571,12 @@ zallocstats(MemPool *mp)
 			abytes += (char *)mn->mr_Next - ((char *)mn + mn->mr_Bytes);
 		mn = mn->mr_Next;
 	}
-	fprintf(stderr, " %d bytes allocated\n%d fragments (%d bytes fragmented)\n",
+/*	fprintf(stderr, " %d bytes allocated\n%d fragments (%d bytes fragmented)\n",
 			abytes,
 			fcount,
 			hbytes
-	);
-	fflush(stderr);
+	); */
+//	fflush(stderr);
 }
 
 #endif

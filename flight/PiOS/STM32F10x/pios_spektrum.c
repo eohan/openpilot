@@ -8,7 +8,6 @@
  *
  * @file       pios_spektrum.c
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * 	        Parts by Thorsten Klose (tk@midibox.org) (tk@midibox.org)
  * @brief      USART commands. Inits USARTs, controls USARTs & Interrupt handlers. (STM32 dependent)
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -59,21 +58,46 @@ uint8_t sync_of = 0;
 uint16_t supv_timer=0;
 
 static void PIOS_SPEKTRUM_Supervisor(uint32_t spektrum_id);
-static bool PIOS_SPEKTRUM_Bind(const struct pios_spektrum_cfg * cfg);
+static bool PIOS_SPEKTRUM_Bind(const struct pios_spektrum_cfg * cfg, uint8_t bind);
+static int32_t PIOS_SPEKTRUM_Decode(uint8_t b);
+
+static uint16_t PIOS_SPEKTRUM_RxInCallback(uint32_t context, uint8_t * buf, uint16_t buf_len, uint16_t * headroom, bool * need_yield)
+{
+	/* process byte(s) and clear receive timer */
+	for (uint8_t i = 0; i < buf_len; i++) {
+		PIOS_SPEKTRUM_Decode(buf[i]);
+		supv_timer = 0;
+	}
+
+	/* Always signal that we can accept another byte */
+	if (headroom) {
+		*headroom = 1;
+	}
+
+	/* We never need a yield */
+	*need_yield = false;
+
+	/* Always indicate that all bytes were consumed */
+	return (buf_len);
+}
 
 /**
 * Bind and Initialise Spektrum satellite receiver
 */
-void PIOS_SPEKTRUM_Init(const struct pios_spektrum_cfg * cfg, bool bind)
+int32_t PIOS_SPEKTRUM_Init(uint32_t * spektrum_id, const struct pios_spektrum_cfg *cfg, const struct pios_com_driver * driver, uint32_t lower_id, uint8_t bind)
 {
 	// TODO: need setting flag for bind on next powerup
 	if (bind) {
-		PIOS_SPEKTRUM_Bind(cfg);
+		PIOS_SPEKTRUM_Bind(cfg,bind);
 	}
+
+	(driver->bind_rx_cb)(lower_id, PIOS_SPEKTRUM_RxInCallback, 0);
 
 	if (!PIOS_RTC_RegisterTickCallback(PIOS_SPEKTRUM_Supervisor, 0)) {
 		PIOS_DEBUG_Assert(0);
 	}
+
+	return (0);
 }
 
 /**
@@ -96,9 +120,15 @@ static int32_t PIOS_SPEKTRUM_Get(uint32_t rcvr_id, uint8_t channel)
 * \output true Successful bind
 * \output false Bind failed
 */
-static bool PIOS_SPEKTRUM_Bind(const struct pios_spektrum_cfg * cfg)
+static bool PIOS_SPEKTRUM_Bind(const struct pios_spektrum_cfg * cfg, uint8_t bind)
 {
-#define BIND_PULSES 5
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = cfg->bind.init.GPIO_Pin;
+	GPIO_InitStructure.GPIO_Speed = cfg->bind.init.GPIO_Speed;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+
+	/* just to limit bind pulses */
+	bind=(bind<=10)?bind:10;
 
 	GPIO_Init(cfg->bind.gpio, &cfg->bind.init);
 	/* RX line, set high */
@@ -107,7 +137,7 @@ static bool PIOS_SPEKTRUM_Bind(const struct pios_spektrum_cfg * cfg)
 	/* on CC works upto 140ms, I guess bind window is around 20-140ms after powerup */
 	PIOS_DELAY_WaitmS(60);
 
-	for (int i = 0; i < BIND_PULSES ; i++) {
+	for (int i = 0; i < bind ; i++) {
 		/* RX line, drive low for 120us */
 		GPIO_ResetBits(cfg->bind.gpio, cfg->bind.init.GPIO_Pin);
 		PIOS_DELAY_WaituS(120);
@@ -116,6 +146,7 @@ static bool PIOS_SPEKTRUM_Bind(const struct pios_spektrum_cfg * cfg)
 		PIOS_DELAY_WaituS(120);
 	}
 	/* RX line, set input and wait for data, PIOS_SPEKTRUM_Init */
+	GPIO_Init(cfg->bind.gpio, &GPIO_InitStructure);
 
 	return true;
 }
@@ -147,9 +178,10 @@ static int32_t PIOS_SPEKTRUM_Decode(uint8_t b)
 			CaptureValue[7]=b;
 		}
 #endif
-		/* Known sync bytes, 0x01, 0x02, 0x12 */
+		/* Known sync bytes, 0x01, 0x02, 0x12, 0xb2 */
+		/* 0xb2 DX8 3bind pulses only */
 		if (bytecount == 2) {
-			if (b == 0x01) {
+			if ((b == 0x01) || (b == 0xb2)) {
 				datalength=0; // 10bit
 				//frames=1;
 				sync = 1;
@@ -204,48 +236,22 @@ static int32_t PIOS_SPEKTRUM_Decode(uint8_t b)
 	return 0;
 }
 
-/* Custom interrupt handler for USART */
-void PIOS_SPEKTRUM_irq_handler(uint32_t usart_id) {
-	/* Grab the config for this device from the underlying USART device */
-	const struct pios_usart_cfg * cfg;
-	cfg = PIOS_USART_GetConfig(usart_id);
-	PIOS_Assert(cfg);
-  
-	/* by always reading DR after SR make sure to clear any error interrupts */
-	volatile uint16_t sr = cfg->regs->SR;
-	volatile uint8_t b = cfg->regs->DR;
-	
-	/* check if RXNE flag is set */
-	if (sr & USART_SR_RXNE) {
-		if (PIOS_SPEKTRUM_Decode(b) < 0) {
-			/* Here we could add some error handling */
-		}
-	} 
-
-	if (sr & USART_SR_TXE) {	// check if TXE flag is set
-		/* Disable TXE interrupt (TXEIE=0) */
-		USART_ITConfig(cfg->regs, USART_IT_TXE, DISABLE);
-	}
-	/* byte arrived so clear "watchdog" timer */
-	supv_timer=0;
-}
-
 /**
  *@brief This function is called between frames and when a spektrum word hasnt been decoded for too long
  *@brief clears the channel values
  */
 static void PIOS_SPEKTRUM_Supervisor(uint32_t spektrum_id) {
-	/* 125hz */
+	/* 625hz */
 	supv_timer++;
-	if(supv_timer > 5) {
+	if(supv_timer > 4) {
 		/* sync between frames */
 		sync = 0;
 		bytecount = 0;
 		prev_byte = 0xFF;
 		frame_error = 0;
 		sync_of++;
-		/* watchdog activated after 100ms silence */
-		if (sync_of > 12) {
+		/* watchdog activated after 200ms silence */
+		if (sync_of > 30) {
 			/* signal lost */
 			sync_of = 0;
 			for (int i = 0; i < PIOS_SPEKTRUM_NUM_INPUTS; i++) {

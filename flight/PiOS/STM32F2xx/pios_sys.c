@@ -46,10 +46,15 @@ void PIOS_SYS_Init(void)
 	/* Setup STM32 system (RCC, clock, PLL and Flash configuration) - CMSIS Function */
 	SystemInit();
 	SystemCoreClockUpdate();	/* update SystemCoreClock for use elsewhere */
+
 	/*
 	 * @todo might make sense to fetch the bus clocks and save them somewhere to avoid
 	 * having to use the clunky get-all-clocks API everytime we need one.
 	 */
+
+	/* Initialise Basic NVIC */
+	/* do this early to ensure that we take exceptions in the right place */
+	NVIC_Configuration();
 
 	/* Init the delay system */
 	PIOS_DELAY_Init();
@@ -169,9 +174,6 @@ void PIOS_SYS_Init(void)
 	GPIO_Init(GPIOH, &GPIO_InitStructure);
 	GPIO_Init(GPIOI, &GPIO_InitStructure);
 
-	/* Initialise Basic NVIC */
-	NVIC_Configuration();
-
 #if defined(PIOS_INCLUDE_LED)
 	/* Initialise LEDs */
 	PIOS_LED_Init();
@@ -257,7 +259,8 @@ int32_t PIOS_SYS_SerialNumberGet(char *str)
 static void NVIC_Configuration(void)
 {
 	/* Set the Vector Table base address as specified in .ld file */
-	NVIC_SetVectorTable(PIOS_NVIC_VECTTAB_FLASH, 0x0);
+	extern void *pios_isr_vector_table_base;
+	NVIC_SetVectorTable((uint32_t)&pios_isr_vector_table_base, 0x0);
 
 	/* 4 bits for Interrupt priorities so no sub priorities */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);

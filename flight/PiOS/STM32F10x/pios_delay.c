@@ -133,9 +133,19 @@ int32_t PIOS_DELAY_WaitmS(uint32_t mS)
  * @brief Query the Delay timer for the current uS 
  * @return A microsecond value
  */
-uint32_t PIOS_DELAY_GetuS()
+uint32_t PIOS_DELAY_GetuS(void)
 {
 	return DWT_CYCCNT / us_ticks;
+}
+
+/**
+ * @brief Calculate time in microseconds since a previous time
+ * @param[in] t previous time
+ * @return time in us since previous time t.
+ */
+uint32_t PIOS_DELAY_GetuSSince(uint32_t t)
+{
+	return (PIOS_DELAY_GetuS() - t);
 }
 
 #endif

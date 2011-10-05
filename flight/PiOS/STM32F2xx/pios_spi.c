@@ -177,11 +177,13 @@ int32_t PIOS_SPI_Init(uint32_t * spi_id, const struct pios_spi_cfg * cfg)
 	/* Enable SPI interrupts to DMA */
 	SPI_I2S_DMACmd(spi_dev->cfg->regs, SPI_I2S_DMAReq_Tx | SPI_I2S_DMAReq_Rx, ENABLE);
 
+	/* Must store this before enabling interrupt */
+	*spi_id = (uint32_t)spi_dev;
+
 	/* Configure DMA interrupt */
 	NVIC_Init((NVIC_InitTypeDef*)&(spi_dev->cfg->dma.irq.init));
 	DMA_ITConfig(spi_dev->cfg->dma.tx.channel, spi_dev->cfg->dma.irq.flags, ENABLE);	/* XXX is this correct? */
 
-	*spi_id = (uint32_t)spi_dev;
 	return(0);
 
 out_fail:
@@ -300,7 +302,7 @@ int32_t PIOS_SPI_TransferByte(uint32_t spi_id, uint8_t b)
 	bool valid = PIOS_SPI_validate(spi_dev);
 	PIOS_Assert(valid)
 
-	uint8_t dummy;
+//	uint8_t dummy;
 	uint8_t rx_byte;
 
 	/* 
@@ -308,7 +310,7 @@ int32_t PIOS_SPI_TransferByte(uint32_t spi_id, uint8_t b)
 	 */
 
 	/* Make sure the RXNE flag is cleared by reading the DR register */
-	dummy = spi_dev->cfg->regs->DR;
+	/*dummy =*/(void)spi_dev->cfg->regs->DR;
 
 	/* Start the transfer */
 	spi_dev->cfg->regs->DR = b;
