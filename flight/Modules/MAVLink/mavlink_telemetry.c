@@ -720,12 +720,14 @@ static void mavlinkStateMachineTask(void* parameters)
 	// MAVLink protocol state machine
 	while (1) {
 		// Run handlers, sleep for 20 ms
-		// Send one param
-		mavlink_pm_queued_send();
 		// Send setpoints, time out
 		mavlink_wpm_loop();
+		vTaskDelay(5);
 		// Send one text message
 		debug_message_send_one();
+		vTaskDelay(5);
+		// Send one param
+		mavlink_pm_queued_send();
 		// Wait 20 ms
 		vTaskDelay(20);
 	}
