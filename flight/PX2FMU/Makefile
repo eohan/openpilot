@@ -358,6 +358,7 @@ CSTANDARD = -std=gnu99
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
 ifeq ($(DEBUG),YES)
 CFLAGS = -g$(DEBUGF) -DDEBUG
+CFLAGS += -finstrument-functions -ffixed-r10
 endif
 
 # FMU has enough memory to always enable optional objects
