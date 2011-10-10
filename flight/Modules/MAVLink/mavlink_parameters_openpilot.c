@@ -216,32 +216,19 @@ void mavlink_pm_queued_send(void)
 	{
 		mavlink_param_union_t param;
 		//for (int i.. all active comm links)
-#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-		mavlink_message_t tx_msg;
 		uint8_t ret = getParamByIndex(next_param, &param);
 		if (ret != MAVLINK_RET_VAL_PARAM_SUCCESS)
 		{
 			mavlink_missionlib_send_gcs_string("PM# ERR: Param not sent");
 			return;
 		}
-		mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
-				mavlink_system.compid,
-				MAVLINK_COMM_0,
-				&tx_msg,
-				getParamNameByIndex(next_param),
-				param.param_float,
-				param.type,
-				getParamCount(),
-				next_param);
-		mavlink_missionlib_send_message(&tx_msg);
-#else
+
 		mavlink_msg_param_value_send(MAVLINK_COMM_0,
 				getParamNameByIndex(next_param),
 				param.param_float,
 				param.type,
 				getParamCount(),
 				next_param);
-#endif
 		next_param++;
 	}
 }

@@ -104,6 +104,7 @@ static void updateSettings();
 
 #include "mavlink_types.h"
 mavlink_system_t mavlink_system;
+uint16_t next_param = 0;
 
 #include "mavlink_send_bridge.h"
 #include "mavlink_debug.h"
@@ -181,8 +182,6 @@ uint64_t mavlink_missionlib_get_system_timestamp()
 	//	return ((uint64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
 	return xTaskGetTickCount() * portTICK_RATE_MS;
 }
-
-uint16_t next_param = 0;
 
 /**
  * Initialise the telemetry module
@@ -721,13 +720,13 @@ static void mavlinkStateMachineTask(void* parameters)
 	while (1) {
 		// Run handlers, sleep for 20 ms
 		// Send setpoints, time out
+		// Send one param
+		mavlink_pm_queued_send();
+		vTaskDelay(5);
 		mavlink_wpm_loop();
 		vTaskDelay(5);
 		// Send one text message
 		debug_message_send_one();
-		vTaskDelay(5);
-		// Send one param
-		mavlink_pm_queued_send();
 		// Wait 20 ms
 		vTaskDelay(20);
 	}

@@ -36,13 +36,31 @@
 #include <stdbool.h>
 
 #ifdef ENABLE_GPS_BINARY_GTOP
-	#include "GTOP_BIN.h"
+#include "GTOP_BIN.h"
 #endif
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-	#include "GTOP_BIN_CUSTOM.h"
-	#ifdef FULL_COLD_RESTART
-#undef FULL_COLD_RESTART
+#include "GTOP_BIN_CUSTOM.h"
+#ifndef FULL_COLD_RESTART
+#define FULL_COLD_RESTART
+
+#define SBAS_INTEGRITY_ON "$PMTK319,1*24\r\n"
+#define SBAS_TEST_ON "$PMTK319,0*25\r\n"
+#define WAAS_ENABLE  "$PMTK313,1*2E\r\n"
+#define WAAS_DISABLE "$PMTK313,0*2F\r\n"
+#define DGPS_SBAS_ON "$PMTK301,2*2E\r\n"                  // default is SBAS on
+
+#define MEDIATEK_BAUD_RATE_38400 "$PMTK251,38400*27\r\n"
+#define MEDIATEK_BAUD_RATE_57600 "$PMTK251,57600*2C\r\n"
+#define MEDIATEK_BAUD_RATE_115200 "$PMTK251,115200*1F\r\n"
+#define MEDIATEK_REFRESH_RATE_4HZ "$PMTK220,250*29\r\n"                      //refresh rate - 4Hz - 250 milliseconds
+#define MEDIATEK_REFRESH_RATE_5HZ "$PMTK220,200*2C\r\n"
+#define MEDIATEK_REFRESH_RATE_10HZ "$PMTK220,100*2F\r\n"                      //refresh rate - 10Hz - 100 milliseconds
+#define MEDIATEK_FACTORY_RESET "$PMTK104*37\r\n"                             //clear current settings
+#define MEDIATEK_CUSTOM_BINARY_MODE "$PGCMD,16,0,0,0,0,0*6A\r\n"
+#define MEDIATEK_FULL_COLD_RESTART "$PMTK104*37\r\n"
+#define NMEA_GGA_ENABLE "$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0*27\r\n" //Set GGA messages
+
 #endif
 
 //#define FULL_COLD_RESTART
@@ -79,8 +97,8 @@ static float GravityAccel(float latitude, float longitude, float altitude);
 //#define FULL_COLD_RESTART             // uncomment this to tell the GPS to do a FULL COLD restart
 //#define DISABLE_GPS_THRESHOLD          //
 
-#define GPS_TIMEOUT_MS                  500
-#define GPS_COMMAND_RESEND_TIMEOUT_MS   2000
+#define GPS_TIMEOUT_MS                  800
+#define GPS_COMMAND_RESEND_TIMEOUT_MS   3000
 
 #ifdef PIOS_GPS_SETS_HOMELOCATION
 // Unfortunately need a good size stack for the WMM calculation
@@ -91,7 +109,7 @@ static float GravityAccel(float latitude, float longitude, float altitude);
 	#endif
 #else
 	#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-		#define STACK_SIZE_BYTES 600
+		#define STACK_SIZE_BYTES 1024
 	#else
 	#if ENABLE_GPS_BINARY_GTOP
 		#define STACK_SIZE_BYTES            440
@@ -182,7 +200,14 @@ static void gpsTask(void *parameters)
 	
 #ifdef FULL_COLD_RESTART
 	// tell the GPS to do a FULL COLD restart
-	PIOS_COM_SendStringNonBlocking(gpsPort, "$PMTK104*37\r\n");
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_FACTORY_RESET);
+	timeOfLastCommandMs = timeNowMs;
+	while (timeNowMs - timeOfLastCommandMs < 300)	// delay for 300ms to let the GPS sort itself out
+	{
+		vTaskDelay(xDelay);	// Block task until next update
+		timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;;
+	}
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_FULL_COLD_RESTART);
 	timeOfLastCommandMs = timeNowMs;
 	while (timeNowMs - timeOfLastCommandMs < 300)	// delay for 300ms to let the GPS sort itself out
 	{
@@ -211,14 +236,19 @@ static void gpsTask(void *parameters)
 #endif
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-	// Set 10 Hz
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-//	// set 38400 baud
+	// set 38400 baud
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_FACTORY_RESET);
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_BAUD_RATE_38400);
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
+
 //	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-//	// Enable 4 Hz
+////	// Enable 4 Hz
 //	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
-	// Enable binary mode
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
+//	// Set 10 Hz
+////	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+//	// Enable binary mode
+//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
 #endif
 
 	numUpdates = 0;
@@ -244,6 +274,7 @@ static void gpsTask(void *parameters)
 
 					timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;
 					timeOfLastUpdateMs = timeNowMs;
+					timeOfLastCommandMs = timeNowMs;
 				}
 			}
 		#endif
@@ -363,34 +394,38 @@ static void gpsTask(void *parameters)
 
 				#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 					GTOP_BIN_CUSTOM_init();
-					// Set 10 Hz
-					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-//					// set 38400 baud
-//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-//				    // Set 4 Hz
-//				    PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
-					// Enable custom binary mode
-					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
-				#endif
-				#ifdef ENABLE_GPS_BINARY_GTOP
-					GTOP_BIN_init();
-					// switch to binary mode
-					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,1*6F\r\n");
-				#endif
+//					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_BAUD_RATE_38400);
+					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
+					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
+////					// set 38400 baud
+//////					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
+////					// Set 10 Hz
+//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
+//////				    // Set 4 Hz
+////				    PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
+////					// Enable custom binary mode
+//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
 
-				#ifdef ENABLE_GPS_ONESENTENCE_GTOP
-					// switch to single sentence mode
-					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,2*6C\r\n");
 				#endif
-
-				#ifdef ENABLE_GPS_NMEA
-					// switch to NMEA mode
-					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,3*6D\r\n");
-				#endif
-
-				#ifdef DISABLE_GPS_TRESHOLD
-					PIOS_COM_SendStringNonBlocking(gpsPort,"$PMTK397,0*23\r\n");
-				#endif
+//				#ifdef ENABLE_GPS_BINARY_GTOP
+//					GTOP_BIN_init();
+//					// switch to binary mode
+//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,1*6F\r\n");
+//				#endif
+//
+//				#ifdef ENABLE_GPS_ONESENTENCE_GTOP
+//					// switch to single sentence mode
+//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,2*6C\r\n");
+//				#endif
+//
+//				#ifdef ENABLE_GPS_NMEA
+//					// switch to NMEA mode
+//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,3*6D\r\n");
+//				#endif
+//
+//				#ifdef DISABLE_GPS_TRESHOLD
+//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PMTK397,0*23\r\n");
+//				#endif
 			}
 		}
 		else

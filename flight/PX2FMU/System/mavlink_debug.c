@@ -152,8 +152,8 @@ void debug_message_send_one(void)
 	}
 	msg[DEBUG_MAX_LEN - 1] = '\0';//enforce string termination
 
-	mavlink_msg_statustext_send(MAVLINK_COMM_0, 0, (char *) msg);
-	mavlink_msg_statustext_send(MAVLINK_COMM_1, 0, (char *) msg);
+	mavlink_msg_statustext_send(MAVLINK_COMM_0, 0, msg);
+	mavlink_msg_statustext_send(MAVLINK_COMM_1, 0, msg);
 }
 
 void debug_vect(const char* string, const float x, const float y, const float z)
