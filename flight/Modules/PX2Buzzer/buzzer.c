@@ -52,7 +52,7 @@
 //
 // Configuration
 //
-#define STACK_SIZE_BYTES		128
+#define STACK_SIZE_BYTES		200
 #define BUZZER_TASK_PRIORITY	(tskIDLE_PRIORITY + 0)
 #define CYCLE_LENGTH			40
 #define MAX_MELODY_LENGTH		100
