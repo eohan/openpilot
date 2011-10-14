@@ -199,6 +199,17 @@ static void attitudeTask(void *parameters)
 		updateAttitude(&attitudeRaw);
 		AttitudeRawSet(&attitudeRaw);
 
+		// FIXME XXX HACK
+		PIOS_SetAstec4Speed(0,60);
+		PIOS_SetAstec4Speed(1,60);
+		PIOS_SetAstec4Speed(2,60);
+		PIOS_SetAstec4Speed(3,60);
+		/* PIOS_SetAstec4Speed(4,60);
+		PIOS_SetAstec4Speed(5,60);
+		PIOS_SetAstec4Speed(6,60);
+		PIOS_SetAstec4Speed(7,60);
+		*/
+
 		// Delay until it is time to read the next sample
 		vTaskDelayUntil(&lastSysTime, UPDATE_INTERVAL_TICKS);
 	}

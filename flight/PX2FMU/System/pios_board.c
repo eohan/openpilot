@@ -618,12 +618,10 @@ void PIOS_Board_Init(void)
 	if (PIOS_I2C_Init(&pios_i2c_esc_adapter_id, &pios_i2c_esc_adapter_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
-#if 0 /* XXX this will hang without pullups on I2C3 - busted for early FMU boards, only safe if IO is connected */
-	/* XXX might want to sniff for pullups first... */
+
 	if (PIOS_I2C_Init(&pios_i2c_external_adapter_id, &pios_i2c_external_adapter_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
-#endif
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "I2C ");
 	PIOS_ADC_Init();

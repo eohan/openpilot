@@ -93,7 +93,7 @@ bool PIOS_I2C_ESC_SetSpeed(uint8_t speed[4])
 		} 
 	};
 #ifdef STM32F2XX
-	return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
+	return PIOS_I2C_Transfer(PIOS_I2C_EXTERNAL_ADAPTER, txn_list, NELEMENTS(txn_list));
 #else
 	return PIOS_I2C_Transfer(PIOS_I2C_MAIN_ADAPTER, txn_list, NELEMENTS(txn_list));
 #endif
@@ -118,7 +118,7 @@ bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed) {
 		} 
 	};
 #ifdef STM32F2XX
-	return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
+	return PIOS_I2C_Transfer(PIOS_I2C_EXTERNAL_ADAPTER, txn_list, NELEMENTS(txn_list));
 #else
 	return PIOS_I2C_Transfer(PIOS_I2C_MAIN_ADAPTER, txn_list, NELEMENTS(txn_list));
 #endif
@@ -140,7 +140,7 @@ bool PIOS_SetAstec4Address(uint8_t new_address) {
 		} 
 	};
 #ifdef STM32F2XX
-	return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
+	return PIOS_I2C_Transfer(PIOS_I2C_EXTERNAL_ADAPTER, txn_list, NELEMENTS(txn_list));
 #else
 	return PIOS_I2C_Transfer(PIOS_I2C_MAIN_ADAPTER, txn_list, NELEMENTS(txn_list));
 #endif
@@ -171,7 +171,7 @@ bool PIOS_SetAstec4Speed(uint8_t motornum, uint8_t speed) {
 	};
 	
 #ifdef STM32F2XX
-	return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
+	return PIOS_I2C_Transfer(PIOS_I2C_EXTERNAL_ADAPTER, txn_list, NELEMENTS(txn_list));
 #else
 	return PIOS_I2C_Transfer(PIOS_I2C_MAIN_ADAPTER, txn_list, NELEMENTS(txn_list));
 #endif
