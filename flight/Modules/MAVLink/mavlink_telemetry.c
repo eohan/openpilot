@@ -511,7 +511,10 @@ static void processObjEvent(UAVObjEvent * ev)
 			FlightBatteryStateGet(&flightBatteryData);
 			FlightBatterySettingsData flightBatterySettings;
 			FlightBatterySettingsGet(&flightBatterySettings);
-			uint16_t batteryVoltage = flightBatteryData.Voltage*1000;
+
+//			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "telem batt voltage %d\r\n", (int)(flightBatteryData.Voltage*1000));
+
+			uint16_t batteryVoltage = (uint16_t)(flightBatteryData.Voltage*1000.0f);
 			int16_t batteryCurrent = -1; // -1: Not present / not estimated
 			int8_t batteryPercent = -1; // -1: Not present / not estimated
 //			if (flightBatterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_CURRENTFACTOR] == 0)
@@ -527,7 +530,11 @@ static void processObjEvent(UAVObjEvent * ev)
 //				batteryCurrent = flightBatteryData.Current*100;
 //			}
 
-			mavlink_msg_sys_status_send(0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0, 0);
+				mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0xFF, 0xFF, 0xFF, (uint16_t)(ucCpuLoad*3.9215686f*1000), batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
+//				// Copy the message to the send buffer
+//				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+//				// Send buffer
+//				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 			break;
 		}
 		case ATTITUDERAW_OBJID:

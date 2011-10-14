@@ -144,9 +144,11 @@ init_timer(void)
 	TIM_TimeBaseStructInit(&TIMInit);
 	TIMInit.TIM_Prescaler							= clocks.PCLK1_Frequency / 1000000;	/* 1MHz base clock*/
 	TIMInit.TIM_CounterMode							= TIM_CounterMode_Down;
-	TIMInit.TIM_Period								= 1;							/* 1kHz conversion rate */
+	TIMInit.TIM_Period								= 1000;							/* 1kHz conversion rate */
 	TIMInit.TIM_ClockDivision						= TIM_CKD_DIV1;					/* no additional divisor */
 	TIM_TimeBaseInit(PIOS_ADC_TIMER, &TIMInit);
+
+	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "TIM_Prescaler %d\r\n",TIMInit.TIM_Prescaler);
 
 	/* configure trigger output on reload */
 	TIM_SelectOutputTrigger(PIOS_ADC_TIMER, TIM_TRGOSource_Update);
@@ -178,7 +180,7 @@ init_adc(void)
 	ADC_InitStructure.ADC_ExternalTrigConv			= ADC_ExternalTrigConv_T3_TRGO;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge		= ADC_ExternalTrigConvEdge_Rising;
 	ADC_InitStructure.ADC_DataAlign					= ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfConversion			= ((PIOS_ADC_NUM_PINS + 1) >> 1);
+	ADC_InitStructure.ADC_NbrOfConversion			= ((PIOS_ADC_NUM_PINS)/* >> 1*/);
 	ADC_Init(PIOS_LOWRATE_ADC, &ADC_InitStructure);
 
 	/* Enable PIOS_LOWRATE_ADC->DMA request */
@@ -356,12 +358,12 @@ void PIOS_ADC_DMA_Handler(void)
 		accumulate(&adc_raw_buffer[DMA_GetCurrentMemoryTarget(pios_adc_cfg.dma.rx.channel) ? 0 : 1][0][0],
 				PIOS_ADC_MAX_SAMPLES);
 
-		static uint8_t outputcounter = 0;
-		if (outputcounter == 0)
-			{
-			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "adc vals %d %d %d %d %d %d\r\n", adc_raw_buffer[0][0][0], adc_raw_buffer[0][0][1], adc_raw_buffer[0][0][2], adc_raw_buffer[0][0][3], adc_raw_buffer[0][0][4], adc_raw_buffer[0][0][5]);
-			}
-		outputcounter++;
+//		static uint8_t outputcounter = 0;
+//		if (outputcounter == 0)
+//			{
+//			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "adc vals %d %d %d %d %d %d\r\n", adc_raw_buffer[0][0][0], adc_raw_buffer[0][0][1], adc_raw_buffer[0][0][2], adc_raw_buffer[0][0][3], adc_raw_buffer[0][0][4], adc_raw_buffer[0][0][5]);
+//			}
+//		outputcounter++;
 	}
 }
 
