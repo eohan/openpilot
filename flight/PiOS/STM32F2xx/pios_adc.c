@@ -181,18 +181,18 @@ init_adc(void)
 	ADC_InitStructure.ADC_NbrOfConversion			= ((PIOS_ADC_NUM_PINS + 1) >> 1);
 	ADC_Init(PIOS_LOWRATE_ADC, &ADC_InitStructure);
 
+	/* Enable PIOS_LOWRATE_ADC->DMA request */
+		ADC_DMACmd(PIOS_LOWRATE_ADC, ENABLE);
+
 	/* Configure input scan */
 	for (int32_t i = 0; i < PIOS_ADC_NUM_PINS; i++) {
 		ADC_RegularChannelConfig(PIOS_LOWRATE_ADC,
 				config[i].channel,
-				i,
+				i+1,
 				ADC_SampleTime_56Cycles);		/* XXX this is totally arbitrary... */
 	}
 
 	ADC_DMARequestAfterLastTransferCmd(PIOS_LOWRATE_ADC, ENABLE);
-
-	/* Enable PIOS_LOWRATE_ADC->DMA request */
-	ADC_DMACmd(PIOS_LOWRATE_ADC, ENABLE);
 
 	/* Finally start initial conversion */
 	ADC_Cmd(PIOS_LOWRATE_ADC, ENABLE);
