@@ -65,9 +65,9 @@ struct adc_accumulator {
 static struct dma_config config[] = PIOS_DMA_PIN_CONFIG;
 #define PIOS_ADC_NUM_PINS	(sizeof(config) / sizeof(config[0]))
 
-static struct adc_accumulator accumulator[PIOS_ADC_NUM_CHANNELS];
+static struct adc_accumulator accumulator[PIOS_ADC_NUM_PINS];
 
-static uint16_t adc_raw_buffer[2][PIOS_ADC_MAX_SAMPLES][PIOS_ADC_NUM_CHANNELS];
+static uint16_t adc_raw_buffer[2][PIOS_ADC_MAX_SAMPLES][PIOS_ADC_NUM_PINS];
 
 #define PIOS_ADC_TIMER		TIM3		/* might want this to come from the config */
 #define PIOS_LOWRATE_ADC	ADC1
@@ -94,6 +94,7 @@ init_dma(void)
 	DMA_ITConfig(pios_adc_cfg.dma.rx.channel, pios_adc_cfg.dma.irq.flags, DISABLE);
 
 	/* Configure DMA channel */
+	DMA_DeInit(pios_adc_cfg.dma.rx.channel);
 	DMA_InitTypeDef DMAInit = pios_adc_cfg.dma.rx.init;
 	DMAInit.DMA_Memory0BaseAddr		= (uint32_t)&adc_raw_buffer[0];
 	DMAInit.DMA_BufferSize			= sizeof(adc_raw_buffer[0]) / sizeof(uint16_t);
@@ -143,7 +144,7 @@ init_timer(void)
 	TIM_TimeBaseStructInit(&TIMInit);
 	TIMInit.TIM_Prescaler							= clocks.PCLK1_Frequency / 1000000;	/* 1MHz base clock*/
 	TIMInit.TIM_CounterMode							= TIM_CounterMode_Down;
-	TIMInit.TIM_Period								= 1000;							/* 1kHz conversion rate */
+	TIMInit.TIM_Period								= 1;							/* 1kHz conversion rate */
 	TIMInit.TIM_ClockDivision						= TIM_CKD_DIV1;					/* no additional divisor */
 	TIM_TimeBaseInit(PIOS_ADC_TIMER, &TIMInit);
 
@@ -177,7 +178,7 @@ init_adc(void)
 	ADC_InitStructure.ADC_ExternalTrigConv			= ADC_ExternalTrigConv_T3_TRGO;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge		= ADC_ExternalTrigConvEdge_Rising;
 	ADC_InitStructure.ADC_DataAlign					= ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfConversion			= ((PIOS_ADC_NUM_CHANNELS + 1) >> 1);
+	ADC_InitStructure.ADC_NbrOfConversion			= ((PIOS_ADC_NUM_PINS + 1) >> 1);
 	ADC_Init(PIOS_LOWRATE_ADC, &ADC_InitStructure);
 
 	/* Configure input scan */
@@ -228,7 +229,7 @@ int32_t PIOS_ADC_PinGet(uint32_t pin)
 	int32_t	result;
 
 	/* Check if pin exists */
-	if (pin >= PIOS_ADC_NUM_CHANNELS) {
+	if (pin >= PIOS_ADC_NUM_PINS) {
 		return -1;
 	}
 
@@ -312,7 +313,7 @@ void accumulate(uint16_t *buffer, uint32_t count)
 	 * Accumulate sampled values.
 	 */
 	while (count--) {
-		for (int i = 0; i < PIOS_ADC_NUM_CHANNELS; i++) {
+		for (int i = 0; i < PIOS_ADC_NUM_PINS; i++) {
 			accumulator[i].accumulator += *sp++;
 			accumulator[i].count++;
 			/*
@@ -355,7 +356,12 @@ void PIOS_ADC_DMA_Handler(void)
 		accumulate(&adc_raw_buffer[DMA_GetCurrentMemoryTarget(pios_adc_cfg.dma.rx.channel) ? 0 : 1][0][0],
 				PIOS_ADC_MAX_SAMPLES);
 
-		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "ping %d\r\n", DMA_GetCurrentMemoryTarget(pios_adc_cfg.dma.rx.channel));
+		static uint8_t outputcounter = 0;
+		if (outputcounter == 0)
+			{
+			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "adc vals %d %d %d %d %d %d\r\n", adc_raw_buffer[0][0][0], adc_raw_buffer[0][0][1], adc_raw_buffer[0][0][2], adc_raw_buffer[0][0][3], adc_raw_buffer[0][0][4], adc_raw_buffer[0][0][5]);
+			}
+		outputcounter++;
 	}
 }
 

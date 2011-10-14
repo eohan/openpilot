@@ -71,7 +71,7 @@
 // MAVLINK
 //------------------------
 #define MAVLINK_QUEUE_SIZE		20
-#define PIOS_MAVLINK_STACK_SIZE	1400
+#define PIOS_MAVLINK_STACK_SIZE	2400
 
 //------------------------
 // PIOS_LED
@@ -194,7 +194,7 @@ extern uint32_t pios_com_control_id;
 extern uint32_t pios_com_aux_id;
 #define PIOS_COM_AUX                    (pios_com_aux_id)
 
-#define PIOS_COM_DEBUG                  PIOS_COM_AUX
+#define PIOS_COM_DEBUG                  PIOS_COM_TELEM_RF // Was PIOS_COM_AUX
 
 //-------------------------
 // Delay Timer
@@ -250,7 +250,8 @@ extern uint32_t pios_com_aux_id;
 		{GPIOC, GPIO_Pin_1,	ADC_Channel_11},							\
 		{GPIOC,	GPIO_Pin_2,	ADC_Channel_12},							\
 		{GPIOC, GPIO_Pin_3,	ADC_Channel_13},							\
-		{NULL,	0,			ADC_Channel_16}		/* Temperature sensor */\
+		{NULL,	0,			ADC_Channel_Vrefint},		/* Voltage reference */\
+		{NULL,	0,			ADC_Channel_TempSensor}		/* Temperature sensor */\
 	}
 
 /* we have to do all this to satisfy the PIOS_ADC_MAX_SAMPLES define in pios_adc.h */
