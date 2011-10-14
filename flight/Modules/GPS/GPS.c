@@ -423,7 +423,7 @@ static void gpsTask(void *parameters)
 
 			//criteria for GPS-OK taken from this post...
 			//http://forums.openpilot.org/topic/1523-professors-insgps-in-svn/page__view__findpost__p__5220
-			if ((GpsData.PDOP < 3.5) && (GpsData.Satellites >= 7))
+			if ((GpsData.PDOP < 3.5) && (GpsData.Satellites >= 5))
 				AlarmsClear(SYSTEMALARMS_ALARM_GPS);
 			else
 			if (GpsData.Status == GPSPOSITION_STATUS_FIX3D)
