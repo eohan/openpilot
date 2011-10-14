@@ -55,6 +55,7 @@
 #define STACK_SIZE_BYTES		1024
 #define BUZZER_TASK_PRIORITY	(tskIDLE_PRIORITY + 0)
 #define CYCLE_LENGTH			40
+#define NUM_MELODIES			3
 #define MAX_MELODY_LENGTH		100
 
 //#define ENABLE_DEBUG_MSG
@@ -73,8 +74,14 @@ typedef struct _buzzer_tone {
 	uint8_t note;
 } buzzer_tone;
 
-typedef struct _buzzer_melody {
+typedef struct _buzzer_alarm {
 	uint8_t priority;						//priority of 0 means melody deactivated! 1 is highest priority
+	uint8_t warning_melody;
+	uint8_t error_melody;
+	uint8_t critical_melody;
+} buzzer_alarm;
+
+typedef struct _buzzer_melody {
 	uint8_t length;							//length of melody
 	buzzer_tone melody[MAX_MELODY_LENGTH];
 } buzzer_melody;
@@ -84,7 +91,19 @@ static xTaskHandle buzzerTaskHandle;
 static uint8_t melody_play = 1;
 static uint8_t melody_index = 0;
 
-static buzzer_melody buzzer_melodies[SYSTEMALARMS_ALARM_NUMELEM];
+static buzzer_alarm buzzer_alarms[SYSTEMALARMS_ALARM_NUMELEM];
+static buzzer_melody buzzer_melodies[NUM_MELODIES] = {
+	{.length = 2,
+	 .melody = {{12, 0, 37}, {12, 0, 36}}
+	},
+	{.length = 2,
+	 .melody = {{8, 0, 37}, {8, 0, 36}}
+	},
+	{.length = 2,
+	 .melody = {{4, 0, 38}, {4, 0, 37}}
+	},
+};
+int8_t current_active_alarm = -1;
 int8_t current_active_alarm_melody = -1;
 uint8_t current_active_alarm_melody_index = 0;
 
@@ -123,19 +142,14 @@ int32_t PX2BuzzerInitialize(void)
 {
 	//Initialize melodies
 	//clear mem, this means that all melodies are deactivated by default
-	memset(buzzer_melodies, 0, SYSTEMALARMS_ALARM_NUMELEM*sizeof(buzzer_melody));
+	memset(buzzer_alarms, 0, SYSTEMALARMS_ALARM_NUMELEM*sizeof(buzzer_alarm));
 
 	//activate battery alarms
-	buzzer_melody *mel = &buzzer_melodies[SYSTEMALARMS_ALARM_BATTERY];
-	mel->melody[0].duty_cycles = 4;
-	mel->melody[0].pause_cycles = 0;
-	mel->melody[0].note = 37;
-	mel->melody[1].duty_cycles = 4;
-	mel->melody[1].pause_cycles = 0;
-	mel->melody[1].note = 37;
-	mel->length = 2;
-	mel->priority = 1;
-
+	buzzer_alarm *alrm = &buzzer_alarms[SYSTEMALARMS_ALARM_BATTERY];
+	alrm->priority = 1;
+	alrm->warning_melody = 0;
+	alrm->error_melody = 1;
+	alrm->critical_melody = 2;
 
 	xTaskCreate(buzzerTask, (signed char *)"Buzzer", STACK_SIZE_BYTES/4, NULL, BUZZER_TASK_PRIORITY, &buzzerTaskHandle);
 	return 0;
@@ -152,23 +166,42 @@ static void buzzerTask(void *parameters)
 	while(1)
 	{
 		int8_t cur_alarm = -1;
-//		for (uint8_t i = 0; i < SYSTEMALARMS_ALARM_NUMELEM; i++)
-//		{
-//			//if alarm severity is bigger than ok == alarm active
-//			if (AlarmsGet(i) > SYSTEMALARMS_ALARM_OK)
-//			{
-//				//update cur_alarm if there was no alarm before or if the checked alarm has an higher priority than cur_alarm
-//				if (buzzer_melodies[i].priority > 0 && (cur_alarm == -1 || buzzer_melodies[i].priority < buzzer_melodies[cur_alarm].priority))
-//				{
-//					cur_alarm = i;
-//				}
-//			}
-//		}
+		int8_t cur_alarm_melody = -1;
+		for (uint8_t i = 0; i < SYSTEMALARMS_ALARM_NUMELEM; i++)
+		{
+			//if alarm severity is bigger than ok == alarm active
+			SystemAlarmsAlarmOptions alarm = AlarmsGet(i);
+			if (alarm > SYSTEMALARMS_ALARM_OK)
+			{
+				//update cur_alarm if there was no alarm before or if the checked alarm has an higher priority than cur_alarm
+				if (buzzer_alarms[i].priority > 0 && (cur_alarm == -1 || buzzer_alarms[i].priority < buzzer_alarms[cur_alarm].priority))
+				{
+					cur_alarm = i;
+					uint8_t mel = -1;
+					switch(alarm)
+					{
+					case SYSTEMALARMS_ALARM_WARNING:
+						mel = buzzer_alarms[i].warning_melody;
+						break;
+					case SYSTEMALARMS_ALARM_ERROR:
+						mel = buzzer_alarms[i].error_melody;
+						break;
+					case SYSTEMALARMS_ALARM_CRITICAL:
+						mel = buzzer_alarms[i].critical_melody;
+						break;
+					default:
+						break;
+					}
+					if (mel > -1) cur_alarm_melody = mel;
+				}
+			}
+		}
 
 		//if the alarm melody changed set the melody index to zero
-		if (cur_alarm != current_active_alarm_melody)
+		if (cur_alarm != current_active_alarm || cur_alarm_melody != current_active_alarm_melody)
 		{
-			current_active_alarm_melody = cur_alarm;
+			current_active_alarm = cur_alarm;
+			current_active_alarm_melody = cur_alarm_melody;
 			current_active_alarm_melody_index = 0;
 		}
 
@@ -208,6 +241,8 @@ static void buzzerTask(void *parameters)
 		}
 		else
 		{
+			current_active_alarm = -1;
+			current_active_alarm_melody = -1;
 			//turn off PWM signal
 			PIOS_Buzzer_Ctrl(0);
 			vTaskDelayUntil(&lastSysTime, 500);
