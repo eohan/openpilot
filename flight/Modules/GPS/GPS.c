@@ -41,8 +41,13 @@
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 #include "GTOP_BIN_CUSTOM.h"
-#ifndef FULL_COLD_RESTART
-#define FULL_COLD_RESTART
+#ifdef FULL_COLD_RESTART
+#undef FULL_COLD_RESTART
+#endif
+
+#ifdef DISABLE_GPS_TRESHOLD
+#undef DISABLE_GPS_TRESHOLD
+#endif
 
 #define SBAS_INTEGRITY_ON "$PMTK319,1*24\r\n"
 #define SBAS_TEST_ON "$PMTK319,0*25\r\n"
@@ -64,11 +69,6 @@
 #endif
 
 //#define FULL_COLD_RESTART
-
-#ifdef DISABLE_GPS_TRESHOLD
-#undef DISABLE_GPS_TRESHOLD
-#endif
-#endif
 
 #if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
 	#include "NMEA.h"
@@ -222,7 +222,7 @@ static void gpsTask(void *parameters)
 
 #ifdef ENABLE_GPS_BINARY_GTOP
 	// switch to GTOP binary mode
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,21,1*6F\r\n");
+	PIOS_COM_SendStringNonBlocking(gpsPort, MEDIATEK_CUSTOM_BINARY_MODE);
 #endif
 
 #ifdef ENABLE_GPS_ONESENTENCE_GTOP
@@ -236,19 +236,9 @@ static void gpsTask(void *parameters)
 #endif
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-	// set 38400 baud
-	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_FACTORY_RESET);
-	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_BAUD_RATE_38400);
-	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
-	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
-
-//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-////	// Enable 4 Hz
-//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
-//	// Set 10 Hz
-////	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-//	// Enable binary mode
-//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
+	// Do not re-initialize module, if it has lock we happily keep it
+//	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
+//	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
 #endif
 
 	numUpdates = 0;
@@ -394,38 +384,28 @@ static void gpsTask(void *parameters)
 
 				#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 					GTOP_BIN_CUSTOM_init();
-//					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_BAUD_RATE_38400);
 					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
 					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
-////					// set 38400 baud
-//////					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-////					// Set 10 Hz
-//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-//////				    // Set 4 Hz
-////				    PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
-////					// Enable custom binary mode
-//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
-
 				#endif
-//				#ifdef ENABLE_GPS_BINARY_GTOP
-//					GTOP_BIN_init();
-//					// switch to binary mode
-//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,1*6F\r\n");
-//				#endif
-//
-//				#ifdef ENABLE_GPS_ONESENTENCE_GTOP
-//					// switch to single sentence mode
-//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,2*6C\r\n");
-//				#endif
-//
-//				#ifdef ENABLE_GPS_NMEA
-//					// switch to NMEA mode
-//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,3*6D\r\n");
-//				#endif
-//
-//				#ifdef DISABLE_GPS_TRESHOLD
-//					PIOS_COM_SendStringNonBlocking(gpsPort,"$PMTK397,0*23\r\n");
-//				#endif
+				#ifdef ENABLE_GPS_BINARY_GTOP
+					GTOP_BIN_init();
+					// switch to binary mode
+					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,1*6F\r\n");
+				#endif
+
+				#ifdef ENABLE_GPS_ONESENTENCE_GTOP
+					// switch to single sentence mode
+					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,2*6C\r\n");
+				#endif
+
+				#ifdef ENABLE_GPS_NMEA
+					// switch to NMEA mode
+					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,3*6D\r\n");
+				#endif
+
+				#if (defined DISABLE_GPS_TRESHOLD) && !(defined ENABLE_GPS_BINARY_CUSTOM_GTOP)
+					PIOS_COM_SendStringNonBlocking(gpsPort,"$PMTK397,0*23\r\n");
+				#endif
 			}
 		}
 		else
@@ -443,7 +423,7 @@ static void gpsTask(void *parameters)
 
 			//criteria for GPS-OK taken from this post...
 			//http://forums.openpilot.org/topic/1523-professors-insgps-in-svn/page__view__findpost__p__5220
-			if ((GpsData.PDOP < 3.5) && (GpsData.Satellites >= 7))
+			if ((GpsData.PDOP < 3.5) && (GpsData.Satellites >= 5))
 				AlarmsClear(SYSTEMALARMS_ALARM_GPS);
 			else
 			if (GpsData.Status == GPSPOSITION_STATUS_FIX3D)

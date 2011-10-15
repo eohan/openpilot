@@ -135,8 +135,10 @@ static void onTimer(UAVObjEvent* ev)
 
 	//calculate the battery parameters
 #ifdef STM32F2XX
-	flightBatteryData.Voltage = ((float)PIOS_ADC_PinGet(3)) * batterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_VOLTAGEFACTOR]; //in Volts
+	// Sensorcalibration - Voltage for PX2FMU: 0.00394775391f;
+	flightBatteryData.Voltage = ((float)PIOS_ADC_PinGet(0)) * batterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_VOLTAGEFACTOR]; //in Volts
 	flightBatteryData.Current = ((float)PIOS_ADC_PinGet(2)) * batterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_CURRENTFACTOR]; //in Amps
+
 	#else
 	float Bob;
 	flightBatteryData.Voltage = ((float)PIOS_ADC_PinGet(2)) * batterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_VOLTAGEFACTOR]; //in Volts

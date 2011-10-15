@@ -375,6 +375,7 @@ static mavlink_gps_raw_int_t gps_raw;
 //static mavlink_rc_channels_raw_t rc_channels;
 //static mavlink_debug_vect_t debug;
 static uint32_t lastOperatorHeartbeat = 0;
+static bool hilEnabled = false;
 
 
 /**
@@ -418,28 +419,6 @@ static void processObjEvent(UAVObjEvent * ev)
 
 		//		uint64_t timeStamp = 0;
 		switch(objId) {
-		case ACTUATORSETTINGS_OBJID:
-		{
-			ActuatorSettingsData settings;
-				ActuatorSettingsGet(&settings);
-				if (settings.FixedWingRoll1 == 0)
-				{
-					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 0");
-				}
-				else if (settings.FixedWingRoll1 == 1)
-				{
-					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 1");
-				}
-				else if (settings.FixedWingRoll1 == 2)
-				{
-					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 1");
-				}
-				else if (settings.FixedWingRoll1 == 3)
-				{
-					mavlink_missionlib_send_gcs_string("ACT SETT ROLL 1");
-				}
-		}
-		break;
 		case BAROALTITUDE_OBJID:
 		{
 			BaroAltitudeGet(&baroAltitude);
@@ -476,44 +455,38 @@ static void processObjEvent(UAVObjEvent * ev)
 		{
 			FlightStatusData flightStatus;
 			FlightStatusGet(&flightStatus);
-			//mavlink_msg_heartbeat_send(MAVLINK_COMM_0,mavlink_system.type,mavClass);
 
 			uint8_t system_state = MAV_STATE_UNINIT;
 			uint8_t base_mode = 0;
 			uint8_t custom_mode = 0;
 
+			// Set flight mode
 			switch (flightStatus.FlightMode)
 			{
 			case FLIGHTSTATUS_FLIGHTMODE_MANUAL:
-				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
-				{
-					base_mode = MAV_MODE_MANUAL_ARMED;
-				}
+				base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD:
-				base_mode = MAV_MODE_PREFLIGHT;
+				base_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED1:
-				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
-				{
-					base_mode = MAV_MODE_STABILIZE_ARMED;
-				}
+				base_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED2:
-				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
-				{
-					base_mode = MAV_MODE_GUIDED_ARMED;
-				}
+				base_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 				break;
 			case FLIGHTSTATUS_FLIGHTMODE_STABILIZED3:
-				if (flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED)
-				{
-					base_mode = MAV_MODE_AUTO_ARMED;
-				}
+				base_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
 				break;
-
+			case FLIGHTSTATUS_FLIGHTMODE_VELOCITYCONTROL:
+				base_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+				break;
+			default:
+				base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+				break;
 			}
 
+			// Set arming state
 			switch (flightStatus.Armed)
 			{
 			case FLIGHTSTATUS_ARMED_ARMING:
@@ -527,6 +500,9 @@ static void processObjEvent(UAVObjEvent * ev)
 				break;
 			}
 
+			// Set HIL
+			if (hilEnabled) base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+
 			mavlink_msg_heartbeat_send(MAVLINK_COMM_0, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
 
 			uint8_t ucCpuLoad;
@@ -535,7 +511,10 @@ static void processObjEvent(UAVObjEvent * ev)
 			FlightBatteryStateGet(&flightBatteryData);
 			FlightBatterySettingsData flightBatterySettings;
 			FlightBatterySettingsGet(&flightBatterySettings);
-			uint16_t batteryVoltage = flightBatteryData.Voltage*1000;
+
+//			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "telem batt voltage %d\r\n", (int)(flightBatteryData.Voltage*1000));
+
+			uint16_t batteryVoltage = (uint16_t)(flightBatteryData.Voltage*1000.0f);
 			int16_t batteryCurrent = -1; // -1: Not present / not estimated
 			int8_t batteryPercent = -1; // -1: Not present / not estimated
 //			if (flightBatterySettings.SensorCalibrations[FLIGHTBATTERYSETTINGS_SENSORCALIBRATIONS_CURRENTFACTOR] == 0)
@@ -551,7 +530,11 @@ static void processObjEvent(UAVObjEvent * ev)
 //				batteryCurrent = flightBatteryData.Current*100;
 //			}
 
-			mavlink_msg_sys_status_send(0, 0xFF, 0xFF, ucCpuLoad*3.9215686f, batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0, 0);
+				mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0xFF, 0xFF, 0xFF, (uint16_t)(ucCpuLoad*3.9215686f*1000), batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
+//				// Copy the message to the send buffer
+//				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+//				// Send buffer
+//				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 			break;
 		}
 		case ATTITUDERAW_OBJID:
@@ -574,6 +557,23 @@ static void processObjEvent(UAVObjEvent * ev)
 			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 			// Send buffer
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+
+			if (hilEnabled)
+			{
+				mavlink_hil_controls_t controls;
+
+				// Copy data
+				controls.roll_ailerons = 0.1;
+				controls.pitch_elevator = 0.1;
+				controls.yaw_rudder = 0.0;
+				controls.throttle = 0.8;
+
+				mavlink_msg_hil_controls_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &controls);
+				// Copy the message to the send buffer
+				len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+				// Send buffer
+				PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
+			}
 			break;
 		}
 		case ATTITUDEMATRIX_OBJID:
@@ -831,66 +831,93 @@ static void telemetryRxTask(void *parameters)
 					break;
 					}
 
+					bool newHilEnabled = (mode.base_mode & MAV_MODE_FLAG_DECODE_POSITION_HIL);
+					if (newHilEnabled != hilEnabled)
+					{
+						if (newHilEnabled)
+						{
+							// READ-ONLY flag write to ActuatorCommand
+							UAVObjMetadata meta;
+							UAVObjHandle handle = ActuatorCommandHandle();
+							UAVObjGetMetadata(handle, &meta);
+							meta.access = ACCESS_READONLY;
+							UAVObjSetMetadata(handle, &meta);
+
+							mavlink_missionlib_send_gcs_string("ENABLING HIL SIMULATION");
+							mavlink_missionlib_send_gcs_string("+++++++++++++++++++++++");
+							mavlink_missionlib_send_gcs_string("BLOCKING ALL ACTUATORS");
+						}
+						else
+						{
+							// READ-ONLY flag write to ActuatorCommand
+							UAVObjMetadata meta;
+							UAVObjHandle handle = ActuatorCommandHandle();
+							UAVObjGetMetadata(handle, &meta);
+							meta.access = ACCESS_READWRITE;
+							UAVObjSetMetadata(handle, &meta);
+
+							mavlink_missionlib_send_gcs_string("DISABLING HIL SIMULATION");
+							mavlink_missionlib_send_gcs_string("+++++++++++++++++++++++");
+							mavlink_missionlib_send_gcs_string("ACTIVATING ALL ACTUATORS");
+						}
+					}
+					hilEnabled = newHilEnabled;
+
 					FlightStatusSet(&flightStatus);
 				}
 			}
 			break;
 			case MAVLINK_MSG_ID_HIL_STATE:
 			{
-				mavlink_hil_state_t hil;
-				mavlink_msg_hil_state_decode(&rx_msg, &hil);
+				if (hilEnabled)
+				{
+					mavlink_hil_state_t hil;
+					mavlink_msg_hil_state_decode(&rx_msg, &hil);
 
-				// READ-ONLY flag write to ActuatorCommand
+					// Write GPSPosition
+					GPSPositionData gps;
+					GPSPositionGet(&gps);
+					gps.Altitude = hil.alt/10;
+					gps.Latitude = hil.lat/10;
+					gps.Longitude = hil.lon/10;
+					GPSPositionSet(&gps);
 
+					// Write PositionActual
+					PositionActualData pos;
+					PositionActualGet(&pos);
+					// FIXME WRITE POSITION HERE
+					PositionActualSet(&pos);
 
-				// Write GPSPosition
-				GPSPositionData gps;
-				GPSPositionGet(&gps);
-				gps.Altitude = hil.alt/10;
-				gps.Latitude = hil.lat/10;
-				gps.Longitude = hil.lon/10;
-				GPSPositionSet(&gps);
+					// Write AttitudeActual
+					AttitudeActualData att;
+					AttitudeActualGet(&att);
+					att.Roll = hil.roll;
+					att.Pitch = hil.pitch;
+					att.Yaw = hil.yaw;
+					// FIXME
+					//att.RollSpeed = hil.rollspeed;
+					//att.PitchSpeed = hil.pitchspeed;
+					//att.YawSpeed = hil.yawspeed;
 
-				// Write PositionActual
-				PositionActualData pos;
-				PositionActualGet(&pos);
-				// FIXME WRITE POSITION HERE
-				PositionActualSet(&pos);
+					// Convert to quaternion formulation
+					RPY2Quaternion(&attitudeActual.Roll, &attitudeActual.q1);
+					// Write AttitudeActual
+					AttitudeActualSet(&att);
 
-				// Write AttitudeActual
-				AttitudeActualData att;
-				AttitudeActualGet(&att);
-				att.Roll = hil.roll;
-				att.Pitch = hil.pitch;
-				att.Yaw = hil.yaw;
-				// FIXME
-				//att.RollSpeed = hil.rollspeed;
-				//att.PitchSpeed = hil.pitchspeed;
-				//att.YawSpeed = hil.yawspeed;
-
-				// Convert to quaternion formulation
-				RPY2Quaternion(&attitudeActual.Roll, &attitudeActual.q1);
-				// Write AttitudeActual
-				AttitudeActualSet(&att);
-
-				// Write AttitudeRaw
-				AttitudeRawData raw;
-				AttitudeRawGet(&raw);
-				raw.gyros[0] = hil.rollspeed;
-				raw.gyros[1] = hil.pitchspeed;
-				raw.gyros[2] = hil.yawspeed;
-				raw.accels[0] = hil.xacc;
-				raw.accels[1] = hil.yacc;
-				raw.accels[2] = hil.zacc;
-//				raw.magnetometers[0] = hil.xmag;
-//				raw.magnetometers[0] = hil.ymag;
-//				raw.magnetometers[0] = hil.zmag;
-				AttitudeRawSet(&raw);
-			}
-			break;
-			case MAVLINK_MSG_ID_COMMAND_SHORT:
-			{
-				// FIXME Implement
+					// Write AttitudeRaw
+					AttitudeRawData raw;
+					AttitudeRawGet(&raw);
+					raw.gyros[0] = hil.rollspeed;
+					raw.gyros[1] = hil.pitchspeed;
+					raw.gyros[2] = hil.yawspeed;
+					raw.accels[0] = hil.xacc;
+					raw.accels[1] = hil.yacc;
+					raw.accels[2] = hil.zacc;
+					//				raw.magnetometers[0] = hil.xmag;
+					//				raw.magnetometers[0] = hil.ymag;
+					//				raw.magnetometers[0] = hil.zmag;
+					AttitudeRawSet(&raw);
+				}
 			}
 			break;
 			case MAVLINK_MSG_ID_COMMAND_LONG:

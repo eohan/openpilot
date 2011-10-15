@@ -64,6 +64,6 @@
 // MAVLINK
 //------------------------
 #define MAVLINK_QUEUE_SIZE		20
-#define PIOS_MAVLINK_STACK_SIZE	1800
+#define PIOS_MAVLINK_STACK_SIZE	2048
 
 #endif /* PIOS_CONFIG_POSIX_H */
