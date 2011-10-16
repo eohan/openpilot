@@ -286,6 +286,7 @@ CSTANDARD = -std=gnu99
 
 ifeq ($(DEBUG),YES)
 CFLAGS = -g$(DEBUGF) -DDEBUG
+CFLAGS += -finstrument-functions -ffixed-r10
 endif
 
 CFLAGS += -O$(OPT)
@@ -301,7 +302,6 @@ endif
 
 CFLAGS += -Wall 
 CFLAGS += -Werror
-CFLAGS += -finstrument-functions -ffixed-r10
 CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 CFLAGS += -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
 ifeq ($(DEBUG),NO)

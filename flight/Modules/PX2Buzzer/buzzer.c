@@ -47,14 +47,15 @@
 
 #include "openpilot.h"
 
-#ifdef PIOS_INCLUDE_BUZZER
+#if 1//#ifdef PIOS_INCLUDE_BUZZER
 
 //
 // Configuration
 //
-#define STACK_SIZE_BYTES		128
+#define STACK_SIZE_BYTES		1024
 #define BUZZER_TASK_PRIORITY	(tskIDLE_PRIORITY + 0)
 #define CYCLE_LENGTH			40
+#define NUM_MELODIES			3
 #define MAX_MELODY_LENGTH		100
 
 //#define ENABLE_DEBUG_MSG
@@ -73,10 +74,38 @@ typedef struct _buzzer_tone {
 	uint8_t note;
 } buzzer_tone;
 
+typedef struct _buzzer_alarm {
+	uint8_t priority;						//priority of 0 means melody deactivated! 1 is highest priority
+	uint8_t warning_melody;
+	uint8_t error_melody;
+	uint8_t critical_melody;
+} buzzer_alarm;
+
+typedef struct _buzzer_melody {
+	uint8_t length;							//length of melody
+	buzzer_tone melody[MAX_MELODY_LENGTH];
+} buzzer_melody;
+
 // Private variables
 static xTaskHandle buzzerTaskHandle;
 static uint8_t melody_play = 1;
 static uint8_t melody_index = 0;
+
+static buzzer_alarm buzzer_alarms[SYSTEMALARMS_ALARM_NUMELEM];
+static buzzer_melody buzzer_melodies[NUM_MELODIES] = {
+	{.length = 2,
+	 .melody = {{12, 0, 37}, {12, 0, 36}}
+	},
+	{.length = 2,
+	 .melody = {{8, 0, 37}, {8, 0, 36}}
+	},
+	{.length = 2,
+	 .melody = {{4, 0, 38}, {4, 0, 37}}
+	},
+};
+int8_t current_active_alarm = -1;
+int8_t current_active_alarm_melody = -1;
+uint8_t current_active_alarm_melody_index = 0;
 
 //Tetris Theme
 static const uint8_t melody_len = 37;
@@ -109,13 +138,24 @@ static void buzzerTask(void *parameters);
  * \returns 0 on success or -1 if initialization failed
  */
 
-int32_t BuzzerInitialize(void)
+int32_t PX2BuzzerInitialize(void)
 {
+	//Initialize melodies
+	//clear mem, this means that all melodies are deactivated by default
+	memset(buzzer_alarms, 0, SYSTEMALARMS_ALARM_NUMELEM*sizeof(buzzer_alarm));
+
+	//activate battery alarms
+	buzzer_alarm *alrm = &buzzer_alarms[SYSTEMALARMS_ALARM_BATTERY];
+	alrm->priority = 1;
+	alrm->warning_melody = 0;
+	alrm->error_melody = 1;
+	alrm->critical_melody = 2;
+
 	xTaskCreate(buzzerTask, (signed char *)"Buzzer", STACK_SIZE_BYTES/4, NULL, BUZZER_TASK_PRIORITY, &buzzerTaskHandle);
 	return 0;
 }
 
-MODULE_INITCALL(BuzzerInitialize, 0)
+MODULE_INITCALL(PX2BuzzerInitialize, 0)
 
 /**
  * Module thread, should not return.
@@ -125,7 +165,50 @@ static void buzzerTask(void *parameters)
 	portTickType lastSysTime  = xTaskGetTickCount();
 	while(1)
 	{
-		if (melody_play)
+		int8_t cur_alarm = -1;
+		int8_t cur_alarm_melody = -1;
+		for (uint8_t i = 0; i < SYSTEMALARMS_ALARM_NUMELEM; i++)
+		{
+			//if alarm severity is bigger than ok == alarm active
+			SystemAlarmsAlarmOptions alarm = AlarmsGet(i);
+			if (alarm > SYSTEMALARMS_ALARM_OK)
+			{
+				//update cur_alarm if there was no alarm before or if the checked alarm has an higher priority than cur_alarm
+				if (buzzer_alarms[i].priority > 0 && (cur_alarm == -1 || buzzer_alarms[i].priority < buzzer_alarms[cur_alarm].priority))
+				{
+					cur_alarm = i;
+					uint8_t mel = -1;
+					switch(alarm)
+					{
+					case SYSTEMALARMS_ALARM_WARNING:
+						mel = buzzer_alarms[i].warning_melody;
+						break;
+					case SYSTEMALARMS_ALARM_ERROR:
+						mel = buzzer_alarms[i].error_melody;
+						break;
+					case SYSTEMALARMS_ALARM_CRITICAL:
+						mel = buzzer_alarms[i].critical_melody;
+						break;
+					default:
+						break;
+					}
+					if (mel > -1) cur_alarm_melody = mel;
+				}
+			}
+		}
+
+		//if the alarm melody changed set the melody index to zero
+		if (cur_alarm != current_active_alarm || cur_alarm_melody != current_active_alarm_melody)
+		{
+			current_active_alarm = cur_alarm;
+			current_active_alarm_melody = cur_alarm_melody;
+			current_active_alarm_melody_index = 0;
+		}
+
+		//now check if something has to be played
+
+		//there was no alarm, but we want to hear our nice main theme :)
+		if (cur_alarm == -1 && melody_play)
 		{
 			//Set Buzzer PWM frequency
 			PIOS_Buzzer_SetNote(current_melody[melody_index].note);
@@ -141,8 +224,27 @@ static void buzzerTask(void *parameters)
 			melody_index = (melody_index+1) % melody_len;
 			if (melody_index == 0) melody_play = 0;
 		}
+		else if(cur_alarm > -1)
+		{
+			//Set Buzzer PWM frequency
+			PIOS_Buzzer_SetNote(buzzer_melodies[current_active_alarm_melody].melody[current_active_alarm_melody_index].note);
+			//activate buzzer timer (PWM signal starts here)
+			PIOS_Buzzer_Ctrl(1);
+			//delay duty
+			vTaskDelayUntil(&lastSysTime, CYCLE_LENGTH*buzzer_melodies[current_active_alarm_melody].melody[current_active_alarm_melody_index].duty_cycles);
+			//turn off PWM signal
+			PIOS_Buzzer_Ctrl(0);
+			//delay rest of note length
+			vTaskDelayUntil(&lastSysTime, CYCLE_LENGTH*buzzer_melodies[current_active_alarm_melody].melody[current_active_alarm_melody_index].pause_cycles);
+
+			current_active_alarm_melody_index = (current_active_alarm_melody_index+1) % buzzer_melodies[current_active_alarm_melody].length;
+		}
 		else
 		{
+			current_active_alarm = -1;
+			current_active_alarm_melody = -1;
+			//turn off PWM signal
+			PIOS_Buzzer_Ctrl(0);
 			vTaskDelayUntil(&lastSysTime, 500);
 		}
 	}

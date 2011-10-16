@@ -157,6 +157,8 @@ void mtk_checksum(uint8_t b, uint8_t* ck_a, uint8_t* ck_b)
 
 int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors, volatile uint32_t *parsing_errors)
 {
+	// Debug output to telemetry port
+//	PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, &b, 1);
 	if (mtk_state.decode_state == MTK_DECODE_UNINIT)
 	{
 		if (b == 0xd0) mtk_state.decode_state = MTK_DECODE_GOT_CK_A;
@@ -196,7 +198,7 @@ int GTOP_BIN_CUSTOM_update_position(uint8_t b, volatile uint32_t *chksum_errors,
 					case 1: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
 					case 2: GpsData.Status = GPSPOSITION_STATUS_FIX2D; break;
 					case 3: GpsData.Status = GPSPOSITION_STATUS_FIX3D; break;
-					default: GpsData.Status = GPSPOSITION_STATUS_NOGPS; break;
+					default: GpsData.Status = GPSPOSITION_STATUS_NOFIX; break;
 				}
 				GpsData.Latitude        = packet->latitude;   // degrees * 10e6
 				GpsData.Longitude       = packet->longitude;	// degrees * 10e6

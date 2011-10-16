@@ -152,22 +152,18 @@ void debug_message_send_one(void)
 	}
 	msg[DEBUG_MAX_LEN - 1] = '\0';//enforce string termination
 
-	mavlink_msg_statustext_send(MAVLINK_COMM_0, 0, (char *) msg);
-	mavlink_msg_statustext_send(MAVLINK_COMM_1, 0, (char *) msg);
+	mavlink_msg_statustext_send(MAVLINK_COMM_0, 0, msg);
+	mavlink_msg_statustext_send(MAVLINK_COMM_1, 0, msg);
 }
 
 void debug_vect(const char* string, const float x, const float y, const float z)
 {
-	char name[DEBUG_VECT_NAME_MAX_LEN];
+	static char name[DEBUG_VECT_NAME_MAX_LEN];
 	strncpy(name, string, DEBUG_VECT_NAME_MAX_LEN - 1);
 	name[DEBUG_VECT_NAME_MAX_LEN - 1] = '\0';
 
-	mavlink_msg_debug_vect_send(MAVLINK_COMM_0,
-			(char*) name, 0, x, y,
-			z);//FIXME Replace 0 with system time
-	mavlink_msg_debug_vect_send(MAVLINK_COMM_1,
-			(char*) name, 0, x, y,
-			z);//FIXME Replace 0 with system time
+	mavlink_msg_debug_vect_send(MAVLINK_COMM_0, name, 0, x, y, z);//FIXME Replace 0 with system time
+	mavlink_msg_debug_vect_send(MAVLINK_COMM_1, name, 0, x, y, z);//FIXME Replace 0 with system time
 }
 //void debug_vect(const char* string, const float_vect3 vect)
 //{

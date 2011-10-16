@@ -124,7 +124,7 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_T
 	*--pxTopOfStack = 0;	/* R1 */
 	*--pxTopOfStack = ( portSTACK_TYPE ) pvParameters;	/* R0 */
 	*--pxTopOfStack = 0;	/* R11 */
-	*--pxTopOfStack = ( portSTACK_TYPE ) pxStartOfStack; /* R10 */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pxStartOfStack + 64; /* R10 with room for a full context save */
 	*--pxTopOfStack = 0;	/* R9 */
 	*--pxTopOfStack = 0;	/* R8 */
 	*--pxTopOfStack = 0;	/* R7 */
@@ -301,8 +301,8 @@ __cyg_profile_func_enter(void *func, void *caller)
         "    cmp    sp, r10         \n"
         "    bgt    L__out          \n"             /* stack is above limit and thus OK */
         "    mov    r2, #0xac       \n"             /* force a hard fault with a distinctive address 0x57ac ('stac') */
-	"    add    r2, r2, #0x5700 \n"
-	"    ldr    r2, [r2]        \n"
+        "    add    r2, r2, #0x5700 \n"
+        "    ldr    r2, [r2]        \n"
         "    b      .               \n"
         "L__out:                    \n"
         "    bx     lr              \n"

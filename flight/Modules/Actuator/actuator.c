@@ -559,9 +559,6 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
-	
-	// XXX WTF PX2
-	settings.ChannelType[mixer_channel] = ACTUATORSETTINGS_CHANNELTYPE_MK;
 
 	switch(settings.ChannelType[mixer_channel]) {
 		case ACTUATORSETTINGS_CHANNELTYPE_PWMALARMBUZZER: {
