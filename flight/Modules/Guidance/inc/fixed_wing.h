@@ -1,9 +1,9 @@
 /**
  ******************************************************************************
  *
- * @file       guidance.h
+ * @file       fixed_wing.h
  * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @brief      Example module to be used as a template for actual modules.
+ * @brief      Fixed wing control functions in global frame
  *
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -23,8 +23,11 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef GUIDANCE_H
-#define GUIDANCE_H
+#ifndef FIXED_WING_H
+#define FIXED_WING_H
 
-int32_t GuidanceInitialize(void);
-#endif // GUIDANCE_H
+void updateFixedWingDesiredVelocity();
+void manualSetFixedWingDesiredVelocity();
+void updateFixedWingDesiredAttitude();
+
+#endif /* FIXED_WING_H */

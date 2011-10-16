@@ -1,0 +1,16 @@
+<xml>
+    <object name="GlobalPositionDesired" singleinstance="true" settings="false">
+        <description>The position the craft is trying t achieve.  Can come from mission or @ref PathPlanner </description>
+        <field name="Latitude" units="deg" type="int32" elements="1"/>
+        <field name="Longitude" units="deg" type="int32" elements="1"/>
+        <field name="Altitude" units="mm" type="int32" elements="1"/>
+        <field name="AltitudeIsAbsoluteMSL" units="bool" type="uint8" elements="1"/>
+        <field name="LoiterEnabled" units="bool" type="uint8" elements="1"/>
+        <field name="LoiterIsClockWise" units="bool" type="uint8" elements="1"/>
+        <field name="LoiterRadius" units="mm" type="uint32" elements="1"/>
+        <access gcs="readwrite" flight="readwrite"/>
+        <telemetrygcs acked="false" updatemode="manual" period="0"/>
+        <telemetryflight acked="false" updatemode="onchange" period="0"/>
+        <logging updatemode="periodic" period="1000"/>
+    </object>
+</xml>

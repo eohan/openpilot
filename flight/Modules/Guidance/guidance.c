@@ -49,6 +49,7 @@
 #include "attituderaw.h"
 #include "attitudeactual.h"
 #include "positiondesired.h"	// object that will be updated by the module
+#include "globalpositiondesired.h"
 #include "positionactual.h"
 #include "manualcontrol.h"
 #include "flightstatus.h"
@@ -59,6 +60,7 @@
 #include "velocitydesired.h"
 #include "velocityactual.h"
 #include "CoordinateConversions.h"
+#include "fixed_wing.h"
 
 // Private constants
 #define MAX_QUEUE_SIZE 1
@@ -220,14 +222,26 @@ static void guidanceTask(void *parameters)
 				positionHoldLast = 1;
 			}
 			
-			if( flightStatus.FlightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD ) 
+			if( flightStatus.FlightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD )
+			{
 				updateVtolDesiredVelocity();
+			}
 			else
-				manualSetDesiredVelocity();			
+			{
+				manualSetDesiredVelocity();
+			}
 			updateVtolDesiredAttitude();
 			
 		} else {
+
+			// FIXED WING CONTROL
+
+			updateFixedWingDesiredVelocity();
+			updateFixedWingDesiredAttitude();
+
+
 			// Be cleaner and get rid of global variables
+			// FIXME might be used by fixed wing control?
 			northVelIntegral = 0;
 			eastVelIntegral = 0;
 			downVelIntegral = 0;
@@ -446,3 +460,5 @@ static float bound(float val, float min, float max)
 	}
 	return val;
 }
+
+
