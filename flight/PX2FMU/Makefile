@@ -33,6 +33,9 @@ TARGET := fw_$(BOARD_NAME)
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
 OUTDIR := $(TOP)/build/$(TARGET)
 
+# Building for M3 / M4
+M4	?= YES
+
 # Debugging (YES/NO) ?
 DEBUG ?= YES
 
@@ -44,6 +47,10 @@ ifeq ($(CODE_SOURCERY), YES)
 REMOVE_CMD = cs-rm
 else
 REMOVE_CMD = rm -rf
+endif
+
+ifeq ($(M4), YES)
+MCU	= cortex-m4
 endif
 
 FLASH_TOOL = OPENOCD
@@ -362,11 +369,16 @@ CFLAGS = -g$(DEBUGF) -DDEBUG
 CFLAGS += -finstrument-functions -ffixed-r10
 endif
 
+CFLAGS += -mcpu=$(MCU)
+
+ifeq ($(M4), YES)
+CFLAGS += -mfloat-abi=hard
+endif
+
 # FMU has enough memory to always enable optional objects
 CFLAGS += -DDIAGNOSTICS
 
 CFLAGS += -O$(OPT)
-CFLAGS += -mcpu=$(MCU)
 CFLAGS += $(CDEFS)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 CFLAGS += -ffunction-sections -fdata-sections
