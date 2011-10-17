@@ -70,7 +70,6 @@ PIOSINC			= $(PIOS)/inc
 PIOSSTM32F10X	= $(PIOS)/STM32F10x
 PIOSCOMMON		= $(PIOS)/Common
 PIOSCOMMONLIB	= $(PIOS)/Common/Libraries
-ZALLOCLIB		= $(PIOSCOMMONLIB)/zalloc
 PIOSBOARDS		= $(PIOS)/Boards
 APPLIBDIR		= $(PIOSSTM32F10X)/Libraries
 STMLIBDIR		= $(APPLIBDIR)
@@ -145,9 +144,8 @@ SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
 #SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
 
 ## Better malloc/free
-SRC += $(ZALLOCLIB)/malloc.c
-SRC += $(ZALLOCLIB)/zalloc.c
-SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
+SRC += $(PIOSCOMMONLIB)/msheap/msheap.c
+SRC += $(PIOSCOMMONLIB)/msheap/pios_msheap.c
 
 # List C source files here which must be compiled in ARM-Mode (no -mthumb).
 # use file-extension c for "c-only"-files
@@ -184,11 +182,11 @@ EXTRAINCDIRS  += $(PIOSINC)
 EXTRAINCDIRS  += $(FLIGHTLIBINC)
 EXTRAINCDIRS  += $(PIOSSTM32F10X)
 EXTRAINCDIRS  += $(PIOSCOMMON)
+EXTRAINCDIRS  += $(PIOSCOMMONLIB)
 EXTRAINCDIRS  += $(PIOSBOARDS)
 EXTRAINCDIRS  += $(STMSPDINCDIR)
 EXTRAINCDIRS  += $(CMSISDIR)
 EXTRAINCDIRS  += $(RTOSINCDIR)
-EXTRAINCDIRS  += $(ZALLOCLIB)
 #EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 
