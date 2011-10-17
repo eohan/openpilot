@@ -58,8 +58,8 @@ FLASH_TOOL = OPENOCD
 # List of modules to include
 MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Guidance Battery PX2Buzzer
 # Telemetry must be last to grab the optional modules
-#MODULES += MAVLink
-MODULES += Telemetry
+MODULES += MAVLink
+#MODULES += Telemetry
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
