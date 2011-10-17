@@ -121,12 +121,11 @@ static void
 protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg)
 {
 	static struct pios_i2c_slave_txn txns[2];
+	static uint8_t		msgbuf;
 	static uint8_t		status;
 
 	switch (event) {
 	case PIOS_I2C_SLAVE_TRANSMIT:
-//		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "send status\r\n");
-
 		status = 'g';
 		txns[0].buf = &status;
 		txns[0].len = 1;
@@ -135,11 +134,10 @@ protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg
 		break;
 
 	case PIOS_I2C_SLAVE_TRANSMIT_DONE:
-		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "sent status\r\n");
 		break;
 
 	default:
-		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "event %d\r\n", event);
+		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "unhandled event %d\r\n", event);
 		break;
 	}
 }
