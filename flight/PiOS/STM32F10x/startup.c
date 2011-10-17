@@ -21,7 +21,7 @@ extern char		_sbss, _ebss;
 extern char		_sidata, _sdata, _edata;
 
 /** The bootstrap/IRQ stack XXX should define size somewhere else */
-char			irq_stack[512] __attribute__((section(".irqstack")));
+char			irq_stack[1024] __attribute__((section(".irqstack")));
 
 /** exception handler */
 typedef const void	(vector)(void);
