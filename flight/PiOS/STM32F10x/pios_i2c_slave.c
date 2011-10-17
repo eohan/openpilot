@@ -5,7 +5,40 @@
  *      Author: msmith
  */
 
+#include <pios.h>
 #include <pios_i2c_slave.h>
+
+#if 1
+struct fsm_logentry {
+	char		kind;
+	uint32_t	code;
+};
+
+#define LOG_ENTRIES	64
+static struct fsm_logentry fsm_log[LOG_ENTRIES];
+int	fsm_logptr;
+#define LOG_NEXT(_x)	(((_x) + 1) % LOG_ENTRIES)
+#define LOG(_kind, _code)		\
+		do {					\
+			fsm_log[fsm_logptr].kind = _kind; \
+			fsm_log[fsm_logptr].code = _code; \
+			fsm_logptr = LOG_NEXT(fsm_logptr); \
+			fsm_log[fsm_logptr].kind = 0; \
+		} while(0)
+
+#define LOGx(_kind, _code) \
+		do {\
+			if (fsm_logptr < LOG_ENTRIES) { \
+				fsm_log[fsm_logptr].kind = _kind; \
+				fsm_log[fsm_logptr].code = _code; \
+				fsm_logptr++;\
+			}\
+		}while(0)
+
+#else
+#define LOG(_kind, _code)
+#endif
+
 
 /**
  * States implemented by the I2C slave FSM.
@@ -183,6 +216,11 @@ PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg)
 	GPIO_Init(cfg->sda.gpio, &(cfg->sda.init));
 	GPIO_Init(cfg->scl.gpio, &(cfg->scl.init));
 
+	// interrupt init
+	NVIC_Init(&cfg->event.init);
+	NVIC_Init(&cfg->error.init);
+
+
 	// do i2c init but start disabled
 	I2C_DeInit(ctx->regs);
 	I2C_Init(ctx->regs, &cfg->init);
@@ -195,7 +233,7 @@ PIOS_I2C_Slave_Open(uint32_t i2c_id, pios_i2c_slave_callback callback)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
 
-	// hook up the callback
+		// hook up the callback
 	ctx->callback = callback;
 
 	// and open for business
@@ -214,14 +252,13 @@ PIOS_I2C_SLAVE_Enable(uint32_t i2c_id, bool enabled)
 		fsm_event(ctx, AUTO);
 
 		// enable the controller
-		I2C_Cmd(ctx->regs, ENABLE);
 		I2C_ClearITPendingBit(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR);
 		I2C_ITConfig(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR, ENABLE);
+		I2C_Cmd(ctx->regs, ENABLE);
 	} else {
-
 		// disable the controller
-		I2C_ITConfig(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR, DISABLE);
 		I2C_Cmd(ctx->regs, DISABLE);
+		I2C_ITConfig(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR, DISABLE);
 	}
 }
 
@@ -233,6 +270,8 @@ PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, struct pios_i2c_slave_txn txn_list[], u
 
 	PIOS_Assert(txn_list != NULL);
 	PIOS_Assert(num_txns > 0);
+
+	LOG('t', (uintptr_t)txn_list);
 
 	// update the current transfer details
 	ctx->txn_list = txn_list;
@@ -248,6 +287,8 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 
 	// fetch the most recent event
 	event = I2C_GetLastEvent(I2C1);
+
+	LOG('e', event);
 
 	// generate FSM events based on I2C events
 	switch (event) {
@@ -268,7 +309,7 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 		break;
 
 	case I2C_EVENT_SLAVE_BYTE_TRANSMITTING:
-	//case I2C_EVENT_SLAVE_BYTE_TRANSMITTED:
+	case I2C_EVENT_SLAVE_BYTE_TRANSMITTED:
 		fsm_event(ctx, BYTE_SENDABLE);
 		break;
 
@@ -285,6 +326,8 @@ void
 PIOS_I2C_SLAVE_ER_IRQ_Handler(uint32_t i2c_id)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
+
+	LOG('e', 0);
 
 	// clear the flag in the hardware
 	I2C_ClearFlag(ctx->regs, I2C_FLAG_BERR);
@@ -306,7 +349,12 @@ PIOS_I2C_SLAVE_ER_IRQ_Handler(uint32_t i2c_id)
 static void
 fsm_event(struct fsm_context *ctx, enum fsm_event event)
 {
+	LOG('s', (ctx->state << 16) | fsm[ctx->state].next_state[event]);
+
 	// move to the next state
+	//
+	// Note that uninitialised states land
+	// us in the BAD_PHASE state due to it being state zero.
 	ctx->state = fsm[ctx->state].next_state[event];
 
 	// call the state entry handler
@@ -332,7 +380,6 @@ go_wait_master(struct fsm_context *ctx)
 	// clear transaction state
 	ctx->txn_list = NULL;
 	ctx->txn_remaining = 0;
-
 
 	// (re)enable the peripheral, clear the stop event flag in
 	// case we just finished receiving data
@@ -441,7 +488,7 @@ go_send_data(struct fsm_context *ctx)
 		d = ctx->txn_list->buf[ctx->txn_data_offset];
 
 		// increment the buffer pointer and check for wrap into the next buffer
-		if (++ctx->txn_data_offset > ctx->txn_list->len) {
+		if (++ctx->txn_data_offset >= ctx->txn_list->len) {
 
 			// check for another buffer
 			if (--ctx->txn_remaining > 0) {
@@ -456,6 +503,7 @@ go_send_data(struct fsm_context *ctx)
 			}
 		}
 	}
+	LOG('w', d);
 	I2C_SendData(ctx->regs, d);
 }
 

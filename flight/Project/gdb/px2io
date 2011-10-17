@@ -4,4 +4,15 @@ end
 directory ./flight/project/gdb
 source CortexM3
 source FreeRTOS
-source zalloc
+source msheap
+
+define showfsmlog
+	set $limit = sizeof(fsm_log) / sizeof(struct fsm_logentry)
+	set $index = (fsm_logptr + 1) % $limit
+	while $index != fsm_logptr
+		if fsm_log[$index].kind != 0
+			printf " %c 0x%08x\n", fsm_log[$index].kind, fsm_log[$index].code
+		end
+		set $index = ($index + 1) % $limit
+	end
+end
