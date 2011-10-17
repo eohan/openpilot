@@ -66,6 +66,7 @@ int main()
 
 	/* either we failed to start the scheduler, or it has returned unexpectedly */
 	/* XXX might actually want to reboot here and hope the failure was transient? */
+	PIOS_DELAY_Init();
 	PIOS_LED_Off(LED1);
 	PIOS_LED_On(LED2);
 	for(;;) {
@@ -85,7 +86,7 @@ int main()
 void
 initTask(void *parameters)
 {
-		/* board driver init */
+	/* board driver init */
 	PIOS_Board_Init();
 
 	/* Initialize modules */
@@ -119,7 +120,28 @@ static int flag = 0;
 static void
 protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg)
 {
-	flag = 1;
+	static struct pios_i2c_slave_txn txns[2];
+	static uint8_t		status;
+
+	switch (event) {
+	case PIOS_I2C_SLAVE_TRANSMIT:
+//		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "send status\r\n");
+
+		status = 'g';
+		txns[0].buf = &status;
+		txns[0].len = 1;
+
+		PIOS_I2C_SLAVE_Transfer(0, txns, 1);
+		break;
+
+	case PIOS_I2C_SLAVE_TRANSMIT_DONE:
+		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "sent status\r\n");
+		break;
+
+	default:
+		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "event %d\r\n", event);
+		break;
+	}
 }
 
 static void
@@ -134,7 +156,9 @@ protocolTask(void *parameters)
 			flag = 0;
 		}
 		PIOS_LED_Toggle(LED1);
-		vTaskDelay(500 / portTICK_RATE_MS);
+		PIOS_LED_Toggle(LED3);
+
+		vTaskDelay(100 / portTICK_RATE_MS);
 	}
 }
 
@@ -144,7 +168,7 @@ failsafeTask(void *parameters)
 	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "failsafe task start\r\n");
 	for (;;) {
 		PIOS_LED_Toggle(LED2);
-		vTaskDelay(100 / portTICK_RATE_MS);
+		vTaskDelay(1000 / portTICK_RATE_MS);
 	}
 }
 
