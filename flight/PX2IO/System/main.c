@@ -17,7 +17,7 @@
 #include <pios.h>
 #include <pios_i2c_slave.h>
 
-#include "zalloc.h"
+#include "msheap/msheap.h"
 
 /* Task Priorities */
 #define INIT_TASK_PRIORITY		(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// max priority
@@ -152,7 +152,7 @@ void
 vApplicationTickHook(void)
 {
 	// XXX this might be a bit drastic later on
-	malloc_heap_check();
+	msheap_check();
 }
 
 /**
