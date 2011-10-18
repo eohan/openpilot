@@ -16,6 +16,7 @@
 
 #include <pios.h>
 #include <pios_i2c_slave.h>
+#include <protocol.h>
 
 #include "msheap/msheap.h"
 
@@ -121,20 +122,65 @@ static void
 protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg)
 {
 	static struct pios_i2c_slave_txn txns[2];
-	static uint8_t		msgbuf;
-	static uint8_t		status;
+	static uint8_t		status = 'g';
+	static struct iop_command	cmd;
+
+	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "event %d\r\n", event);
 
 	switch (event) {
 	case PIOS_I2C_SLAVE_TRANSMIT:
-		status = 'g';
 		txns[0].buf = &status;
 		txns[0].len = 1;
-
 		PIOS_I2C_SLAVE_Transfer(0, txns, 1);
+		status = 'g';
 		break;
 
 	case PIOS_I2C_SLAVE_TRANSMIT_DONE:
+		// XXX not seeing this when we should
 		break;
+
+	case PIOS_I2C_SLAVE_RECEIVE:
+		txns[0].buf = (void *)&cmd;
+		txns[0].len = sizeof(cmd);
+		PIOS_I2C_SLAVE_Transfer(0, txns, 1);
+		break;
+
+	case PIOS_I2C_SLAVE_RECEIVE_DONE:
+	{
+		uint32_t	actual_len;
+		int			i;
+
+		/* assume the worst */
+		status = 'e';
+
+		/* account for the header size in the transferred length */
+		if (arg < 4) {
+			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "short rx %d\r\n", arg);
+			break;
+		}
+		actual_len = arg - 4;
+
+		switch (cmd.opcode) {
+		case IOP_SET_PWM:
+			if (actual_len < sizeof(struct iop_set_pwm)) {
+				PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "short PWM set %d\r\n", arg);
+				break;
+			}
+			for (i = 0; i < IOP_PWM_CHANNELS; i++) {
+				PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "servo %d - %u\r\n", i, cmd.d.pwm.values[i]);
+				PIOS_Servo_Set(i, cmd.d.pwm.values[i]);
+			}
+			status = 'g';
+			break;
+
+		default:
+			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "unhandled opcode %d\r\n", cmd.opcode);
+			// XXX support other commands here
+			break;
+		}
+		break;
+	}
+
 
 	default:
 		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "unhandled event %d\r\n", event);
@@ -146,6 +192,7 @@ static void
 protocolTask(void *parameters)
 {
 	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "protocol task start\r\n");
+	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "message size %d\r\n", sizeof(struct iop_command));
 	PIOS_I2C_Slave_Open(0, protocol_callback);
 
 	for (;;) {
@@ -164,6 +211,7 @@ static void
 failsafeTask(void *parameters)
 {
 	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "failsafe task start\r\n");
+
 	for (;;) {
 		PIOS_LED_Toggle(LED2);
 		vTaskDelay(1000 / portTICK_RATE_MS);

@@ -95,6 +95,7 @@ struct fsm_context {
 	uint32_t		txn_remaining;
 	uint32_t		txn_data_offset;
 
+	uint32_t		transferred;
 };
 
 /**
@@ -277,6 +278,8 @@ PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, struct pios_i2c_slave_txn txn_list[], u
 	ctx->txn_list = txn_list;
 	ctx->txn_remaining = num_txns;
 	ctx->txn_data_offset = 0;
+
+	ctx->transferred = 0;
 }
 
 void
@@ -288,7 +291,8 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 	// fetch the most recent event
 	event = I2C_GetLastEvent(I2C1);
 
-	LOG('e', event);
+	if ((event) && (event != 0x00020000))
+		LOG('e', event);
 
 	// generate FSM events based on I2C events
 	switch (event) {
@@ -301,6 +305,7 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 		break;
 
 	case I2C_EVENT_SLAVE_BYTE_RECEIVED:
+	case I2C_EVENT_SLAVE_BYTE_RECEIVED | I2C_SR1_BTF:
 		fsm_event(ctx, BYTE_RECEIVED);
 		break;
 
@@ -419,14 +424,17 @@ go_receive_data(struct fsm_context *ctx)
 
 	// if we don't have a txn_list, nobody wants the data
 	if (ctx->txn_list == NULL) {
+		LOG('D', d);
 		return;
 	}
 
 	// capture the byte
 	ctx->txn_list->buf[ctx->txn_data_offset] = d;
+	ctx->transferred++;
+	LOG('r', d);
 
 	// increment the buffer pointer and check for overflow into the next buffer
-	if (++ctx->txn_data_offset > ctx->txn_list->len) {
+	if (++ctx->txn_data_offset >= ctx->txn_list->len) {
 
 		// check for another buffer
 		if (--ctx->txn_remaining > 0) {
@@ -456,7 +464,7 @@ static void
 go_receive_done(struct fsm_context *ctx)
 {
 	// Tell the client that the transmitter has stopped
-	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_RECEIVE_DONE, 0);
+	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_RECEIVE_DONE, ctx->transferred);
 
 	// kick along to the next state
 	fsm_event(ctx, AUTO);
@@ -486,6 +494,7 @@ go_send_data(struct fsm_context *ctx)
 
 	if (ctx->txn_list) {
 		d = ctx->txn_list->buf[ctx->txn_data_offset];
+		ctx->transferred++;
 
 		// increment the buffer pointer and check for wrap into the next buffer
 		if (++ctx->txn_data_offset >= ctx->txn_list->len) {
@@ -500,6 +509,9 @@ go_send_data(struct fsm_context *ctx)
 
 				// there are no more buffers
 				ctx->txn_list = NULL;
+
+				// tell the slave in case they want to set up another transfer
+				ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_BUFFER_EMPTY, 0);
 			}
 		}
 	}
@@ -516,7 +528,7 @@ static void
 go_send_done(struct fsm_context *ctx)
 {
 	// Tell the client that transmission has stopped
-	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_TRANSMIT_DONE, 0);
+	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_TRANSMIT_DONE, ctx->transferred);
 
 	// kick along to the next state
 	fsm_event(ctx, AUTO);
