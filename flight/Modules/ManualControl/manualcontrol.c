@@ -403,12 +403,15 @@ static bool okToArm(void)
 	SystemAlarmsData alarms;
 	SystemAlarmsGet(&alarms);
 
-
 	// Check each alarm
 	for (int i = 0; i < SYSTEMALARMS_ALARM_NUMELEM; i++)
 	{
 		if (alarms.Alarm[i] >= SYSTEMALARMS_ALARM_ERROR)
 		{	// found an alarm thats set
+#ifdef STM32F2XX
+			if (i == SYSTEMALARMS_ALARM_SDCARD)
+				continue;
+#endif
 			if (i == SYSTEMALARMS_ALARM_GPS || i == SYSTEMALARMS_ALARM_TELEMETRY)
 				continue;
 
@@ -440,8 +443,7 @@ static void setArmedIfChanged(uint8_t val) {
  */
 static void processArm(ManualControlCommandData * cmd, ManualControlSettingsData * settings)
 {
-
-	bool lowThrottle = cmd->Throttle <= 0;
+	bool lowThrottle = cmd->Throttle <= 0.f;
 
 	if (settings->Arming == MANUALCONTROLSETTINGS_ARMING_ALWAYSDISARMED) {
 		// In this configuration we always disarm
