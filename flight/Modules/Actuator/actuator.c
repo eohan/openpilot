@@ -216,8 +216,6 @@ static void actuatorTask(void* parameters)
 			continue;
 		}
 
-		AlarmsClear(SYSTEMALARMS_ALARM_ACTUATOR);
-
 		bool armed = flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED;
 		bool positiveThrottle = desired.Throttle >= 0.00;
 		bool spinWhileArmed = MotorsSpinWhileArmed == ACTUATORSETTINGS_MOTORSSPINWHILEARMED_TRUE;
@@ -353,6 +351,10 @@ static void actuatorTask(void* parameters)
 			command.NumFailedUpdates++;
 			ActuatorCommandSet(&command);
 			AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL);
+		} else {
+			// SUCESS, EVERYTHING IS ALRIGHT
+			// Only clear the alarm if we actually changed something (check is done inside alarms clear)
+			AlarmsClear(SYSTEMALARMS_ALARM_ACTUATOR);
 		}
 
 	}
