@@ -63,13 +63,17 @@
 #include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES		4096						// XXX re-evaluate
+#define STACK_SIZE_BYTES			4096						// XXX re-evaluate
+#define STACK_SIZE_SENSOR_BYTES		2048
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 
 // update/polling rates
-#define UPDATE_INTERVAL_TICKS		(5 / portTICK_RATE_MS)			// update every 5ms
-#define SENSOR_POLL_INTERVAL_TICKS	(5  / portTICK_RATE_MS)			// poll sensors every 5ms (we get heavy problems if faster!!! XXX FIXME TODO)
+// expressed in microseconds to evade float calculations in
+// in C-preprocessor
+// 5000 = 5 ms = 5000 us
+#define UPDATE_INTERVAL_TICKS		(5000 / (portTICK_RATE_MS*1000))			// update every 5ms
+#define SENSOR_POLL_INTERVAL_TICKS	(1800  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
 
 // allow 100% extra sample space to allow the attitude update to run a bit late
 #define MAX_SAMPLES_PER_UPDATE		(2 * (UPDATE_INTERVAL_TICKS / SENSOR_POLL_INTERVAL_TICKS))
@@ -108,6 +112,14 @@ int32_t PX2AttitudeTLStart()
 	xTaskCreate(attitudeTask, (signed char *)"Attitude", STACK_SIZE_BYTES/4, NULL, ATTITUDE_TASK_PRIORITY, &attitudeTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_ATTITUDE, attitudeTaskHandle);
 	PIOS_WDG_RegisterFlag(PIOS_WDG_ATTITUDE);
+	// Kick off the sensor task now that the sensors are ready
+	xTaskCreate(sensorTask, (signed char *)"AttitudeSensors", STACK_SIZE_SENSOR_BYTES / 4, NULL, SENSOR_TASK_PRIORITY, &sensorTaskHandle);
+	TaskMonitorAdd(TASKINFO_RUNNING_AHRSCOMMS, sensorTaskHandle);	// XXX really should get our own taskinfo
+
+	// The attitude task is running, clear the alarm that would complain otherwise
+	AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
+	// Pose as AHRS comms in the sensor task
+	AlarmsClear(SYSTEMALARMS_ALARM_AHRSCOMMS);
 
 	return 0;
 }
@@ -151,33 +163,24 @@ static void attitudeTask(void *parameters)
 
 	// Configure accel
 	PIOS_LIS331_Init();
-	PIOS_LIS331_SelectRate(LIS331_RATE_400Hz);
+	PIOS_LIS331_SelectRate(LIS331_RATE_1000Hz);
 	PIOS_LIS331_SetRange(LIS331_RANGE_8G);
 
 	// Configure gyro
 	PIOS_L3G4200_Init();
-	PIOS_L3G4200_SelectRate(L3G4200_RATE_400Hz);
+	PIOS_L3G4200_SelectRate(L3G4200_RATE_800Hz);
 	PIOS_L3G4200_SetRange(L3G4200_RANGE_2000dps);
 
 	// Configure magnetometer
 	PIOS_HMC5883_Init();
 	vTaskDelay(1);
 
-	// initialize observer
-//	float_vect3 accel_init = {0,0,9.81};
-//	float_vect3 mag_init = {0,0,0};
-//	attitude_observer_init(accel_init,mag_init);
 	attitude_tobi_laurens_init();
 
 	// Do one-time gyro/accel calibration here (?)
 	// Load saved bias values, etc (?)
 
-	// Kick off the sensor task now that the sensors are ready
-	xTaskCreate(sensorTask, (signed char *)"AttitudeSensors", configMINIMAL_STACK_SIZE / 4, NULL, SENSOR_TASK_PRIORITY, &sensorTaskHandle);
-	TaskMonitorAdd(TASKINFO_RUNNING_AHRSCOMMS, sensorTaskHandle);	// XXX really should get our own taskinfo
 
-	// The attitude task is running, clear the alarm that would complain otherwise
-	AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "Attitude task running\r\n");
 
@@ -221,6 +224,8 @@ static void sensorTask(void *parameters)
 	int ac;	// local copy to avoid aliasing rules
 	int gc;	// local copy to avoid aliasing rules
 	int mc;	// local copy to avoid aliasing rules
+
+	vTaskDelay(1);
 
 	portTickType lastSysTime;
 
@@ -294,7 +299,7 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 	// if we have no accel/gyro data, we've spent an entire polling period without running a single timer
 	// callout - that's worthy of an alarm
 	if (!sb->accel_count || !sb->gyro_count) {
-		//AlarmsSet(SYSTEMALARMS_ALARM_ATTITUDE, SYSTEMALARMS_ALARM_ERROR);
+		AlarmsSet(SYSTEMALARMS_ALARM_ATTITUDE, SYSTEMALARMS_ALARM_WARNING);
 		return;
 	}
 
@@ -303,7 +308,7 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		// XXX what to do here, if anything?
 	}
 
-#if 0
+#if 1
 	// Accumulate measurements (oversampling)
 	{
 		int32_t ax;
@@ -422,132 +427,6 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 
 	//attitude_observer_predict(1/200.0f);
 }
-
-//// Filter states
-//static float q[4] = {1,0,0,0};
-//static float gyro_correct_int[3] = {0,0,0};
-//
-//static void updateAttitude(AttitudeRawData * attitudeRaw)
-//{
-//	static portTickType lastSysTime = 0;
-//	static portTickType thisSysTime;
-//
-//	static float dT = 0;
-//
-//	thisSysTime = xTaskGetTickCount();
-//	if(thisSysTime > lastSysTime) // reuse dt in case of wraparound
-//		dT = (thisSysTime - lastSysTime) / portTICK_RATE_MS / 1000.0f;
-//	lastSysTime = thisSysTime;
-//
-//	// Bad practice to assume structure order, but saves memory
-//
-//	// TODO FIXME scaling to SI units is here
-//	float gyro[3];
-//	gyro[0] = attitudeRaw->gyros[0] * 0.0610351562f /* = gyro / (32768.0f * 2000.0f) */ + gyro_correct_int[0];
-//	gyro[1] = attitudeRaw->gyros[1] * 0.0610351562f /* = gyro / (32768.0f * 2000.0f) */ + gyro_correct_int[1];
-//	gyro[2] = attitudeRaw->gyros[2] * 0.0610351562f /* = gyro / (32768.0f * 2000.0f) */ + gyro_correct_int[2];
-//	gyro_correct_int[2] -= yawBiasRate * gyro[2];
-//
-//	{
-//		float accels[3];
-//
-//		accels[0] = attitudeRaw->accels[ATTITUDERAW_ACCELS_X] * 0.00239501953f; // = accel / (32768.0f * 8.0f * 9.81f);
-//		accels[1] = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.00239501953f; // = accel / (32768.0f * 8.0f * 9.81f);
-//		accels[2] = attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] * 0.00239501953f; // = accel / (32768.0f * 8.0f * 9.81f);
-//		float grot[3];
-//		float accel_err[3];
-//
-//		// Rotate gravity to body frame and cross with accels
-//		grot[0] = -(2 * (q[1] * q[3] - q[0] * q[2]));
-//		grot[1] = -(2 * (q[2] * q[3] + q[0] * q[1]));
-//		grot[2] = -(q[0] * q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]);
-//		CrossProduct((const float *) accels, (const float *) grot, accel_err);
-//
-//		// Account for accel magnitude
-//		float accel_mag = sqrt(accels[0]*accels[0] + accels[1]*accels[1] + accels[2]*accels[2]);
-//		accel_err[0] /= accel_mag;
-//		accel_err[1] /= accel_mag;
-//		accel_err[2] /= accel_mag;
-//
-//		// Accumulate integral of error.  Scale here so that units are (rad/s) but Ki has units of s
-//		gyro_correct_int[0] += accel_err[0] * accelKi;
-//		gyro_correct_int[1] += accel_err[1] * accelKi;
-//		//gyro_correct_int[2] += accel_err[2] * settings.AccelKI * dT;
-//
-//		// Correct rates based on error, integral component dealt with in updateSensors
-//		gyro[0] += accel_err[0] * accelKp / dT;
-//		gyro[1] += accel_err[1] * accelKp / dT;
-//		gyro[2] += accel_err[2] * accelKp / dT;
-//	}
-//
-//	{ // scoping variables to save memory
-//		// Work out time derivative from INSAlgo writeup
-//		// Also accounts for the fact that gyros are in deg/s
-//		float qdot[4];
-//		qdot[0] = (-q[1] * gyro[0] - q[2] * gyro[1] - q[3] * gyro[2]) * dT * M_PI / 180.0f / 2.0f;
-//		qdot[1] = (q[0] * gyro[0] - q[3] * gyro[1] + q[2] * gyro[2]) * dT * M_PI / 180.0f / 2.0f;
-//		qdot[2] = (q[3] * gyro[0] + q[0] * gyro[1] - q[1] * gyro[2]) * dT * M_PI / 180.0f / 2.0f;
-//		qdot[3] = (-q[2] * gyro[0] + q[1] * gyro[1] + q[0] * gyro[2]) * dT * M_PI / 180.0f / 2.0f;
-//
-//		// Take a time step
-//		q[0] = q[0] + qdot[0];
-//		q[1] = q[1] + qdot[1];
-//		q[2] = q[2] + qdot[2];
-//		q[3] = q[3] + qdot[3];
-//	}
-//
-//	// Renomalize
-//	float qmag = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
-//	q[0] = q[0] / qmag;
-//	q[1] = q[1] / qmag;
-//	q[2] = q[2] / qmag;
-//	q[3] = q[3] / qmag;
-//
-//	AttitudeActualData attitudeActual;
-//	AttitudeActualGet(&attitudeActual);
-//
-//	quat_copy(q, &attitudeActual.q1);
-//
-//	// Convert into eueler degrees (makes assumptions about RPY order)
-//	Quaternion2RPY(&attitudeActual.q1,&attitudeActual.Roll);
-//
-//	AttitudeActualSet(&attitudeActual);
-//}
-
-//static void settingsUpdatedCb(UAVObjEvent * objEv) {
-//	AttitudeSettingsData attitudeSettings;
-//	AttitudeSettingsGet(&attitudeSettings);
-//
-//
-//	accelKp = attitudeSettings.AccelKp;
-//	accelKi = attitudeSettings.AccelKi;
-//	yawBiasRate = attitudeSettings.YawBiasRate;
-//	gyroGain = attitudeSettings.GyroGain;
-//
-//	zero_during_arming = attitudeSettings.ZeroDuringArming == ATTITUDESETTINGS_ZERODURINGARMING_TRUE;
-//
-//	accelbias[0] = attitudeSettings.AccelBias[ATTITUDESETTINGS_ACCELBIAS_X];
-//	accelbias[1] = attitudeSettings.AccelBias[ATTITUDESETTINGS_ACCELBIAS_Y];
-//	accelbias[2] = attitudeSettings.AccelBias[ATTITUDESETTINGS_ACCELBIAS_Z];
-//
-//	// Indicates not to expend cycles on rotation
-//	if(attitudeSettings.BoardRotation[0] == 0 && attitudeSettings.BoardRotation[1] == 0 &&
-//	   attitudeSettings.BoardRotation[2] == 0) {
-//		rotate = 0;
-//
-//		// Shouldn't be used but to be safe
-//		float rotationQuat[4] = {1,0,0,0};
-//		Quaternion2R(rotationQuat, R);
-//	} else {
-//		float rotationQuat[4];
-//		const float rpy[3] = {attitudeSettings.BoardRotation[ATTITUDESETTINGS_BOARDROTATION_ROLL],
-//			attitudeSettings.BoardRotation[ATTITUDESETTINGS_BOARDROTATION_PITCH],
-//			attitudeSettings.BoardRotation[ATTITUDESETTINGS_BOARDROTATION_YAW]};
-//		RPY2Quaternion(rpy, rotationQuat);
-//		Quaternion2R(rotationQuat, R);
-//		rotate = 1;
-//	}
-//}
 
 
 /**
