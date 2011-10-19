@@ -63,8 +63,8 @@
 #include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES			6196						// XXX re-evaluate
-#define STACK_SIZE_SENSOR_BYTES		4048
+#define STACK_SIZE_BYTES			4096						// XXX re-evaluate
+#define STACK_SIZE_SENSOR_BYTES		2048
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 
@@ -73,7 +73,7 @@
 // in C-preprocessor
 // 5000 = 5 ms = 5000 us
 #define UPDATE_INTERVAL_TICKS		(5000 / (portTICK_RATE_MS*1000))			// update every 5ms
-#define SENSOR_POLL_INTERVAL_TICKS	(1250  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+#define SENSOR_POLL_INTERVAL_TICKS	(5000  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
 
 // allow 100% extra sample space to allow the attitude update to run a bit late
 #define MAX_SAMPLES_PER_UPDATE		(2 * (UPDATE_INTERVAL_TICKS / SENSOR_POLL_INTERVAL_TICKS))

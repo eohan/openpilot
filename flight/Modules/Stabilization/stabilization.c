@@ -38,12 +38,13 @@
 #include "ratedesired.h"
 #include "stabilizationdesired.h"
 #include "attitudeactual.h"
-#ifndef STM32F2XX
-		// Attitude should not be filtered by a controller
-		// instead, the attitude filter should provide
-		// speed estimates
+//#ifndef STM32F2XX
+//		// Attitude should not be filtered by a controller
+//		// instead, the attitude filter should provide
+//		// speed estimates
+//#include "attituderaw.h"
+//#endif
 #include "attituderaw.h"
-#endif
 #include "flightstatus.h"
 #include "manualcontrol.h" // Just to get a macro
 #include "CoordinateConversions.h"
@@ -128,14 +129,14 @@ int32_t StabilizationInitialize()
 	queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
 
 	// Listen for updates.
-#ifdef STM32F2XX
+//#ifdef STM32F2XX
 	// Attitude should not be filtered by a controller
 	// instead, the attitude filter should provide
 	// speed estimates
-	AttitudeActualConnectQueue(queue);
-#else
+	//AttitudeActualConnectQueue(queue);
+//#else
 	AttitudeRawConnectQueue(queue);
-#endif
+//#endif
 
 	StabilizationSettingsConnectCallback(SettingsUpdatedCb);
 	SettingsUpdatedCb(StabilizationSettingsHandle());
