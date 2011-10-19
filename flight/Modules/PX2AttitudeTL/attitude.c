@@ -63,8 +63,8 @@
 #include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES			5196						// XXX re-evaluate
-#define STACK_SIZE_SENSOR_BYTES		2048
+#define STACK_SIZE_BYTES			4196						// XXX re-evaluate
+#define STACK_SIZE_SENSOR_BYTES		4048
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 
@@ -329,9 +329,9 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		static int32_t axs = 1;
 		static int32_t ays = 1;
 		static int32_t azs = 1;
-		axs = 0.92f*axs+0.08f*(ax / sb->gyro_count);
-		ays = 0.92f*ays+0.08f*(ay / sb->gyro_count);
-		azs = 0.92f*azs+0.08f*(az / sb->gyro_count);
+		axs = 0.95f*axs+0.05f*(ax / sb->gyro_count);
+		ays = 0.95f*ays+0.05f*(ay / sb->gyro_count);
+		azs = 0.95f*azs+0.05f*(az / sb->gyro_count);
 
 //		for (int i = 0; i < sb->gyro_count; ++i)
 //		{
