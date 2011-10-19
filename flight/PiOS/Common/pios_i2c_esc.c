@@ -36,7 +36,7 @@
 
 /* HMC5843 Addresses */
 #define MK_I2C_ADDR			        0x29
-#define ASTEC4_I2C_ADDR                         0x02
+#define ASTEC4_I2C_ADDR                         0x01
 
 bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
 
