@@ -63,7 +63,7 @@
 #include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES			5196						// XXX re-evaluate
+#define STACK_SIZE_BYTES			6196						// XXX re-evaluate
 #define STACK_SIZE_SENSOR_BYTES		4048
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
