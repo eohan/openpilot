@@ -38,12 +38,14 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     flightOutputPath = QDir( outputpath + QString("flight") );
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
 
-    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
+//    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
+        flightSettingsIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinklisttemplate.h") );
+        flightSettingsCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinklisttemplate.c") );
     flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinktemplate.h") );
     //flightInitTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectsinittemplate.c") );
     //flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("Makefiletemplate.inc") );
 
-    if ( flightCodeTemplate.isNull() || flightIncludeTemplate.isNull()) {
+    if ( flightSettingsCodeTemplate.isNull() || flightSettingsIncludeTemplate.isNull() || flightIncludeTemplate.isNull()) {
             cerr << "Error: Could not open flight template files." << endl;
             return false;
         }
@@ -93,7 +95,8 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
 
     // Prepare output strings
     QString outInclude = flightIncludeTemplate;
-    QString outCode = flightCodeTemplate;
+    QString outSettingsInclude = flightSettingsIncludeTemplate;
+    QString outCode = flightSettingsCodeTemplate;
 
     // Replace common tags
     replaceCommonTags(outInclude, info);

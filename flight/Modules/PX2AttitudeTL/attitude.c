@@ -73,7 +73,7 @@
 // in C-preprocessor
 // 5000 = 5 ms = 5000 us
 #define UPDATE_INTERVAL_TICKS		(5000 / (portTICK_RATE_MS*1000))			// update every 5ms
-#define SENSOR_POLL_INTERVAL_TICKS	(1250  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+#define SENSOR_POLL_INTERVAL_TICKS	(5000  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
 
 // allow 100% extra sample space to allow the attitude update to run a bit late
 #define MAX_SAMPLES_PER_UPDATE		(2 * (UPDATE_INTERVAL_TICKS / SENSOR_POLL_INTERVAL_TICKS))
