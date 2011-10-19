@@ -175,7 +175,7 @@ extern uint32_t pios_i2c_external_adapter_id;
 //-------------------------
 #define PIOS_COM_MAX_DEVS               (PIOS_USART_MAX_DEVS + 1)	// +1 for USB
 
-#define PIOS_COM_TELEM_BAUDRATE         57600
+#define PIOS_COM_TELEM_BAUDRATE         115200
 extern uint32_t pios_com_telem_rf_id;
 #define PIOS_COM_TELEM_RF               (pios_com_telem_rf_id)
 

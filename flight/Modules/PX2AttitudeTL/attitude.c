@@ -63,7 +63,7 @@
 #include "mavlink_debug.h"
 
 // Private constants
-#define STACK_SIZE_BYTES			4096						// XXX re-evaluate
+#define STACK_SIZE_BYTES			5196						// XXX re-evaluate
 #define STACK_SIZE_SENSOR_BYTES		2048
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
@@ -301,6 +301,8 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 	if (!sb->accel_count || !sb->gyro_count) {
 		AlarmsSet(SYSTEMALARMS_ALARM_ATTITUDE, SYSTEMALARMS_ALARM_WARNING);
 		return;
+	} else {
+		AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
 	}
 
 
@@ -323,9 +325,29 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 			ay += sb->gyro[i].y;
 			az += sb->gyro[i].z;
 		}
+#if 1
+		static int32_t axs = 1;
+		static int32_t ays = 1;
+		static int32_t azs = 1;
+		axs = 0.92f*axs+0.08f*(ax / sb->gyro_count);
+		ays = 0.92f*ays+0.08f*(ay / sb->gyro_count);
+		azs = 0.92f*azs+0.08f*(az / sb->gyro_count);
+
+//		for (int i = 0; i < sb->gyro_count; ++i)
+//		{
+//			axs = 0.95f*axs+0.05f*sb->gyro[i].x;
+//			ays = 0.95f*ays+0.05f*sb->gyro[i].y;
+//			azs = 0.95f*azs+0.05f*sb->gyro[i].z;
+//		}
+
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = axs;
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ays;
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = azs;
+#else
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = ax / sb->gyro_count;
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ay / sb->gyro_count;
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = az / sb->gyro_count;
+#endif
 
 		ax = ay = az = 0;
 		for (int i = 0; i < sb->accel_count; i++) {
