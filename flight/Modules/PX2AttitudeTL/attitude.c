@@ -442,9 +442,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	attitudeActual.Pitch = attitudeMatrix.Pitch * 57.2957795f;
 	attitudeActual.Yaw   = attitudeMatrix.Yaw* 57.2957795f;
 
-	//attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
-	//attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
-	//attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
+	attitudeActual.RollRate  = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_X] * 57.2957795f;
+	attitudeActual.PitchRate = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Y] * 57.2957795f;
+	attitudeActual.YawRate   = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Z] * 57.2957795f;
 
 	AttitudeActualSet(&attitudeActual);
 
