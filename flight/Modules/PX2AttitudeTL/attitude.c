@@ -333,6 +333,8 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 	// exchange sample buffers
 	activeSample = other_sample;
 
+	vTaskDelay(1);	//TODO XXX FIXME: why does the mag update only every 2 sec if this is not here - there has to be an sync problem with the buffer
+
 	// and now address the fresh sample buffer, containing the last polling period's data
 	other_sample = activeSample ^ 1;
 	sb = &sampleBuffer[other_sample];
