@@ -62,6 +62,9 @@
 #include "pios_i2c_esc.h"
 #include "mavlink_debug.h"
 
+// Measurement range setup
+#define GYRO_RANGE_500DPS
+
 // Private constants
 #define STACK_SIZE_BYTES			4096						// XXX re-evaluate
 #define STACK_SIZE_SENSOR_BYTES		1024
@@ -177,7 +180,11 @@ static void attitudeTask(void *parameters)
 	// Configure gyro
 	PIOS_L3G4200_Init();
 	PIOS_L3G4200_SelectRate(L3G4200_RATE_800Hz);
+#ifdef GYRO_RANGE_500DPS
+	PIOS_L3G4200_SetRange(L3G4200_RANGE_500dps);
+#else
 	PIOS_L3G4200_SetRange(L3G4200_RANGE_2000dps);
+#endif
 
 	// Configure magnetometer
 	PIOS_HMC5883_Init();
@@ -359,30 +366,35 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 #if 1
 	// Accumulate measurements (oversampling)
 	{
-		int32_t ax;
-		int32_t ay;
-		int32_t az;
-
-		ax = ay = az = 0;
-		for (int i = 0; i < sb->gyro_count; i++) {
-			ax += sb->gyro[i].x;
-			ay += sb->gyro[i].y;
-			az += sb->gyro[i].z;
-		}
+//		int32_t ax;
+//		int32_t ay;
+//		int32_t az;
+//
+//		ax = ay = az = 0;
+//		for (int i = 0; i < sb->gyro_count; i++) {
+//			ax += sb->gyro[i].x;
+//			ay += sb->gyro[i].y;
+//			az += sb->gyro[i].z;
+//		}
 #if 1
+		//		axs = 0.93f*axs+0.07f*(ax / sb->gyro_count);
+		//		ays = 0.93f*ays+0.07f*(ay / sb->gyro_count);
+		//		azs = 0.93f*azs+0.07f*(az / sb->gyro_count);
+
+
 		static int32_t axs = 1;
 		static int32_t ays = 1;
 		static int32_t azs = 1;
-		axs = 0.93f*axs+0.07f*(ax / sb->gyro_count);
-		ays = 0.93f*ays+0.07f*(ay / sb->gyro_count);
-		azs = 0.93f*azs+0.07f*(az / sb->gyro_count);
 
-//		for (int i = 0; i < sb->gyro_count; ++i)
-//		{
-//			axs = 0.95f*axs+0.05f*sb->gyro[i].x;
-//			ays = 0.95f*ays+0.05f*sb->gyro[i].y;
-//			azs = 0.95f*azs+0.05f*sb->gyro[i].z;
-//		}
+		// Currently 15 Hz cut-off / 0.09
+		const float t = 0.09f;//0.25f; //0.36
+
+		for (int i = 0; i < sb->gyro_count; ++i)
+		{
+			axs = (1.0f-t)*axs+t*sb->gyro[i].x;
+			ays = (1.0f-t)*ays+t*sb->gyro[i].y;
+			azs = (1.0f-t)*azs+t*sb->gyro[i].z;
+		}
 
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = axs;
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ays;
@@ -393,25 +405,56 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = az / sb->gyro_count;
 #endif
 
-		ax = ay = az = 0;
-		for (int i = 0; i < sb->accel_count; i++) {
-			ax += sb->accel[i].x;
-			ay += sb->accel[i].y;
-			az += sb->accel[i].z;
-		}
-		attitudeRaw->accels[ATTITUDERAW_ACCELS_X] = ax / sb->accel_count;
-		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = ay / sb->accel_count;
-		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = az / sb->accel_count;
+//		ax = ay = az = 0;
+//		for (int i = 0; i < sb->accel_count; i++) {
+//			ax += sb->accel[i].x;
+//			ay += sb->accel[i].y;
+//			az += sb->accel[i].z;
+//		}
+//		attitudeRaw->accels[ATTITUDERAW_ACCELS_X] = ax / sb->accel_count;
+//		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = ay / sb->accel_count;
+//		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = az / sb->accel_count;
 
-		ax = ay = az = 0;
-		for (int i = 0; i < sb->mag_count; i++) {
-			ax += sb->mag[i].x;
-			ay += sb->mag[i].y;
-			az += sb->mag[i].z;
+		static int32_t accxs = 1;
+		static int32_t accys = 1;
+		static int32_t acczs = 1;
+
+		for (int i = 0; i < sb->accel_count; ++i)
+		{
+			accxs = (1.0f-t)*accxs+t*sb->accel[i].x;
+			accys = (1.0f-t)*accys+t*sb->accel[i].y;
+			acczs = (1.0f-t)*acczs+t*sb->accel[i].z;
 		}
-		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = ax / sb->mag_count;
-		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = ay / sb->mag_count;
-		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = az / sb->mag_count;
+
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_X] = accxs;
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = accys;
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = acczs;
+
+//
+//		ax = ay = az = 0;
+//		for (int i = 0; i < sb->mag_count; i++) {
+//			ax += sb->mag[i].x;
+//			ay += sb->mag[i].y;
+//			az += sb->mag[i].z;
+//		}
+//		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = ax / sb->mag_count;
+//		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = ay / sb->mag_count;
+//		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = az / sb->mag_count;
+
+		static int32_t magxs = 1;
+		static int32_t magys = 1;
+		static int32_t magzs = 1;
+
+		for (int i = 0; i < sb->mag_count; ++i)
+		{
+			magxs = (1.0f-t)*magxs+t*sb->mag[i].x;
+			magys = (1.0f-t)*magys+t*sb->mag[i].y;
+			magzs = (1.0f-t)*magzs+t*sb->mag[i].z;
+		}
+
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magxs;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magys;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magzs;
 	}
 #else
 	attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = sb->gyro->x;
@@ -440,11 +483,16 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 {
 	//all measurement vectors need to be turn into the body frame
 	//z negative; x and y exchanged.
-
 	float_vect3 gyro; //rad/s
+#ifdef GYRO_RANGE_500DPS
+	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00026631611 /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00026631611 /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00026631611 /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+#else
 	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+#endif
 
 	float_vect3 accel; //length 1 = / 4096
 	accel.x = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
