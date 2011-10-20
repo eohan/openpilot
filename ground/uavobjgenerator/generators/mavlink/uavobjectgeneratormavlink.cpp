@@ -96,11 +96,11 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     // Prepare output strings
     QString outInclude = flightIncludeTemplate;
     QString outSettingsInclude = flightSettingsIncludeTemplate;
-    QString outCode = flightSettingsCodeTemplate;
+    QString outSettingsCode = flightSettingsCodeTemplate;
 
     // Replace common tags
     replaceCommonTags(outInclude, info);
-    replaceCommonTags(outCode, info);
+    replaceCommonTags(outSettingsCode, info);
 
     // Replace the $(DATAFIELDS) tag
     QString type;
@@ -238,7 +238,7 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
             }
         }
     }
-    outCode.replace(QString("$(INITFIELDS)"), initfields);
+    outSettingsCode.replace(QString("$(INITFIELDS)"), initfields);
 
     // Replace the $(SETGETFIELDS) tag
     QString setgetfields;
@@ -306,7 +306,7 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
             }
         }
     }
-    outCode.replace(QString("$(SETGETFIELDS)"), setgetfields);
+    outSettingsCode.replace(QString("$(SETGETFIELDS)"), setgetfields);
 
     // Replace the $(SETGETFIELDSEXTERN) tag
      QString setgetfieldsextern;
@@ -331,7 +331,7 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
      outInclude.replace(QString("$(SETGETFIELDSEXTERN)"), setgetfieldsextern);
 
     // Write the flight code
-    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".c", outCode );
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".c", outSettingsCode );
     if (!res) {
         cout << "Error: Could not write flight code files" << endl;
         return false;
