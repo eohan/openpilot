@@ -64,16 +64,20 @@
 
 // Private constants
 #define STACK_SIZE_BYTES			4096						// XXX re-evaluate
-#define STACK_SIZE_SENSOR_BYTES		2048
+#define STACK_SIZE_SENSOR_BYTES		1024
+#define STACK_SIZE_MAG_BYTES		512
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
+#define MAG_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 2)	    // must be higher than attitude_task, but lower than sensors
 
 // update/polling rates
 // expressed in microseconds to evade float calculations in
 // in C-preprocessor
 // 5000 = 5 ms = 5000 us
-#define UPDATE_INTERVAL_TICKS		(5000 / (portTICK_RATE_MS*1000))			// update every 5ms
-#define SENSOR_POLL_INTERVAL_TICKS	(5000  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+#define UPDATE_INTERVAL_TICKS		(5 / portTICK_RATE_MS)		  // update every 5ms / 200 Hz
+#define SENSOR_POLL_INTERVAL_TICKS	(1 / portTICK_RATE_MS)	      // poll sensors every 1ms / 1000 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+#define MAG_POLL_INTERVAL_TICKS	(5 / portTICK_RATE_MS)			  // poll sensors every 5ms / 200 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+
 
 // allow 100% extra sample space to allow the attitude update to run a bit late
 #define MAX_SAMPLES_PER_UPDATE		(2 * (UPDATE_INTERVAL_TICKS / SENSOR_POLL_INTERVAL_TICKS))
@@ -91,6 +95,7 @@ struct sample_buffer {
 // Private variables
 static xTaskHandle attitudeTaskHandle;
 static xTaskHandle sensorTaskHandle;
+static xTaskHandle magTaskHandle;
 static volatile struct sample_buffer sampleBuffer[2];
 static struct pios_hmc5883_data savedMagData;
 static volatile int activeSample = 0;
@@ -102,6 +107,7 @@ static volatile int activeSample = 0;
 // Private functions
 static void attitudeTask(void *parameters);
 static void sensorTask(void *parameters);
+static void magTask(void *parameters);
 static void updateSensors(AttitudeRawData *attitudeRaw);
 static void updateAttitude(AttitudeRawData *attitudeRaw);
 //static void settingsUpdatedCb(UAVObjEvent * objEv);
@@ -113,8 +119,10 @@ int32_t PX2AttitudeTLStart()
 	TaskMonitorAdd(TASKINFO_RUNNING_ATTITUDE, attitudeTaskHandle);
 	PIOS_WDG_RegisterFlag(PIOS_WDG_ATTITUDE);
 	// Kick off the sensor task now that the sensors are ready
-	xTaskCreate(sensorTask, (signed char *)"AttitudeSensors", STACK_SIZE_SENSOR_BYTES / 4, NULL, SENSOR_TASK_PRIORITY, &sensorTaskHandle);
+	xTaskCreate(sensorTask, (signed char *)"AttSPISensors", STACK_SIZE_SENSOR_BYTES / 4, NULL, SENSOR_TASK_PRIORITY, &sensorTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_AHRSCOMMS, sensorTaskHandle);	// XXX really should get our own taskinfo
+
+	xTaskCreate(magTask, (signed char *)"AttMagSensor", STACK_SIZE_MAG_BYTES / 4, NULL, MAG_TASK_PRIORITY, &magTaskHandle);
 
 	// The attitude task is running, clear the alarm that would complain otherwise
 	AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
@@ -173,6 +181,7 @@ static void attitudeTask(void *parameters)
 
 	// Configure magnetometer
 	PIOS_HMC5883_Init();
+
 	vTaskDelay(1);
 
 	attitude_tobi_laurens_init();
@@ -223,7 +232,6 @@ static void sensorTask(void *parameters)
 	volatile struct sample_buffer *sb;
 	int ac;	// local copy to avoid aliasing rules
 	int gc;	// local copy to avoid aliasing rules
-	int mc;	// local copy to avoid aliasing rules
 
 	vTaskDelay(1);
 
@@ -232,9 +240,9 @@ static void sensorTask(void *parameters)
 	lastSysTime = xTaskGetTickCount();
 	for (;;) {
 		sb = &sampleBuffer[activeSample];
+
 		ac = sb->accel_count;	// local copy to avoid aliasing rules
 		gc = sb->gyro_count;	// local copy to avoid aliasing rules
-		mc = sb->mag_count; 	// local copy to avoid aliasing rules
 
 		// accumulate accel reading if available
 		if (ac < MAX_SAMPLES_PER_UPDATE) {
@@ -250,6 +258,42 @@ static void sensorTask(void *parameters)
 			}
 		}
 
+		// Pause until we are ready to poll again.
+		//
+		// Don't waste time trying to adjust the deadline based on the
+		// difference between scheduled time and actual time - if we have been
+		// delayed it's because the system already can't keep up, trying to run
+		// sooner isn't going to help.
+		vTaskDelayUntil(&lastSysTime, SENSOR_POLL_INTERVAL_TICKS);
+	}
+}
+
+/**
+ * Poll the accelerometer and gyro sensors for their most recent readings.
+ *
+ * For this to work well, the FreeRTOS timers should be running at maximum
+ * priority, and the tick rate should be sufficiently high that this will be
+ * as fast as or faster than the sensor sample rates.
+ *
+ * For PX2 this is nominally the case (1kHz tick rate, timers at max priority).
+ * Alternatively, this would need to hijack a hardware timer and run at
+ * interrupt context.
+ */
+static void magTask(void *parameters)
+{
+	volatile struct sample_buffer *sb;
+	int mc;	// local copy to avoid aliasing rules
+
+
+	vTaskDelay(1);
+
+	portTickType lastSysTime;
+
+	lastSysTime = xTaskGetTickCount();
+	for (;;) {
+		sb = &sampleBuffer[activeSample];
+		mc = sb->mag_count; 	// local copy to avoid aliasing rules
+
 		// accumulate mag reading if available
 		if ((mc < MAX_SAMPLES_PER_UPDATE) && PIOS_HMC5883_NewDataAvailable()) {
 			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&sb->mag[mc]);
@@ -262,7 +306,7 @@ static void sensorTask(void *parameters)
 		// difference between scheduled time and actual time - if we have been
 		// delayed it's because the system already can't keep up, trying to run
 		// sooner isn't going to help.
-		vTaskDelayUntil(&lastSysTime, SENSOR_POLL_INTERVAL_TICKS);
+		vTaskDelayUntil(&lastSysTime, MAG_POLL_INTERVAL_TICKS);
 	}
 }
 
@@ -329,9 +373,9 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		static int32_t axs = 1;
 		static int32_t ays = 1;
 		static int32_t azs = 1;
-		axs = 0.95f*axs+0.05f*(ax / sb->gyro_count);
-		ays = 0.95f*ays+0.05f*(ay / sb->gyro_count);
-		azs = 0.95f*azs+0.05f*(az / sb->gyro_count);
+		axs = 0.93f*axs+0.07f*(ax / sb->gyro_count);
+		ays = 0.93f*ays+0.07f*(ay / sb->gyro_count);
+		azs = 0.93f*azs+0.07f*(az / sb->gyro_count);
 
 //		for (int i = 0; i < sb->gyro_count; ++i)
 //		{
