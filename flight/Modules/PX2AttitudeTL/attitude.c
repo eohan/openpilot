@@ -69,9 +69,9 @@
 #define STACK_SIZE_BYTES			4096						// XXX re-evaluate
 #define STACK_SIZE_SENSOR_BYTES		1024
 #define STACK_SIZE_MAG_BYTES		512
-#define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
+#define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 2)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
-#define MAG_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 2)	    // must be higher than attitude_task, but lower than sensors
+#define MAG_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	    // must be higher than attitude_task
 
 // update/polling rates
 // expressed in microseconds to evade float calculations in
@@ -126,6 +126,7 @@ int32_t PX2AttitudeTLStart()
 	TaskMonitorAdd(TASKINFO_RUNNING_AHRSCOMMS, sensorTaskHandle);	// XXX really should get our own taskinfo
 
 	xTaskCreate(magTask, (signed char *)"AttMagSensor", STACK_SIZE_MAG_BYTES / 4, NULL, MAG_TASK_PRIORITY, &magTaskHandle);
+	// FIXME ADD TASK MONITOR
 
 	// The attitude task is running, clear the alarm that would complain otherwise
 	AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
@@ -157,7 +158,7 @@ int32_t PX2AttitudeTLInitialize(void)
 
 	AttitudeMatrixData attitudeMatrix;
 	AttitudeMatrixGet(&attitudeMatrix);
-//TODO make identity matrix
+//FIXME TODO make identity matrix
 
 	AttitudeMatrixSet(&attitudeMatrix);
 	return 0;
@@ -333,7 +334,7 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 	// exchange sample buffers
 	activeSample = other_sample;
 
-	vTaskDelay(1);	//TODO XXX FIXME: why does the mag update only every 2 sec if this is not here - there has to be an sync problem with the buffer
+	//vTaskDelay(1);	//TODO XXX FIXME: why does the mag update only every 2 sec if this is not here - there has to be an sync problem with the buffer
 
 	// and now address the fresh sample buffer, containing the last polling period's data
 	other_sample = activeSample ^ 1;
