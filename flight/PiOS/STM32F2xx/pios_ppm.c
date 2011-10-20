@@ -51,9 +51,11 @@
 
 /* Provide a RCVR driver */
 static int32_t PIOS_PPM_Get(uint32_t rcvr_id, uint8_t channel);
+static int32_t PIOS_PPM_Get_RSSI(uint32_t rcvr_id);
 
 const struct pios_rcvr_driver pios_ppm_rcvr_driver = {
 	.read = PIOS_PPM_Get,
+	.rssi = PIOS_PPM_Get_RSSI
 };
 
 /* Local Variables */
@@ -65,6 +67,7 @@ static uint32_t CapturedValue;
 static uint32_t CaptureValue[PIOS_PPM_NUM_INPUTS];
 static uint32_t CapCounter[PIOS_PPM_NUM_INPUTS];
 static uint16_t TimerCounter;
+static uint8_t RSSI = 0;
 
 static uint8_t SupervisorState = 0;
 static uint32_t CapCounterPrev[PIOS_PPM_NUM_INPUTS];
@@ -99,6 +102,10 @@ void PIOS_PPM_Init(void)
 
 	/* register the supervisor timer callout at 25Hz */
 	ppmSupvTimer = xTimerCreate((signed char *)"ppmSupv", configTICK_RATE_HZ / 25, pdTRUE, NULL, ppmSupvCallback);
+	if(xTimerStart(ppmSupvTimer, 0 ) != pdPASS)
+	{
+		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "\nPPM TIMER START FAILED!\r\n", (ppmSupvTimer == NULL));
+	}
 }
 
 /**
@@ -114,6 +121,17 @@ static int32_t PIOS_PPM_Get(uint32_t rcvr_id, uint8_t channel)
 		return -1;
 	}
 	return CaptureValue[channel];
+}
+
+/**
+* Get the receive signal strength
+* \param[in] Channel Number of the channel desired
+* \output 0 No signal
+* \output >0-255 signal quality
+*/
+static int32_t PIOS_PPM_Get_RSSI(uint32_t rcvr_id)
+{
+	return RSSI;
 }
 
 /**
@@ -182,8 +200,8 @@ static void
 ppmSupvCallback(xTimerHandle xTimer)
 {
 	for (;;) {
-		/* we should receive a PPM frame at least once every 100ms */
-		vTaskDelay(100 / portTICK_RATE_MS);
+		/* we should receive a PPM frame at least once every 80 ms (detection takes up to 160 ms) */
+		vTaskDelay(80 / portTICK_RATE_MS);
 
 		/* Simple state machine */
 		if (SupervisorState == 0) {
@@ -196,10 +214,21 @@ ppmSupvCallback(xTimerHandle xTimer)
 			SupervisorState = 1;
 		} else {
 			/* See what channels have been updated */
+			bool signalLostCount = 0; // If no channel was triggered, we lost signal
 			for (int32_t i = 0; i < PIOS_PPM_NUM_INPUTS; i++) {
 				if (CapCounter[i] == CapCounterPrev[i]) {
 					CaptureValue[i] = 0;
+					signalLostCount++;
 				}
+			}
+
+			// If more than 33% of the configured channels could not be captured
+			// assume an error state. This allows to use 4 channel systems
+			// to be used with 8 configured input channels
+			if (signalLostCount > PIOS_PPM_NUM_INPUTS/3) {
+				RSSI = 0;
+			} else {
+				RSSI = 255;
 			}
 
 			/* Move to next state */

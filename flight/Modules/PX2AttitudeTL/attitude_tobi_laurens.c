@@ -301,7 +301,9 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	// save outputs
 	float_vect3 kal_acc;
 	float_vect3 kal_mag;
+#ifdef mavlink_system
 	float_vect3 kal_w0, kal_w;
+#endif
 
 	kal_acc.x = kalman_get_state(&attitude_tobi_laurens_kal, 0);
 	kal_acc.y = kalman_get_state(&attitude_tobi_laurens_kal, 1);
@@ -311,9 +313,11 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	kal_mag.y = kalman_get_state(&attitude_tobi_laurens_kal, 4);
 	kal_mag.z = kalman_get_state(&attitude_tobi_laurens_kal, 5);
 
+#ifdef mavlink_system
 	kal_w0.x = kalman_get_state(&attitude_tobi_laurens_kal, 6);
 	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
 	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
+#endif
 
 	rates->x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
 	rates->y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
@@ -344,6 +348,7 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	euler->y = -asin(z_n_b->x);
 	euler->z = atan2(y_n_b->x, x_n_b->x);
 
+#ifdef mavlink_system
 	static int i = 10;
 	if (i++ >= 10)
 	{
@@ -354,4 +359,5 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 		debug_vect3("kal_w", kal_w);
 		debug_vect3("kal_acc",kal_acc);
 	}
+#endif
 }
