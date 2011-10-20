@@ -202,6 +202,14 @@ static void manualControlTask(void *parameters)
 			     validInputRange(settings.ChannelMin[settings.Yaw], settings.ChannelMax[settings.Yaw], cmd.Channel[settings.Yaw]) &&
 			     validInputRange(settings.ChannelMin[settings.Pitch], settings.ChannelMax[settings.Pitch], cmd.Channel[settings.Pitch]);
 
+			static uint8_t rc_debug = 0;
+			if (rc_debug == 10)
+			{
+				//PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "rc: ok:%d 1:%d-2:%d-3:%d-4:%d\r\n", (int)valid_input_detected, (int)(100*scaledChannel[0]), (int)(100*scaledChannel[1]), (int)(100*scaledChannel[2]), (int)(100*scaledChannel[3]));
+				rc_debug = 0;
+			}
+			rc_debug++;
+
 			// Implement hysteresis loop on connection status
 			if (valid_input_detected && (++connected_count > 10)) {
 				cmd.Connected = MANUALCONTROLCOMMAND_CONNECTED_TRUE;

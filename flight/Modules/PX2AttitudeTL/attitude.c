@@ -524,6 +524,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
 	AttitudeMatrixSet(&attitudeMatrix);
 
+//	debug_vect("ang", (float_vect3 *) &(attitudeMatrix.Roll));
+//	debug_vect("x_n_b", (float_vect3 *)
+
 //	attitudeMatrix.Roll=tmp.x;
 //	attitudeMatrix.Pitch=tmp.y;
 //	attitudeMatrix.Yaw=tmp.z;

@@ -8,12 +8,8 @@
 #ifndef MAVLINK_DEBUG_H_
 #define MAVLINK_DEBUG_H_
 
-
-
 #include <inttypes.h>
-//#include <comm.h>
 #include <mavlink.h>
-//#include "mav_vect.h"
 
 #define DEBUG_COUNT 16
 #define DEBUG_MAX_LEN MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN
@@ -36,7 +32,5 @@ void debug_message_send_one(void);
 
 /** @brief Send a 3 x 1 vector */
 void debug_vect(const char* string, const float x, const float y, const float z);
-
-//void debug_vect(const char* string,const float_vect3 vect);
 
 #endif /* MAVLINK_DEBUG_H_ */
