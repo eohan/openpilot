@@ -197,6 +197,13 @@ static void objectUpdatedCb(UAVObjEvent * ev)
 	ObjectPersistenceData objper;
 	UAVObjHandle obj;
 
+//	// DEBUG
+//	if (ev->obj == SystemAlarmsHandle()) {
+//		SystemAlarmsData alarm;
+//		SystemAlarmsGet(&alarm);
+//		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "ALARM: %d\r\n", alarm.Alarm);
+//	}
+
 	// If the object updated was the ObjectPersistence execute requested action
 	if (ev->obj == ObjectPersistenceHandle()) {
 		// Get object data
