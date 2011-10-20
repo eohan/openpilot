@@ -455,8 +455,8 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		}
 
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magxs;
-		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magys;
-		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magzs;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = magys;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = magzs;
 	}
 #else
 	attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = sb->gyro->x;
