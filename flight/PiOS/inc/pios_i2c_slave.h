@@ -12,9 +12,10 @@
 
 enum pios_i2c_slave_event {
 	PIOS_I2C_SLAVE_RECEIVE,			//< addressed by master wanting to write
-	PIOS_I2C_SLAVE_BUFFER_FULL,		//< master has filled the buffer in a supplied txn
+	PIOS_I2C_SLAVE_BUFFER_FULL,		//< master has filled the buffer in all supplied txns
 	PIOS_I2C_SLAVE_RECEIVE_DONE,	//< master has stopped sending data
 	PIOS_I2C_SLAVE_TRANSMIT,		//< addressed by master wanting to read
+	PIOS_I2C_SLAVE_BUFFER_EMPTY,	//< master has drained buffers in all supplied txns
 	PIOS_I2C_SLAVE_TRANSMIT_DONE,	//< master has stopped reading data
 
 	PIOS_I2C_SLAVE_ERROR			//< an error ocurred, any current transaction has been discarded

@@ -655,7 +655,11 @@ static void processObjEvent(UAVObjEvent * ev)
 			rc.chan6_scaled = 0;
 			rc.chan7_scaled = 0;
 			rc.chan8_scaled = 0;
-			rc.rssi = 0;
+
+			ManualControlCommandData cmd;
+			ManualControlCommandGet(&cmd);
+
+			rc.rssi = ((uint8_t)(cmd.Connected == MANUALCONTROLCOMMAND_CONNECTED_TRUE))*255;
 			rc.port = 0;
 
 			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);

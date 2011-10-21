@@ -643,6 +643,8 @@ void PIOS_Board_Init(void)
 	}
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "I2C ");
+	// Clear I2C alarm
+	AlarmsClear(SYSTEMALARMS_ALARM_I2C);
 	PIOS_ADC_Init();
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "ADC ");
 
