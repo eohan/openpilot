@@ -366,20 +366,10 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		// XXX what to do here, if anything?
 	}
 
-#if 1
+#if 1 // Enable oversampling
 	// Accumulate measurements (oversampling)
 	{
-//		int32_t ax;
-//		int32_t ay;
-//		int32_t az;
-//
-//		ax = ay = az = 0;
-//		for (int i = 0; i < sb->gyro_count; i++) {
-//			ax += sb->gyro[i].x;
-//			ay += sb->gyro[i].y;
-//			az += sb->gyro[i].z;
-//		}
-#if 1
+#if 1 // Normal lowpass, no moving average
 		//		axs = 0.93f*axs+0.07f*(ax / sb->gyro_count);
 		//		ays = 0.93f*ays+0.07f*(ay / sb->gyro_count);
 		//		azs = 0.93f*azs+0.07f*(az / sb->gyro_count);
@@ -402,21 +392,6 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = axs;
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ays;
 		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = azs;
-#else
-		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = ax / sb->gyro_count;
-		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ay / sb->gyro_count;
-		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = az / sb->gyro_count;
-#endif
-
-//		ax = ay = az = 0;
-//		for (int i = 0; i < sb->accel_count; i++) {
-//			ax += sb->accel[i].x;
-//			ay += sb->accel[i].y;
-//			az += sb->accel[i].z;
-//		}
-//		attitudeRaw->accels[ATTITUDERAW_ACCELS_X] = ax / sb->accel_count;
-//		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = ay / sb->accel_count;
-//		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = az / sb->accel_count;
 
 		static int32_t accxs = 1;
 		static int32_t accys = 1;
@@ -433,17 +408,6 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = accys;
 		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = acczs;
 
-//
-//		ax = ay = az = 0;
-//		for (int i = 0; i < sb->mag_count; i++) {
-//			ax += sb->mag[i].x;
-//			ay += sb->mag[i].y;
-//			az += sb->mag[i].z;
-//		}
-//		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = ax / sb->mag_count;
-//		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = ay / sb->mag_count;
-//		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = az / sb->mag_count;
-
 		static int32_t magxs = 1;
 		static int32_t magys = 1;
 		static int32_t magzs = 1;
@@ -458,6 +422,43 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magxs;
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = magys;
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = magzs;
+
+#else
+		int32_t ax;
+		int32_t ay;
+		int32_t az;
+
+		ax = ay = az = 0;
+		for (int i = 0; i < sb->gyro_count; i++) {
+			ax += sb->gyro[i].x;
+			ay += sb->gyro[i].y;
+			az += sb->gyro[i].z;
+		}
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = ax / sb->gyro_count;
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ay / sb->gyro_count;
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = az / sb->gyro_count;
+
+		ax = ay = az = 0;
+		for (int i = 0; i < sb->accel_count; i++) {
+			ax += sb->accel[i].x;
+			ay += sb->accel[i].y;
+			az += sb->accel[i].z;
+		}
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_X] = ax / sb->accel_count;
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = ay / sb->accel_count;
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = az / sb->accel_count;
+
+
+		ax = ay = az = 0;
+		for (int i = 0; i < sb->mag_count; i++) {
+			ax += sb->mag[i].x;
+			ay += sb->mag[i].y;
+			az += sb->mag[i].z;
+		}
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = ax / sb->mag_count;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = ay / sb->mag_count;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = az / sb->mag_count;
+#endif
 	}
 #else
 	attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = sb->gyro->x;
