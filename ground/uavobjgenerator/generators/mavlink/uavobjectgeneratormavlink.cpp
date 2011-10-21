@@ -39,8 +39,8 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
 
 //    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
-        flightSettingsIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinklisttemplate.h") );
-        flightSettingsCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinklisttemplate.c") );
+        flightSettingsIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinksettingslisttemplate.h") );
+        flightSettingsCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinksettingslisttemplate.c") );
     flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinktemplate.h") );
     //flightInitTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectsinittemplate.c") );
     //flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("Makefiletemplate.inc") );
