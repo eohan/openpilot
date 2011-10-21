@@ -201,7 +201,7 @@ static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
 	    .dma     = {
 	        /* .ahb_clk - not required */
 	        .irq = {
-	            .flags   = (DMA_IT_TCIF5 | DMA_IT_TEIF5 | DMA_IT_HTIF5),
+	            .flags   = (DMA_IT_TCIF0 | DMA_IT_TEIF0 | DMA_IT_HTIF5),
 	            .init    = {
 	                .NVIC_IRQChannel                   = DMA1_Stream0_IRQn,
 	                .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGH,
@@ -212,7 +212,7 @@ static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
 	        .rx = {
 	            .channel = DMA1_Stream0,
 	            .init = {
-	                .DMA_Channel            = DMA_Channel_5,
+	                .DMA_Channel            = DMA_Channel_0,
 	                .DMA_PeripheralBaseAddr = (uint32_t)&(SPI3->DR),
 	                /* .DMA_Memory0BaseAddr */
 	                .DMA_DIR                = DMA_DIR_PeripheralToMemory,
@@ -232,9 +232,9 @@ static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
 	            },
 	        },
 	        .tx = {
-	            .channel = DMA1_Stream3,
+	            .channel = DMA1_Stream7,
 	            .init = {
-	                .DMA_Channel            = DMA_Channel_5,
+	                .DMA_Channel            = DMA_Channel_0,
 	                /* .DMA_Memory0BaseAddr */
 	                .DMA_PeripheralBaseAddr = (uint32_t)&(SPI3->DR),
 	                .DMA_DIR                = DMA_DIR_MemoryToPeripheral,
@@ -608,27 +608,26 @@ void PIOS_Board_Init(void)
 
 	/* sdcard init */
 #if defined(PIOS_INCLUDE_SDCARD)
-	if (PIOS_SPI_Init(&pios_spi_sdcard_id, &pios_spi_sdcard_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
-	PIOS_SDCARD_Init(pios_spi_sdcard_id);
-
+//	if (PIOS_SPI_Init(&pios_spi_sdcard_id, &pios_spi_sdcard_cfg)) {
+//		PIOS_DEBUG_Assert(0);
+//	}
+//	PIOS_SDCARD_Init(pios_spi_sdcard_id);
+//
 //	FILEINFO file;
-//	static uint8_t buffer[200];
 //	uint32_t res;
 //
 //	res = PIOS_SDCARD_MountFS(0);
-//	sprintf((char *)buffer, "PIOS_SDCARD_MountFS Res: %d\n", (int) res);
-//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
+//	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "PIOS_SDCARD_MountFS Res: %d\n", (int) res);
 //
 //	res = DFS_OpenFile(&PIOS_SDCARD_VolInfo, (uint8_t *)("test/test.txt"), DFS_READ, PIOS_SDCARD_Sector, &file);
-//	sprintf((char *)buffer, "DFS_OpenFile Res: %u\n", (unsigned int) res);
-//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
-
-	//	if(!PIOS_FOPEN_READ("test.txt", file))
+//	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "DFS_OpenFile Res: %u\n", (unsigned int) res);
+//
+//	static uint8_t buffer[200];
+//	if(!PIOS_FOPEN_READ("test/test.txt", file))
 //	{
 //		PIOS_SDCARD_ReadLine(&file, buffer, 199);
 //	}
+//	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "%s\n", (char *)buffer);
 
 #endif
 
