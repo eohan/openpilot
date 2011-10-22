@@ -56,8 +56,8 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Guidance Battery PX2Buzzer
-# Telemetry must be last to grab the optional modules
+MODULES = PX2AttitudeTL Actuator Stabilization ManualControl GPS Guidance Battery PX2Buzzer
+# Telemetry must be last to grab the optional modules  # Altitude
 MODULES += MAVLink
 #MODULES += Telemetry
 PYMODULES = FlightPlan
@@ -135,7 +135,6 @@ SRC += $(OPSYSTEM)/openpilot.c
 SRC += $(OPSYSTEM)/pios_board.c
 SRC += $(OPSYSTEM)/alarms.c
 SRC += $(OPSYSTEM)/taskmonitor.c
-SRC += $(OPSYSTEM)/mavlink_debug.c
 SRC += $(OPUAVTALK)/uavtalk.c
 SRC += $(OPUAVOBJ)/uavobjectmanager.c
 SRC += $(OPUAVOBJ)/eventdispatcher.c

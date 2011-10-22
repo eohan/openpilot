@@ -34,7 +34,7 @@
 #include "openpilot.h"
 
 uint32_t pios_i2c_main_adapter_id;
-uint32_t pios_com_control_id;
+uint32_t pios_com_telem_rf_id;
 
 // Local constants
 #define BENCHMARK_DURATION_MS 10000
@@ -48,6 +48,9 @@ static uint32_t idleCounterClear = 0;
 
 int main()
 {
+	/* initialise the heap */
+	vPortInitialiseBlocks();
+
 	PIOS_SYS_Init();
 
 	// Create test task

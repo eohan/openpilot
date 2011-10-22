@@ -16,6 +16,8 @@
 
 #include <pios.h>
 #include <pios_i2c_slave.h>
+#include <protocol.h>
+#include <FreeRTOS.h>
 
 #include "msheap/msheap.h"
 
@@ -115,29 +117,64 @@ initTask(void *parameters)
 	vTaskDelete(NULL);
 }
 
-static int flag = 0;
+/*
+ * Control protocol handling
+ */
+
+/*
+ * We have three copies total of the config.  One private to the callback
+ * that is incrementally updated as the I2C transaction progresses, one global
+ * copy that can be copied from safely while in a critical section, and one
+ * private to the protocol task that is used as a reference when handling a
+ * configuration change.
+ */
+static struct iop_set		current_config;
+static volatile bool		config_changed;
+
+/*
+ * Similarly there are three copies total of the status.  One private to the
+ * protocol task that is used to assemble the current status, one global copy
+ * that is updated in a critical section, and one that is used as a buffer while
+ * transmitting over I2C.
+ */
+static struct iop_get		current_status;
 
 static void
 protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg)
 {
-	static struct pios_i2c_slave_txn txns[2];
-	static uint8_t		msgbuf;
-	static uint8_t		status;
+	static struct pios_i2c_slave_txn txn;
+	static struct iop_set			new_config;
+	static struct iop_get			status;
 
 	switch (event) {
 	case PIOS_I2C_SLAVE_TRANSMIT:
-		status = 'g';
-		txns[0].buf = &status;
-		txns[0].len = 1;
-
-		PIOS_I2C_SLAVE_Transfer(0, txns, 1);
+		memcpy(&status, &current_status, sizeof(status));
+		txn.buf = (void *)&status;
+		txn.len = sizeof(status);
+		PIOS_I2C_SLAVE_Transfer(0, &txn, 1);
 		break;
 
 	case PIOS_I2C_SLAVE_TRANSMIT_DONE:
+		// XXX nothing to do here
+		break;
+
+	case PIOS_I2C_SLAVE_RECEIVE:
+		txn.buf = (void *)&current_config;
+		txn.len = sizeof(new_config);
+		PIOS_I2C_SLAVE_Transfer(0, &txn, 1);
+		break;
+
+	case PIOS_I2C_SLAVE_RECEIVE_DONE:
+		if (arg != sizeof(new_config)) {
+			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "bad config packet len (%d)", arg);
+			break;
+		}
+		memcpy((void *)&current_config, &new_config, sizeof(new_config));
+		config_changed = true;
 		break;
 
 	default:
-		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "unhandled event %d\r\n", event);
+		// not interested
 		break;
 	}
 }
@@ -145,18 +182,75 @@ protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg
 static void
 protocolTask(void *parameters)
 {
-	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "protocol task start\r\n");
+	struct iop_set		new_config;
+	struct iop_get	new_status;
+
+	// set up the I2C slave callback
 	PIOS_I2C_Slave_Open(0, protocol_callback);
 
 	for (;;) {
-		if (flag) {
-			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "flag\r\n");
-			flag = 0;
-		}
-		PIOS_LED_Toggle(LED1);
-		PIOS_LED_Toggle(LED3);
+		// has the config been updated?
+		if (config_changed) {
 
-		vTaskDelay(100 / portTICK_RATE_MS);
+			PIOS_LED_On(LED1);
+
+			// make a copy of the new config
+			config_changed = false;
+			memcpy(&new_config, &current_config, sizeof(new_config));
+			vPortExitCritical();
+
+			// set new servo values
+			for (int i = 0; i < IOP_PWM_CHANNELS; i++)
+				PIOS_Servo_Set(i, new_config.channel_values[i]);
+
+			// set GPIOs ... yay, more needless verbosity
+			if (new_config.gpio_bits & IOP_GPIO_RELAY_0) {
+				PIOS_GPIO_On(0);
+			} else {
+				PIOS_GPIO_Off(0);
+			}
+			if (new_config.gpio_bits & IOP_GPIO_RELAY_0) {
+				PIOS_GPIO_On(1);
+			} else {
+				PIOS_GPIO_Off(1);
+			}
+			if (new_config.gpio_bits & IOP_GPIO_POWER_0) {
+				PIOS_GPIO_On(2);
+			} else {
+				PIOS_GPIO_Off(2);
+			}
+			if (new_config.gpio_bits & IOP_GPIO_POWER_1) {
+				PIOS_GPIO_On(3);
+			} else {
+				PIOS_GPIO_Off(3);
+			}
+			// XXX ignore servo power for now... not sure how best to handle it
+			if (new_config.gpio_bits & IOP_GPIO_PUSHBUTTON_LED) {
+				PIOS_LED_On(LED3);
+			} else {
+				PIOS_LED_Off(LED3);
+			}
+
+		} else {
+			// XXX handle FMU-not-talking situation (failsafe reset)
+			// PIOS_LED_Off(LED1);
+		}
+
+		// XXX update new_status with recent events
+
+		new_status.status_bits = 0;
+		for (int i = 0; i < IOP_ADC_CHANNELS; i++)
+			new_status.adc_inputs[i] = 0;	// XXX
+		for (int i = 0; i < IOP_RADIO_CHANNELS; i++)
+			new_status.channel_values[i] = 0;
+
+		// atomically copy new status to where the I2C callback will see it
+		vPortEnterCritical();
+		memcpy(&current_status, &new_status, sizeof(current_status));
+		vPortExitCritical();
+
+		// give up our quantum if there's anyone else that wants it
+		vPortYieldFromISR();
 	}
 }
 
@@ -164,6 +258,7 @@ static void
 failsafeTask(void *parameters)
 {
 	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "failsafe task start\r\n");
+
 	for (;;) {
 		PIOS_LED_Toggle(LED2);
 		vTaskDelay(1000 / portTICK_RATE_MS);
