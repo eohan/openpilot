@@ -361,12 +361,15 @@ static int32_t SPI_DMA_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer
 		return -3;
 	}
 
-	/* Disable the SPI peripheral */
-	SPI_Cmd(spi_dev->cfg->regs, DISABLE);
-
 	/* Disable the DMA channels */
 	DMA_Cmd(spi_dev->cfg->dma.rx.channel, DISABLE);
 	DMA_Cmd(spi_dev->cfg->dma.tx.channel, DISABLE);
+
+	while(DMA_GetCmdStatus(spi_dev->cfg->dma.rx.channel) == ENABLE);
+	while(DMA_GetCmdStatus(spi_dev->cfg->dma.tx.channel) == ENABLE);
+
+	/* Disable the SPI peripheral */
+	SPI_Cmd(spi_dev->cfg->regs, DISABLE);
 
 	/* Set callback function */
 	spi_dev->callback = callback;

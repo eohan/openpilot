@@ -38,10 +38,17 @@
 #include "ratedesired.h"
 #include "stabilizationdesired.h"
 #include "attitudeactual.h"
+#ifndef STM32F2XX
+		// Attitude should not be filtered by a controller
+		// instead, the attitude filter should provide
+		// speed estimates
 #include "attituderaw.h"
+#endif
+//#include "attituderaw.h"
 #include "flightstatus.h"
 #include "manualcontrol.h" // Just to get a macro
 #include "CoordinateConversions.h"
+//#include "mavlink_debug.h"
 
 // Private constants
 #define MAX_QUEUE_SIZE 1
@@ -123,8 +130,14 @@ int32_t StabilizationInitialize()
 	queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
 
 	// Listen for updates.
-	//	AttitudeActualConnectQueue(queue);
+#ifdef STM32F2XX
+	//	 Attitude should not be filtered by a controller
+	//	 instead, the attitude filter should provide
+	//	 speed estimates
+	AttitudeActualConnectQueue(queue);
+#else
 	AttitudeRawConnectQueue(queue);
+#endif
 
 	StabilizationSettingsConnectCallback(SettingsUpdatedCb);
 	SettingsUpdatedCb(StabilizationSettingsHandle());
@@ -149,7 +162,12 @@ static void stabilizationTask(void* parameters)
 	StabilizationDesiredData stabDesired;
 	RateDesiredData rateDesired;
 	AttitudeActualData attitudeActual;
+#ifndef STM32F2XX
+		// Attitude should not be filtered by a controller
+		// instead, the attitude filter should provide
+		// speed estimates
 	AttitudeRawData attitudeRaw;
+#endif
 	FlightStatusData flightStatus;
 
 	SettingsUpdatedCb((UAVObjEvent *) NULL);
@@ -176,7 +194,13 @@ static void stabilizationTask(void* parameters)
 		FlightStatusGet(&flightStatus);
 		StabilizationDesiredGet(&stabDesired);
 		AttitudeActualGet(&attitudeActual);
+
+#ifndef STM32F2XX
+		// Attitude should not be filtered by a controller
+		// instead, the attitude filter should provide
+		// speed estimates
 		AttitudeRawGet(&attitudeRaw);
+#endif
 
 #if defined(DIAGNOSTICS)
 		RateDesiredGet(&rateDesired);
@@ -219,10 +243,23 @@ static void stabilizationTask(void* parameters)
 		local_error[2] = fmod(local_error[2] + 180, 360) - 180;
 #endif
 
-
+#ifdef STM32F2XX
+		gyro_filtered[0] = attitudeActual.RollRate;
+		gyro_filtered[1] = attitudeActual.PitchRate;
+		gyro_filtered[2] = attitudeActual.YawRate;
+#else
+		// Attitude should not be filtered by a controller
+		// instead, the attitude filter should provide
+		// speed estimates
 		for(uint8_t i = 0; i < MAX_AXES; i++) {
 			gyro_filtered[i] = gyro_filtered[i] * gyro_alpha + attitudeRaw.gyros[i] * (1 - gyro_alpha);
 		}
+#endif
+
+//		debug_vect("des_e", stabDesired.Roll, stabDesired.Pitch, stabDesired.Yaw);
+//		debug_vect("pos_e", local_error[0], local_error[1], local_error[2]);
+//		debug_vect("rate_e", gyro_filtered[0], gyro_filtered[1], gyro_filtered[2]);
+
 
 		float *attitudeDesiredAxis = &stabDesired.Roll;
 		float *actuatorDesiredAxis = &actuatorDesired.Roll;

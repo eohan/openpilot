@@ -22,6 +22,11 @@
 //#include "gps_transformations.h"
 #include "mavlink.h"
 
+void debug_vect3(const char* string, const float_vect3 vect)
+{
+	debug_vect(string, vect.x, vect.y, vect.z);
+}
+
 //#define VELOCITY_HOLD 0.999f
 //#define ACCELERATION_HOLD 0.99f
 //#define VELOCITY_HOLD 1.0f
@@ -145,19 +150,34 @@ void attitude_tobi_laurens_init(void)
 #define FACTORstart 1
 
 
+//	static m_elem kal_gain[12 * 9] =
+//	{ 		0.004 , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
+//			0   ,    0.004 , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
+//			0   ,    0    ,   0.004 , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
+//			0   ,    0    ,   0   ,    0.015, 	0   ,    0   ,    0   ,    0   ,    0,
+//			0   ,    0   ,    0   ,    0    ,   0.015, 	 0   ,    0   ,    0   ,    0,
+//			0   ,    0    ,   0   ,    0    ,   0   ,    0.015, 	  0   ,    0   ,    0,
+//			0.0000 , +0.00002,0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
+//			-0.00002,0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
+//			0,    	 0 ,	  0   ,    0,  	    0,		 0,  	  0,  	   0, 	    0,
+//			0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.4 ,   0   ,    0,
+//			0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.4 ,   0,
+//			0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.4
+//	};
+
 	static m_elem kal_gain[12 * 9] =
-	{ 		0.004 , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
-			0   ,    0.004 , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
-			0   ,    0    ,   0.004 , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
+	{ 		0.0006 , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
+			0   ,    0.0006 , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
+			0   ,    0    ,   0.0006 , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
 			0   ,    0    ,   0   ,    0.015, 	0   ,    0   ,    0   ,    0   ,    0,
 			0   ,    0   ,    0   ,    0    ,   0.015, 	 0   ,    0   ,    0   ,    0,
 			0   ,    0    ,   0   ,    0    ,   0   ,    0.015, 	  0   ,    0   ,    0,
 			0.0000 , +0.00002,0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
 			-0.00002,0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
 			0,    	 0 ,	  0   ,    0,  	    0,		 0,  	  0,  	   0, 	    0,
-			0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.9 ,   0   ,    0,
-			0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.9 ,   0,
-			0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.9
+			0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.6 ,   0   ,    0,
+			0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.6 ,   0,
+			0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.6
 	};
 	//offset update only correct if not upside down.
 
@@ -294,7 +314,9 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	//debug
 
 	// save outputs
-	float_vect3 kal_acc, kal_mag, kal_w0;//, kal_w;
+	float_vect3 kal_acc;
+	float_vect3 kal_mag;
+	float_vect3 kal_w0, kal_w;
 
 	kal_acc.x = kalman_get_state(&attitude_tobi_laurens_kal, 0);
 	kal_acc.y = kalman_get_state(&attitude_tobi_laurens_kal, 1);
@@ -307,6 +329,10 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	kal_w0.x = kalman_get_state(&attitude_tobi_laurens_kal, 6);
 	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
 	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
+
+	kal_w.x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
+	kal_w.y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
+	kal_w.z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
 
 	rates->x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
 	rates->y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
@@ -337,20 +363,15 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	euler->y = -asin(z_n_b->x);
 	euler->z = atan2(y_n_b->x, x_n_b->x);
 
-	//save state omega
-//	global_data.omega_si.x=kal_w.x;
-//	global_data.omega_si.y=kal_w.y;
-//	global_data.omega_si.z=kal_w.z;
 //	static int i = 10;
 //	if (i++ >= 10)
 //	{
 //		i = 0;
 //		//send the angles
 //
-//		debug_vect("kal_w0", kal_w0);
-//		debug_vect("kal_w", kal_w);
-//		debug_vect("acc_norm",acc_n_vect);
-//
-//
+//		debug_vect3("kal_w0", kal_w0);
+//		debug_vect3("kal_w", kal_w);
+//		debug_vect3("kal_acc",kal_acc);
+//		debug_vect3("kal_mag", kal_mag);
 //	}
 }

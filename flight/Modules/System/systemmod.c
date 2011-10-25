@@ -59,7 +59,7 @@
 #ifndef STM32F2XX
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 995998  // calibrated by running tests/test_cpuload.c
 #else
-#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 2492247	// calibrated by running tests/test_cpuload.c
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1172265	// calibrated by running tests/test_cpuload.c
 											  // must be updated if the FreeRTOS or compiler
 											  // optimisation options are changed.
 #endif
@@ -196,6 +196,13 @@ static void objectUpdatedCb(UAVObjEvent * ev)
 {
 	ObjectPersistenceData objper;
 	UAVObjHandle obj;
+
+//	// DEBUG
+//	if (ev->obj == SystemAlarmsHandle()) {
+//		SystemAlarmsData alarm;
+//		SystemAlarmsGet(&alarm);
+//		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "ALARM: %d\r\n", alarm.Alarm);
+//	}
 
 	// If the object updated was the ObjectPersistence execute requested action
 	if (ev->obj == ObjectPersistenceHandle()) {

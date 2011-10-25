@@ -638,6 +638,42 @@ static void processObjEvent(UAVObjEvent * ev)
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 		}
 		break;
+		case ACTUATORCOMMAND_OBJID:
+		{
+			mavlink_rc_channels_scaled_t rc;
+			float val;
+			ManualControlCommandRollGet(&val);
+			rc.chan1_scaled = val*1000;
+			ManualControlCommandPitchGet(&val);
+			rc.chan2_scaled = val*1000;
+			ManualControlCommandYawGet(&val);
+			rc.chan3_scaled = val*1000;
+			ManualControlCommandThrottleGet(&val);
+			rc.chan4_scaled = val*1000;
+
+			ActuatorCommandData act;
+			ActuatorCommandGet(&act);
+
+			rc.chan5_scaled = act.Channel[0];
+			rc.chan6_scaled = act.Channel[1];
+			rc.chan7_scaled = act.Channel[2];
+			rc.chan8_scaled = act.Channel[3];
+
+			ManualControlCommandData cmd;
+			ManualControlCommandGet(&cmd);
+
+			rc.rssi = ((uint8_t)(cmd.Connected == MANUALCONTROLCOMMAND_CONNECTED_TRUE))*255;
+			rc.port = 0;
+
+			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
+
+
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+			break;
+		}
 		case MANUALCONTROLCOMMAND_OBJID:
 		{
 			mavlink_rc_channels_scaled_t rc;
@@ -655,7 +691,11 @@ static void processObjEvent(UAVObjEvent * ev)
 			rc.chan6_scaled = 0;
 			rc.chan7_scaled = 0;
 			rc.chan8_scaled = 0;
-			rc.rssi = 0;
+
+			ManualControlCommandData cmd;
+			ManualControlCommandGet(&cmd);
+
+			rc.rssi = ((uint8_t)(cmd.Connected == MANUALCONTROLCOMMAND_CONNECTED_TRUE))*255;
 			rc.port = 0;
 
 			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);

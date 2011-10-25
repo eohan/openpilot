@@ -38,12 +38,14 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     flightOutputPath = QDir( outputpath + QString("flight") );
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
 
-    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjecttemplate.c") );
-    flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjecttemplate.h") );
-    flightInitTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectsinittemplate.c") );
-    flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("Makefiletemplate.inc") );
+//    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
+        flightSettingsIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinksettingslisttemplate.h") );
+        flightSettingsCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinksettingslisttemplate.c") );
+    flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinktemplate.h") );
+    //flightInitTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectsinittemplate.c") );
+    //flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("Makefiletemplate.inc") );
 
-    if ( flightCodeTemplate.isNull() || flightIncludeTemplate.isNull() || flightInitTemplate.isNull()) {
+    if ( flightSettingsCodeTemplate.isNull() || flightSettingsIncludeTemplate.isNull() || flightIncludeTemplate.isNull()) {
             cerr << "Error: Could not open flight template files." << endl;
             return false;
         }
@@ -51,33 +53,33 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     for (int objidx = 0; objidx < parser->getNumObjects(); ++objidx) {
         ObjectInfo* info=parser->getObjectByIndex(objidx);
         process_object(info);
-        flightObjInit.append("#ifdef UAVOBJ_INIT_" + info->namelc +"\r\n");
-        flightObjInit.append("    " + info->name + "Initialize();\r\n");
-        flightObjInit.append("#endif\r\n");
-        objInc.append("#include \"" + info->namelc + ".h\"\r\n");
-	objFileNames.append(" " + info->namelc);
-	objNames.append(" " + info->name);
+//        flightObjInit.append("#ifdef UAVOBJ_INIT_" + info->namelc +"\r\n");
+//        flightObjInit.append("    " + info->name + "Initialize();\r\n");
+//        flightObjInit.append("#endif\r\n");
+//        objInc.append("#include \"" + info->namelc + ".h\"\r\n");
+//	objFileNames.append(" " + info->namelc);
+//	objNames.append(" " + info->name);
     }
 
-    // Write the flight object inialization files
-    flightInitTemplate.replace( QString("$(OBJINC)"), objInc);
-    flightInitTemplate.replace( QString("$(OBJINIT)"), flightObjInit);
-    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectsinit.c",
-                     flightInitTemplate );
-    if (!res) {
-        cout << "Error: Could not write flight object init files" << endl;
-        return false;
-    }
+//    // Write the flight object inialization files
+//    flightInitTemplate.replace( QString("$(OBJINC)"), objInc);
+//    flightInitTemplate.replace( QString("$(OBJINIT)"), flightObjInit);
+//    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectsinit.c",
+//                     flightInitTemplate );
+//    if (!res) {
+//        cout << "Error: Could not write flight object init files" << endl;
+//        return false;
+//    }
 
-    // Write the flight object Makefile
-    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
-    flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
-    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/Makefile.inc",
-                     flightMakeTemplate );
-    if (!res) {
-        cout << "Error: Could not write flight Makefile" << endl;
-        return false;
-    }
+//    // Write the flight object Makefile
+//    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
+//    flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
+//    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/Makefile.inc",
+//                     flightMakeTemplate );
+//    if (!res) {
+//        cout << "Error: Could not write flight Makefile" << endl;
+//        return false;
+//    }
 
     return true; // if we come here everything should be fine
 }
@@ -93,11 +95,12 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
 
     // Prepare output strings
     QString outInclude = flightIncludeTemplate;
-    QString outCode = flightCodeTemplate;
+    QString outSettingsInclude = flightSettingsIncludeTemplate;
+    QString outSettingsCode = flightSettingsCodeTemplate;
 
     // Replace common tags
     replaceCommonTags(outInclude, info);
-    replaceCommonTags(outCode, info);
+    replaceCommonTags(outSettingsCode, info);
 
     // Replace the $(DATAFIELDS) tag
     QString type;
@@ -235,7 +238,7 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
             }
         }
     }
-    outCode.replace(QString("$(INITFIELDS)"), initfields);
+    outSettingsCode.replace(QString("$(INITFIELDS)"), initfields);
 
     // Replace the $(SETGETFIELDS) tag
     QString setgetfields;
@@ -303,7 +306,7 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
             }
         }
     }
-    outCode.replace(QString("$(SETGETFIELDS)"), setgetfields);
+    outSettingsCode.replace(QString("$(SETGETFIELDS)"), setgetfields);
 
     // Replace the $(SETGETFIELDSEXTERN) tag
      QString setgetfieldsextern;
@@ -328,7 +331,7 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
      outInclude.replace(QString("$(SETGETFIELDSEXTERN)"), setgetfieldsextern);
 
     // Write the flight code
-    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".c", outCode );
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".c", outSettingsCode );
     if (!res) {
         cout << "Error: Could not write flight code files" << endl;
         return false;

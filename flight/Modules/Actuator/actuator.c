@@ -216,8 +216,6 @@ static void actuatorTask(void* parameters)
 			continue;
 		}
 
-		AlarmsClear(SYSTEMALARMS_ALARM_ACTUATOR);
-
 		bool armed = flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED;
 		bool positiveThrottle = desired.Throttle >= 0.00;
 		bool spinWhileArmed = MotorsSpinWhileArmed == ACTUATORSETTINGS_MOTORSSPINWHILEARMED_TRUE;
@@ -353,6 +351,10 @@ static void actuatorTask(void* parameters)
 			command.NumFailedUpdates++;
 			ActuatorCommandSet(&command);
 			AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL);
+		} else {
+			// SUCESS, EVERYTHING IS ALRIGHT
+			// Only clear the alarm if we actually changed something (check is done inside alarms clear)
+			AlarmsClear(SYSTEMALARMS_ALARM_ACTUATOR);
 		}
 
 	}
@@ -561,9 +563,9 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 	ActuatorSettingsGet(&settings);
 
 	switch(settings.ChannelType[mixer_channel]) {
+#if defined(PIOS_INCLUDE_SERVO)
 		case ACTUATORSETTINGS_CHANNELTYPE_PWMALARMBUZZER: {
 			// This is for buzzers that take a PWM input
-#if defined(PIOS_INCLUDE_SERVO)
 
 			static uint32_t currBuzzTune = 0;
 			static uint32_t currBuzzTuneState;
@@ -607,9 +609,9 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 			// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
 			PIOS_Servo_Set(	settings.ChannelAddr[mixer_channel],
 							buzzOn?settings.ChannelMax[mixer_channel]:settings.ChannelMin[mixer_channel]);
-#endif
 			return true;
 		}
+#endif
 		// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
 #if defined(PIOS_INCLUDE_SERVO)
 		case ACTUATORSETTINGS_CHANNELTYPE_PWM:
@@ -622,7 +624,10 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 		case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
 			return PIOS_SetAstec4Speed(settings.ChannelAddr[mixer_channel],value);
 #endif
+		case ACTUATORSETTINGS_CHANNELTYPE_DISABLED:
+			return true;
 		default:
+			// No supported channel type selected, return error
 			return false;
 	}
 
