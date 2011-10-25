@@ -299,12 +299,14 @@ static void magTask(void *parameters)
 
 	lastSysTime = xTaskGetTickCount();
 	for (;;) {
-		sb = &sampleBuffer[activeSample];
-		mc = sb->mag_count; 	// local copy to avoid aliasing rules
-
 		// accumulate mag reading if available
-		if ((mc < MAX_SAMPLES_PER_UPDATE) && PIOS_HMC5883_NewDataAvailable()) {
-			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&sb->mag[mc]);
+		if ((mc < MAX_SAMPLES_PER_UPDATE) && PIOS_HMC5883_NewDataAvailable())
+		{
+			struct pios_hmc5883_data magdata;
+			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&magdata);
+			sb = &sampleBuffer[activeSample];
+			mc = sb->mag_count; 	// local copy to avoid aliasing rules
+			sb->mag[mc] = magdata;
 			sb->mag_count = mc + 1;
 		}
 

@@ -42,7 +42,7 @@
 
 int16_t get$(NAME)ParamIndexByName(const char* name)
 {
-	for (int i = 0; i < MAX_ACTUATOR_PARAMS; ++i)
+	for (int i = 0; i < $(TOTALFIELDCOUNTNAME); ++i)
 	{
 		bool match = true;
 		const char* storage_name = get$(NAME)ParamNameByIndex(i);
