@@ -340,7 +340,8 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 
 
 
-
+	kal_w = kal_w;		// XXX hack to silence compiler warning
+	kal_w0 = kal_w0;	// XXX hack to silence compiler warning
 
 
 
