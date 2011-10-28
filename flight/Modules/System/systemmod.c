@@ -57,7 +57,8 @@
 
 #ifndef IDLE_COUNTS_PER_SEC_AT_NO_LOAD
 #ifndef STM32F2XX
-#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 995998  // calibrated by running tests/test_cpuload.c
+//#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 995998  // STM32F2xx, calibrated by running tests/test_cpuload.c
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1609228  // STM32F4xx, calibrated by running tests/test_cpuload.c
 #else
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1172265	// calibrated by running tests/test_cpuload.c
 											  // must be updated if the FreeRTOS or compiler

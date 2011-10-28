@@ -33,7 +33,7 @@ TARGET := fw_$(BOARD_NAME)
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
 OUTDIR := $(TOP)/build/$(TARGET)
 
-# Building for M3 / M4
+# Building for M3 / M4 with FPU
 M4	?= YES
 
 # Debugging (YES/NO) ?
@@ -115,6 +115,11 @@ UAVOBJSYNTHDIR = $(OUTDIR)/../uavobject-synthetics/flight
 
 # List C source files here. (C dependencies are automatically generated.)
 # use file-extension c for "c-only"-files
+
+# UNCOMMENT THE LINE BELOW TO PERFORM LOAD TESTING, SEE Tests/test_cpuload.c
+#TESTAPP = test_cpuload
+# UNCOMMENT THE LINE BELOW TO PERFORM FPU TESTING, SEE Tests/test_cpuload.c
+#TESTAPP = test_fpu
 
 ifndef TESTAPP
 

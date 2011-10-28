@@ -37,7 +37,7 @@ uint32_t pios_i2c_main_adapter_id;
 uint32_t pios_com_telem_rf_id;
 
 // Local constants
-#define BENCHMARK_DURATION_MS 10000
+#define BENCHMARK_DURATION_MS 5
 
 // Local functions
 static void testTask(void *pvParameters);
@@ -61,9 +61,16 @@ int main()
 	return 0;
 }
 
+static float multiply(float a, float b)
+{
+	return a*b;
+}
+
 static void testTask(void *pvParameters)
 {
-	uint32_t countsPerSecond = 0;
+	float a = 0.002f;
+	float b = 0.001f;
+	float c = 0.011f;
 
 	while (1)
 	{
@@ -71,8 +78,7 @@ static void testTask(void *pvParameters)
 		vTaskDelay( BENCHMARK_DURATION_MS / portTICK_RATE_MS );
 
 		// Calculate counts per second, set breakpoint here
-		countsPerSecond = idleCounter / (BENCHMARK_DURATION_MS/1000);
-		countsPerSecond = countsPerSecond;
+		c += multiply(a, b);
 
 		// Reset and start again - do not clear idleCounter directly!
 		// SET BREAKPOINT HERE and read the countsPerSecond variable
