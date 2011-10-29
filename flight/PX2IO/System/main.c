@@ -16,7 +16,7 @@
 
 #include <pios.h>
 #include <pios_i2c_slave.h>
-#include <protocol.h>
+#include <px2io_protocol.h>
 #include <FreeRTOS.h>
 
 #include "msheap/msheap.h"

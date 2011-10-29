@@ -23,7 +23,7 @@
 
 /* Notes: We use 5 task priorities */
 
-#define configCPU_CLOCK_HZ						(120UL * 1000 * 1000)	// should be PIOS_MASTER_CLOCK
+#define configCPU_CLOCK_HZ						(168UL * 1000 * 1000)	// should be PIOS_MASTER_CLOCK
 #define configTICK_RATE_HZ						((portTickType )1000)
 #define configMAX_PRIORITIES					((unsigned portBASE_TYPE)5)
 #define configMINIMAL_STACK_SIZE				((unsigned short)512)

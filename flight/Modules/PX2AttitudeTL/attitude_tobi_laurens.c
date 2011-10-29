@@ -340,7 +340,8 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 
 
 
-
+	kal_w = kal_w;		// XXX hack to silence compiler warning
+	kal_w0 = kal_w0;	// XXX hack to silence compiler warning
 
 
 
@@ -363,15 +364,15 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	euler->y = -asin(z_n_b->x);
 	euler->z = atan2(y_n_b->x, x_n_b->x);
 
-	static int i = 10;
-	if (i++ >= 10)
-	{
-		i = 0;
-		//send the angles
-
-		debug_vect3("kal_w0", kal_w0);
-		debug_vect3("kal_w", kal_w);
-		debug_vect3("kal_acc",kal_acc);
-		debug_vect3("kal_mag", kal_mag);
-	}
+//	static int i = 10;
+//	if (i++ >= 10)
+//	{
+//		i = 0;
+//		//send the angles
+//
+//		debug_vect3("kal_w0", kal_w0);
+//		debug_vect3("kal_w", kal_w);
+//		debug_vect3("kal_acc",kal_acc);
+//		debug_vect3("kal_mag", kal_mag);
+//	}
 }

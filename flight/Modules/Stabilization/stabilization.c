@@ -48,6 +48,7 @@
 #include "flightstatus.h"
 #include "manualcontrol.h" // Just to get a macro
 #include "CoordinateConversions.h"
+//#include "mavlink_debug.h"
 
 // Private constants
 #define MAX_QUEUE_SIZE 1
@@ -245,7 +246,7 @@ static void stabilizationTask(void* parameters)
 #ifdef STM32F2XX
 		gyro_filtered[0] = attitudeActual.RollRate;
 		gyro_filtered[1] = attitudeActual.PitchRate;
-		gyro_filtered[3] = attitudeActual.YawRate;
+		gyro_filtered[2] = attitudeActual.YawRate;
 #else
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
@@ -254,6 +255,11 @@ static void stabilizationTask(void* parameters)
 			gyro_filtered[i] = gyro_filtered[i] * gyro_alpha + attitudeRaw.gyros[i] * (1 - gyro_alpha);
 		}
 #endif
+
+//		debug_vect("des_e", stabDesired.Roll, stabDesired.Pitch, stabDesired.Yaw);
+//		debug_vect("pos_e", local_error[0], local_error[1], local_error[2]);
+//		debug_vect("rate_e", gyro_filtered[0], gyro_filtered[1], gyro_filtered[2]);
+
 
 		float *attitudeDesiredAxis = &stabDesired.Roll;
 		float *actuatorDesiredAxis = &actuatorDesired.Roll;

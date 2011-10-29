@@ -3,8 +3,8 @@ BOARD_REVISION      := 0x01
 BOOTLOADER_VERSION  := 0x00
 HW_TYPE             := 0x00
 
-MCU                 := cortex-m3
-CHIP                := STM32F205RGT
+MCU                 := cortex-m4
+CHIP                := STM32F405RGT
 BOARD               := STM32205_PX2FMU_Rev1
 
 MODEL               := HD
