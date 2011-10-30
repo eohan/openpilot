@@ -16,7 +16,7 @@
 
 #include <pios.h>
 #include <pios_i2c_slave.h>
-#include <protocol.h>
+#include <px2io_protocol.h>
 #include <FreeRTOS.h>
 
 #include "msheap/msheap.h"
@@ -165,10 +165,8 @@ protocol_callback(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg
 		break;
 
 	case PIOS_I2C_SLAVE_RECEIVE_DONE:
-		if (arg != sizeof(new_config)) {
-			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "bad config packet len (%d)", arg);
+		if (arg != sizeof(new_config))
 			break;
-		}
 		memcpy((void *)&current_config, &new_config, sizeof(new_config));
 		config_changed = true;
 		break;
@@ -185,6 +183,8 @@ protocolTask(void *parameters)
 	struct iop_set		new_config;
 	struct iop_get	new_status;
 
+	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "protocol task start\r\n");
+
 	// set up the I2C slave callback
 	PIOS_I2C_Slave_Open(0, protocol_callback);
 
@@ -195,6 +195,7 @@ protocolTask(void *parameters)
 			PIOS_LED_On(LED1);
 
 			// make a copy of the new config
+			vPortEnterCritical();
 			config_changed = false;
 			memcpy(&new_config, &current_config, sizeof(new_config));
 			vPortExitCritical();
@@ -231,6 +232,7 @@ protocolTask(void *parameters)
 				PIOS_LED_Off(LED3);
 			}
 
+			PIOS_LED_Off(LED1);
 		} else {
 			// XXX handle FMU-not-talking situation (failsafe reset)
 			// PIOS_LED_Off(LED1);
