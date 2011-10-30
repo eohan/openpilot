@@ -127,6 +127,16 @@ SECTIONS
         _eheap = .;
     } > SRAM
 
+	/*
+	 * 'Fast' memory goes in the CCM SRAM
+	 */
+	.fast (NOLOAD) :
+	{
+		_sfast = . ;
+		*(.fast)
+		_efast = . ;
+	} > CCSRAM
+
     /* Stabs debugging sections.  */
     .stab          0 : { *(.stab) }
     .stabstr       0 : { *(.stabstr) }
