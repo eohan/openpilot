@@ -24,6 +24,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <QDebug>
 #include "uavobjectgeneratormavlink.h"
 
 using namespace std;
@@ -33,19 +34,17 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     fieldTypeStrC << "int8_t" << "int16_t" << "int32_t" <<"uint8_t"
             <<"uint16_t" << "uint32_t" << "float" << "uint8_t";
 
-    QString flightObjInit,objInc,objFileNames,objNames;
+    QString flightObjHeaders, flightObjAdapterHeaders;
     flightCodePath = QDir( templatepath + QString("flight/UAVObjects"));
     flightOutputPath = QDir( outputpath + QString("flight") );
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
 
-//    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
-        flightSettingsIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinksettingslisttemplate.h") );
-        flightSettingsCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinksettingslisttemplate.c") );
+    flightListIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinksettingslisttemplate.h") );
+    flightListCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinksettingslisttemplate.c") );
     flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinktemplate.h") );
-    //flightInitTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectsinittemplate.c") );
-    //flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("Makefiletemplate.inc") );
+    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
 
-    if ( flightSettingsCodeTemplate.isNull() || flightSettingsIncludeTemplate.isNull() || flightIncludeTemplate.isNull()) {
+    if ( flightListCodeTemplate.isNull() || flightListIncludeTemplate.isNull() || flightIncludeTemplate.isNull()) {
             cerr << "Error: Could not open flight template files." << endl;
             return false;
         }
@@ -53,6 +52,7 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     for (int objidx = 0; objidx < parser->getNumObjects(); ++objidx) {
         ObjectInfo* info=parser->getObjectByIndex(objidx);
         process_object(info);
+        flightObjHeaders.append(QString("#include %1.h").arg());
 //        flightObjInit.append("#ifdef UAVOBJ_INIT_" + info->namelc +"\r\n");
 //        flightObjInit.append("    " + info->name + "Initialize();\r\n");
 //        flightObjInit.append("#endif\r\n");
@@ -71,7 +71,7 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
 //        return false;
 //    }
 
-//    // Write the flight object Makefile
+//    // Write the settings adapter main file
 //    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
 //    flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
 //    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/Makefile.inc",
@@ -93,10 +93,17 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     if (info == NULL)
         return false;
 
+    // Gracefully ignore objects that are not settings
+    if (!info->isSettings)
+        return true;
+
     // Prepare output strings
     QString outInclude = flightIncludeTemplate;
-    QString outSettingsInclude = flightSettingsIncludeTemplate;
-    QString outSettingsCode = flightSettingsCodeTemplate;
+    QString outCode = flightCodeTemplate;
+    QString outSettingsInclude = flightListIncludeTemplate;
+    QString outSettingsCode = flightListCodeTemplate;
+
+    qDebug() << "Processing" << info->namelc;
 
     // Replace common tags
     replaceCommonTags(outInclude, info);
@@ -252,92 +259,92 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
 
             	/* Set */
                 setgetfields.append( QString("void %2%3Set( %1 *New%3 )\r\n")
-							.arg( fieldTypeStrC[info->fields[n]->type] )
-							.arg( info->name )
-							.arg( info->fields[n]->name ) );
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjSetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), sizeof(%3));\r\n")
-							.arg( info->name )
-							.arg( info->fields[n]->name )
-							.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
+                                     .arg( fieldTypeStrC[info->fields[n]->type] )
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name ) );
+                setgetfields.append( QString("{\r\n") );
+                setgetfields.append( QString("\tUAVObjSetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), sizeof(%3));\r\n")
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name )
+                                     .arg( fieldTypeStrC[info->fields[n]->type] ) );
+                setgetfields.append( QString("}\r\n") );
 
-				/* GET */
-				setgetfields.append( QString("void %2%3Get( %1 *New%3 )\r\n")
-							.arg( fieldTypeStrC[info->fields[n]->type] )
-							.arg( info->name )
-							.arg( info->fields[n]->name ));
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjGetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), sizeof(%3));\r\n")
-							.arg( info->name )
-							.arg( info->fields[n]->name )
-							.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
+                /* GET */
+                setgetfields.append( QString("void %2%3Get( %1 *New%3 )\r\n")
+                                     .arg( fieldTypeStrC[info->fields[n]->type] )
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name ));
+                setgetfields.append( QString("{\r\n") );
+                setgetfields.append( QString("\tUAVObjGetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), sizeof(%3));\r\n")
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name )
+                                     .arg( fieldTypeStrC[info->fields[n]->type] ) );
+                setgetfields.append( QString("}\r\n") );
 
             }
             else
             {
 
             	/* SET */
-				setgetfields.append( QString("void %2%3Set( %1 *New%3 )\r\n")
-								.arg( fieldTypeStrC[info->fields[n]->type] )
-								.arg( info->name )
-								.arg( info->fields[n]->name ) );
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjSetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), %3*sizeof(%4));\r\n")
-								.arg( info->name )
-								.arg( info->fields[n]->name )
-								.arg( info->fields[n]->numElements )
-								.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
+                setgetfields.append( QString("void %2%3Set( %1 *New%3 )\r\n")
+                                     .arg( fieldTypeStrC[info->fields[n]->type] )
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name ) );
+                setgetfields.append( QString("{\r\n") );
+                setgetfields.append( QString("\tUAVObjSetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), %3*sizeof(%4));\r\n")
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name )
+                                     .arg( info->fields[n]->numElements )
+                                     .arg( fieldTypeStrC[info->fields[n]->type] ) );
+                setgetfields.append( QString("}\r\n") );
 
-				/* GET */
-				setgetfields.append( QString("void %2%3Get( %1 *New%3 )\r\n")
-								.arg( fieldTypeStrC[info->fields[n]->type] )
-								.arg( info->name )
-								.arg( info->fields[n]->name ) );
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjGetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), %3*sizeof(%4));\r\n")
-								.arg( info->name )
-								.arg( info->fields[n]->name )
-								.arg( info->fields[n]->numElements )
-								.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
+                /* GET */
+                setgetfields.append( QString("void %2%3Get( %1 *New%3 )\r\n")
+                                     .arg( fieldTypeStrC[info->fields[n]->type] )
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name ) );
+                setgetfields.append( QString("{\r\n") );
+                setgetfields.append( QString("\tUAVObjGetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), %3*sizeof(%4));\r\n")
+                                     .arg( info->name )
+                                     .arg( info->fields[n]->name )
+                                     .arg( info->fields[n]->numElements )
+                                     .arg( fieldTypeStrC[info->fields[n]->type] ) );
+                setgetfields.append( QString("}\r\n") );
             }
         }
     }
     outSettingsCode.replace(QString("$(SETGETFIELDS)"), setgetfields);
 
     // Replace the $(SETGETFIELDSEXTERN) tag
-     QString setgetfieldsextern;
-     for (int n = 0; n < info->fields.length(); ++n)
-     {
-         //if (!info->fields[n]->defaultValues.isEmpty() )
-         {
+    QString setgetfieldsextern;
+    for (int n = 0; n < info->fields.length(); ++n)
+    {
+        //if (!info->fields[n]->defaultValues.isEmpty() )
+        {
+            /* SET */
+            setgetfieldsextern.append( QString("extern void %2%3Set( %1 *New%3 );\r\n")
+                                       .arg( fieldTypeStrC[info->fields[n]->type] )
+                                       .arg( info->name )
+                                       .arg( info->fields[n]->name ) );
 
-			/* SET */
-			setgetfieldsextern.append( QString("extern void %2%3Set( %1 *New%3 );\r\n")
-					.arg( fieldTypeStrC[info->fields[n]->type] )
-					.arg( info->name )
-					.arg( info->fields[n]->name ) );
-
-			/* GET */
-			setgetfieldsextern.append( QString("extern void %2%3Get( %1 *New%3 );\r\n")
-					.arg( fieldTypeStrC[info->fields[n]->type] )
-					.arg( info->name )
-					.arg( info->fields[n]->name ) );
-         }
-     }
-     outInclude.replace(QString("$(SETGETFIELDSEXTERN)"), setgetfieldsextern);
+            /* GET */
+            setgetfieldsextern.append( QString("extern void %2%3Get( %1 *New%3 );\r\n")
+                                       .arg( fieldTypeStrC[info->fields[n]->type] )
+                                       .arg( info->name )
+                                       .arg( info->fields[n]->name ) );
+        }
+    }
+    outInclude.replace(QString("$(SETGETFIELDSEXTERN)"), setgetfieldsextern);
 
     // Write the flight code
-    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".c", outSettingsCode );
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + "_adapter_mavlink.c", outSettingsCode );
     if (!res) {
         cout << "Error: Could not write flight code files" << endl;
         return false;
     }
 
-    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".h", outInclude );
+    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + "_adapter_mavlink.h", outInclude );
+    qDebug() << "Attempting to write file" << flightOutputPath.absolutePath() + "/" + info->namelc + "_adapter_mavlink.h";
     if (!res) {
         cout << "Error: Could not write flight include files" << endl;
         return false;

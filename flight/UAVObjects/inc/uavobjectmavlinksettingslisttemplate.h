@@ -37,10 +37,9 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include <string.h>
-#include "mavlink_settings_adapter.h"
+#ifndef UAVOBJECTMAVLINKSETTINGS_H
+#define UAVOBJECTMAVLINKSETTINGS_H
 
-#include "openpilot.h"
 #include "mavlink_types.h"
 
 // START INCLUSION OF SETTINGS HEADERS
@@ -52,139 +51,25 @@ $(ADAPTERHEADERS)
 // END INCLUSION OF INDIVIDUAL ADAPTER HEADERS
 
 
-int16_t getParamIndexByName(const char* name)
-{
-	int16_t ret = -1;
-//	ret = getActuatorSettingsParamIndexByName(name);
-//	if (ret != -1) return ret;
-	$(GETPARAMINDEXBYNAMELINES)
-	// If none applies, return value
-	return ret; // Return last state (== -1)
-}
+int16_t getParamIndexByName(const char* name);
 
-uint8_t getParamByIndex(uint16_t index, mavlink_param_union_t* param)
-{
-	uint8_t ret;
-	ret = getActuatorSettingsParamByIndex(index, param);
-	if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;
-	return ret; // Return last state
-}
+uint8_t getParamByIndex(uint16_t index, mavlink_param_union_t* param);
 
-uint8_t setParamByIndex(uint16_t index, const mavlink_param_union_t* param)
-{
-	uint8_t ret;
-	ret = setActuatorSettingsParamByIndex(index, param);
-	if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;
-	return ret; // Return last state
-}
+uint8_t setParamByIndex(uint16_t index, const mavlink_param_union_t* param);
 
-const char* getParamNameByIndex(uint16_t index)
-{
-	char* ret;
-	ret = getActuatorSettingsParamNameByIndex(index);
-	if (ret != '\0')
-	return ret;
-}
+const char* getParamNameByIndex(uint16_t index);
 
-uint16_t getParamCount()
-{
-	return MAX_ACTUATOR_PARAMS;
-}
+uint16_t getParamCount();
 
+uint8_t getParamByName(const char* name, mavlink_param_union_t* param);
 
-uint8_t getParamByName(const char* name, mavlink_param_union_t* param)
-{
-	int16_t index = -1;
-	uint8_t ret;
+uint8_t setParamByName(const char* name, mavlink_param_union_t* param);
 
-	// Search for index as long as it stays not found (-1)
+int32_t writeParametersToStorage();
 
-	// START INDEX FOUND SECTION
-	if (index == -1) index = getActuatorSettingsParamIndexByName(name);
-	// END INDEX FOUND SECTION
+int32_t readParametersFromStorage();
 
-	if (index > -1)
-	{
-		// Break on first match
-
-		// START VALUE FOUND SECTION
-		ret = getActuatorSettingsParamByIndex(index, param);
-		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
-		// END VALUE FOUND SECTION
-	}
-
-	// No match, return false
-	return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
-}
-
-uint8_t setParamByName(const char* name, mavlink_param_union_t* param)
-{
-	int16_t index = -1;
-	uint8_t ret;
-
-	// Search for index as long as it stays not found (-1)
-
-	// START INDEX FOUND SECTION
-	if (index == -1) index = getActuatorSettingsParamIndexByName(name);
-	// END INDEX FOUND SECTION
-
-	if (index > -1)
-	{
-		// Break on first match
-
-		// START VALUE FOUND SECTION
-		ret = setActuatorSettingsParamByIndex(index, param);
-		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
-		// END VALUE FOUND SECTION
-	}
-
-	// No match, return false
-	return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
-}
-
-int32_t writeParametersToStorage()
-{
-	//					// WORKING
-	//					ObjectPersistenceData objper;
-	//
-	//					// Write all objects individually
-	//					// for;;
-	//					ObjectPersistenceGet(&objper);
-	//
-	//					ActuatorSettingsData settings;
-	//					ActuatorSettingsGet(&settings);
-	//
-	//					objper.Selection = OBJECTPERSISTENCE_SELECTION_SINGLEOBJECT;
-	//					objper.Operation = OBJECTPERSISTENCE_OPERATION_SAVE;
-	//					objper.ObjectID = ACTUATORSETTINGS_OBJID;
-	//					objper.InstanceID = 0;
-	//					ObjectPersistenceSet(&objper);
-	//					// END WORKING
-
-
-
-	UAVObjHandle handle = ActuatorSettingsHandle();
-	return UAVObjSave(handle, 0);
-}
-
-int32_t readParametersFromStorage()
-{
-	UAVObjHandle handle = ActuatorSettingsHandle();
-	return UAVObjLoad(handle, 0);
-}
-
-/**
- * @}
- * @}
- */
-
-
-#ifndef $(NAMEUC)_H
-#define $(NAMEUC)_H
-
-
-
-#endif // $(NAMEUC)_H
+#endif // UAVOBJECTMAVLINKSETTINGS_H
 
 /**
  * @}
