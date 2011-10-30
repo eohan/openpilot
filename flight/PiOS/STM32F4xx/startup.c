@@ -7,13 +7,13 @@
 #include <stm32f4xx.h>
 
 /* prototype for main() that tells us not to worry about it possibly returning */
-extern int main(void) __attribute__((noreturn));
+extern int		main(void) __attribute__((noreturn));
 
 /* prototype our _main() to avoid prolog/epilog insertion and other related junk */
-static void _main(void) __attribute__((noreturn, naked));
+void 			_main(void) __attribute__((noreturn, naked, no_instrument_function));
 
 /** default handler for CPU exceptions */
-static void		default_cpu_handler(void) __attribute__((noreturn, naked));
+static void		default_cpu_handler(void) __attribute__((noreturn, naked, no_instrument_function));
 
 /** BSS symbols XXX should have a header that defines all of these */
 extern char		_sbss, _ebss;

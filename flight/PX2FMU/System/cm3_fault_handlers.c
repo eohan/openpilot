@@ -15,7 +15,7 @@
 #endif
 
 #define FAULT_TRAMPOLINE(_vec)										\
-__attribute__((naked))												\
+__attribute__((naked, no_instrument_function))						\
 void																\
 _vec##_Handler(void)												\
 {																	\
