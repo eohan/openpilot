@@ -3,14 +3,6 @@
 #
 
 #
-# Expects that the following have already been defined:
-#
-# PIOS				top-level PIOS directory
-# PIOSCOMMON		path to PIOS common sources
-# PIOSCOMMONLIB		path to PIOS common libraries
-#
-
-#
 # Directory containing this makefile
 #
 PIOS_DEVLIB			:=	$(dir $(lastword $(MAKEFILE_LIST)))
@@ -30,7 +22,7 @@ LINKER_SCRIPTS_BL	 =	$(PIOS_DEVLIB)/link_STM32F2xx_OP_memory.ld \
 CDEFS				+= -DSTM32F2XX
 CDEFS				+= -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS 				+= -DUSE_STDPERIPH_DRIVER
-CFLAGS				+= -mcpu=cortex-m3
+ARCHFLAGS			+= -mcpu=cortex-m3
 
 #
 # PIOS device library source and includes

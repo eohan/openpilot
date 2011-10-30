@@ -299,6 +299,9 @@ CFLAGS += -g$(DEBUGF) -DDEBUG
 CFLAGS += -finstrument-functions -ffixed-r10
 endif
 
+# common architecture-specific flags from the device-specific library makefile
+CFLAGS += $(ARCHFLAGS)
+
 # FMU has enough memory to always enable optional objects
 CFLAGS += -DDIAGNOSTICS
 
@@ -325,7 +328,7 @@ CONLYFLAGS += $(CSTANDARD)
 # Assembler flags.
 #  -Wa,...:    tell GCC to pass this to the assembler.
 #  -ahlns:     create listing
-ASFLAGS  = -mcpu=$(MCU) -mthumb -I. -x assembler-with-cpp
+ASFLAGS  = $(ARCHFLAGS) -mthumb -I. -x assembler-with-cpp
 ASFLAGS += $(ADEFS)
 ASFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 ASFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
