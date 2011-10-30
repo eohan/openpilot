@@ -206,8 +206,7 @@ extern uint32_t pios_com_aux_id;
 //-------------------------
 // System Settings
 //-------------------------
-#define PIOS_MASTER_CLOCK				120000000					// XXX should really get this from the BSP
-#define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)		// XXX should really get this from the BSP
+#define PIOS_MASTER_CLOCK				SYSCLK_FREQ	// XXX should really get this procedurally
 
 //-------------------------
 // Interrupt Priorities
