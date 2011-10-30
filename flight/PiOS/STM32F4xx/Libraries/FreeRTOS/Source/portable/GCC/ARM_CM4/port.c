@@ -254,7 +254,7 @@ void xPortPendSVHandler( void )
 			"	mrs r0, psp							\n"	/* get the program stack pointer (base of automatic frame) in r0 */
 			"										\n"
 			"	tst lr, 0x10						\n"	/* check for extended stack frame */
-			"	beq 1f								\n"	/* skip FP register save if only a basic frame */
+			"	bne 1f								\n"	/* skip FP register save if only a basic frame */
 			"	vstmdb r0!, {s16-s31}				\n" /* stack the remaining FP registers */
 			"1:										\n"
 			"	stmdb r0!, {r4-r11}					\n" /* stack the remaining GP registers */
@@ -280,7 +280,7 @@ void xPortPendSVHandler( void )
 			"	ldmia r0!, {lr}						\n"	/* pop the exception return code */
 			"	ldmia r0!, {r4-r11}					\n" /* pop the manually-stacked GP registers */
 			"	tst lr, 0x10						\n"	/* check for extended stack frame */
-			"	beq 2f								\n"	/* skip FP register pop if only a basic frame */
+			"	bne 2f								\n"	/* skip FP register pop if only a basic frame */
 			"	vldmia r0!, {s16-s31}				\n" /* pop the manually-stacked FP registers */
 			"2:										\n"
 			"	msr psp, r0							\n"	/* reload the program stack pointer */
