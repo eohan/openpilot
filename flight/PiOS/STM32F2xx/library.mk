@@ -1,5 +1,5 @@
 #
-# Rules to (help) build the F4xx device support.
+# Rules to (help) build the F2xx device support.
 #
 
 #
@@ -18,16 +18,16 @@ PIOS_DEVLIB			:=	$(dir $(lastword $(MAKEFILE_LIST)))
 #
 # Hardcoded linker script names for now
 #
-LINKER_SCRIPTS_APP	 =	$(PIOS_DEVLIB)/link_STM32F4xx_OP_memory.ld \
-						$(PIOS_DEVLIB)/link_STM32F4xx_sections.ld
+LINKER_SCRIPTS_APP	 =	$(PIOS_DEVLIB)/link_STM32F2xx_OP_memory.ld \
+						$(PIOS_DEVLIB)/link_STM32F2xx_sections.ld
 
-LINKER_SCRIPTS_BL	 =	$(PIOS_DEVLIB)/link_STM32F4xx_OP_memory.ld \
-						$(PIOS_DEVLIB)/link_STM32F4xx_sections.ld
+LINKER_SCRIPTS_BL	 =	$(PIOS_DEVLIB)/link_STM32F2xx_OP_memory.ld \
+						$(PIOS_DEVLIB)/link_STM32F2xx_sections.ld
 
 #
-# Compiler options implied by the F4xx
+# Compiler options implied by the F2xx
 #
-CDEFS				+= -DSTM32F4XX
+CDEFS				+= -DSTM32F2XX
 CDEFS				+= -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS 				+= -DUSE_STDPERIPH_DRIVER
 
@@ -49,17 +49,16 @@ SRC					+=	$(wildcard $(PIOS_DEVLIB)/*.c)
 EXTRAINCDIRS		+=	$(PIOS_DEVLIB)/inc
 
 #
-# CMSIS for the F4
+# CMSIS for the F2
 #
-include $(PIOSCOMMONLIB)/CMSIS2/library.mk
-CMSIS2_DEVICEDIR	:=	$(PIOS_DEVLIB)/Libraries/CMSIS2/Device/ST/STM32F4xx
-SRC					+=	$(wildcard $(CMSIS2_DEVICEDIR)/Source/*.c)
-EXTRAINCDIRS		+=	$(CMSIS2_DEVICEDIR)/Include
+CMSIS_DIR			:=	$(PIOS_DEVLIB)/Libraries/CMSIS
+SRC					+=	$(wildcard $(CMSIS_DIR)/Core/CM3/*.c)
+EXTRAINCDIRS		+=	$(CMSIS_DIR)/Core/CM3
 
 #
 # ST Peripheral library
 #
-PERIPHLIB			 =	$(PIOS_DEVLIB)/Libraries/STM32F4xx_StdPeriph_Driver
+PERIPHLIB			 =	$(PIOS_DEVLIB)/Libraries/STM32F2xx_StdPeriph_Driver
 SRC					+=	$(wildcard $(PERIPHLIB)/src/*.c)
 EXTRAINCDIRS		+=	$(PERIPHLIB)/inc
 
@@ -71,7 +70,7 @@ EXTRAINCDIRS		+=	$(PERIPHLIB)/inc
 #
 ifneq ($(FREERTOS_DIR),)
 FREERTOS_PORTDIR	:=	$(PIOS_DEVLIB)/Libraries/FreeRTOS/Source
-SRC					+=	$(wildcard $(FREERTOS_PORTDIR)/portable/GCC/ARM_CM4/*.c)
-EXTRAINCDIRS		+=	$(FREERTOS_PORTDIR)/portable/GCC/ARM_CM4
+SRC					+=	$(wildcard $(FREERTOS_PORTDIR)/portable/GCC/ARM_CM3/*.c)
+EXTRAINCDIRS		+=	$(FREERTOS_PORTDIR)/portable/GCC/ARM_CM3
 endif
 
