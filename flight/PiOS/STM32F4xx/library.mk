@@ -22,7 +22,7 @@ LINKER_SCRIPTS_BL	 =	$(PIOS_DEVLIB)/link_STM32F4xx_OP_memory.ld \
 CDEFS				+= -DSTM32F4XX
 CDEFS				+= -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS 				+= -DUSE_STDPERIPH_DRIVER
-ARCHFLAGS			+= -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard
+ARCHFLAGS			+= -mcpu=cortex-m4 -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 
 #
 # PIOS device library source and includes
