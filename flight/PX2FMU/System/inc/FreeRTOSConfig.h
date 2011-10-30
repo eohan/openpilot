@@ -80,6 +80,14 @@ NVIC value of 255. */
 /* Enable run time stats collection */
 #define configGENERATE_RUN_TIME_STATS 			1
 #define INCLUDE_uxTaskGetRunTime 				1
+
+/*
+ * Once we move to CMSIS2 we can at least use:
+ *
+ * CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+ *
+ * (still nothing for the DWT registers, surprisingly)
+ */
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()									\
 	do {																			\
 		(*(unsigned long *)0xe000edfc) |= (1<<24);	/* DEMCR |= DEMCR_TRCENA */		\
