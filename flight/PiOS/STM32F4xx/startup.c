@@ -44,8 +44,13 @@ _main(void)
 	// that might bounds-check the stack
 	asm volatile ("mov r10, %0" : : "r" (&irq_stack[0]) : );
 
-	//*(volatile unsigned long*)0xe000ed24 = 3 << 17;	// extra fault handlers
+	/* enable usage, bus and memory faults */
+	SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk | SCB_SHCSR_MEMFAULTENA_Msk;
 
+	/* configure FP state save behaviour - automatic, lazy save */
+	FPU->FPCCR |= FPU_FPCCR_ASPEN_Msk | FPU_FPCCR_LSPEN_Msk;
+
+	/* enable the FPU */
 	SCB->CPACR |= (0xf << 20);	// turn on CP10/11 for FP support on cores that implement it
 
 	/* copy initialised data from flash to RAM */
