@@ -52,7 +52,7 @@
 */
 
 /*-----------------------------------------------------------
- * Implementation of functions defined in portable.h for the ARM CM3 port.
+ * Implementation of functions defined in portable.h for the ARM Cortex-M4F port.
  *----------------------------------------------------------*/
 
 /* Scheduler includes. */
@@ -80,6 +80,7 @@ FreeRTOS.org versions prior to V4.4.0 did not include this definition. */
 
 /* Constants required to set up the initial stack. */
 #define portINITIAL_XPSR			( 0x01000000 )
+#define portINITIAL_FPSCR			( (1<<25) )			/* select Default NaN mode XXX this is arguably not appropriate here */
 
 /* The priority used by the kernel is assigned to a variable to make access
 from inline assembler easier. */
@@ -113,24 +114,64 @@ void vPortStartFirstTask( void ) __attribute__ (( naked )) __attribute__((no_ins
  */
 portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_TYPE *pxStartOfStack, pdTASK_CODE pxCode, void *pvParameters )
 {
-	/* Simulate the stack frame as it would be created by a context switch interrupt. */
-	/* Offset added to account for the way the MCU uses the stack on entry/exit of interrupts. */
-	*--pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
-	*--pxTopOfStack = ( portSTACK_TYPE ) pxCode;	/* PC */
-	*--pxTopOfStack = 0;	/* LR */
-	*--pxTopOfStack = 0;	/* R12 */
-	*--pxTopOfStack = 0;	/* R3 */
-	*--pxTopOfStack = 0;	/* R2 */
-	*--pxTopOfStack = 0;	/* R1 */
-	*--pxTopOfStack = ( portSTACK_TYPE ) pvParameters;	/* R0 */
-	*--pxTopOfStack = 0;	/* R11 */
-	*--pxTopOfStack = ( portSTACK_TYPE ) pxStartOfStack + 64; /* R10 with room for a full context save */
-	*--pxTopOfStack = 0;	/* R9 */
-	*--pxTopOfStack = 0;	/* R8 */
-	*--pxTopOfStack = 0;	/* R7 */
-	*--pxTopOfStack = 0;	/* R6 */
-	*--pxTopOfStack = 0;	/* R5 */
-	*--pxTopOfStack = 0;	/* R4 */
+	/*
+	 * Create an extended stack frame plus manual save area as would be
+	 * saved by xPortPendSVHandler on entry.
+	 */
+
+	/* automatically stacked state */
+	*--pxTopOfStack = 0;								/* reserved */
+	*--pxTopOfStack = portINITIAL_FPSCR;				/* FPSCR */
+	*--pxTopOfStack = 0;								/* s15 */
+	*--pxTopOfStack = 0;								/* s14 */
+	*--pxTopOfStack = 0;								/* s13 */
+	*--pxTopOfStack = 0;								/* s12 */
+	*--pxTopOfStack = 0;								/* s11 */
+	*--pxTopOfStack = 0;								/* s10 */
+	*--pxTopOfStack = 0;								/* s9 */
+	*--pxTopOfStack = 0;								/* s8 */
+	*--pxTopOfStack = 0;								/* s7 */
+	*--pxTopOfStack = 0;								/* s6 */
+	*--pxTopOfStack = 0;								/* s5 */
+	*--pxTopOfStack = 0;								/* s4 */
+	*--pxTopOfStack = 0;								/* s3 */
+	*--pxTopOfStack = 0;								/* s2 */
+	*--pxTopOfStack = 0;								/* s1 */
+	*--pxTopOfStack = 0;								/* s0 */
+	*--pxTopOfStack = portINITIAL_XPSR;					/* xPSR */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pxCode;		/* pc */
+	*--pxTopOfStack = 0;								/* lr */
+	*--pxTopOfStack = 0;								/* r12 */
+	*--pxTopOfStack = 0;								/* r3 */
+	*--pxTopOfStack = 0;								/* r2 */
+	*--pxTopOfStack = 0;								/* r1 */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pvParameters;	/* r0 */
+
+	/* manually stacked state */
+	*--pxTopOfStack = 0;								/* s31 */
+	*--pxTopOfStack = 0;								/* s30 */
+	*--pxTopOfStack = 0;								/* s29 */
+	*--pxTopOfStack = 0;								/* s28 */
+	*--pxTopOfStack = 0;								/* s27 */
+	*--pxTopOfStack = 0;								/* s26 */
+	*--pxTopOfStack = 0;								/* s25 */
+	*--pxTopOfStack = 0;								/* s24 */
+	*--pxTopOfStack = 0;								/* s23 */
+	*--pxTopOfStack = 0;								/* s22 */
+	*--pxTopOfStack = 0;								/* s21 */
+	*--pxTopOfStack = 0;								/* s20 */
+	*--pxTopOfStack = 0;								/* s19 */
+	*--pxTopOfStack = 0;								/* s18 */
+	*--pxTopOfStack = 0;								/* s17 */
+	*--pxTopOfStack = 0;								/* s16 */
+	*--pxTopOfStack = 0;								/* r11 */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pxStartOfStack + 200; /* r10 (base of stack) reserve room for a full context save */
+	*--pxTopOfStack = 0;								/* r9 */
+	*--pxTopOfStack = 0;								/* r8 */
+	*--pxTopOfStack = 0;								/* r7 */
+	*--pxTopOfStack = 0;								/* r6 */
+	*--pxTopOfStack = 0;								/* r5 */
+	*--pxTopOfStack = 0;								/* r4 */
 
 	return pxTopOfStack;
 }
@@ -139,37 +180,34 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_T
 void vPortSVCHandler( void )
 {
 	__asm volatile (
-					"	ldr	r3, pxCurrentTCBConst2		\n" /* Restore the context. */
-					"	ldr r1, [r3]					\n" /* Use pxCurrentTCBConst to get the pxCurrentTCB address. */
-					"	ldr r0, [r1]					\n" /* The first item in pxCurrentTCB is the task top of stack. */
-					"	ldmia r0!, {r4-r11}				\n" /* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
-					"	msr psp, r0						\n" /* Restore the task stack pointer. */
-					"	mov r0, #0 						\n"
-					"	msr	basepri, r0					\n"
-					"	orr r14, #0xd					\n"
-					"	bx r14							\n"
-					"									\n"
-					"	.align 2						\n"
-					"pxCurrentTCBConst2: .word pxCurrentTCB				\n"
-				);
+			"	ldr	r3, pxCurrentTCBConst2		\n" /* pointer to pxCurrentTCB */
+			"	ldr r1, [r3]					\n" /* pointer to current TCB */
+			"	ldr r0, [r1]					\n" /* first member of pxCurrentTCB is the current task stack pointer */
+			"	vldmia r0!, {s16-s31}			\n"	/* pop the manually-stacked FP registers */
+			"	ldmia r0!, {r4-r11}				\n" /* pop the manually-stacked GP registers */
+			"	msr psp, r0						\n" /* reload the program stack pointer */
+			"	mov r0, #0 						\n" /* reset to priority 0 */
+			"	msr	basepri, r0					\n"
+			"	orr lr, #0xed					\n"	/* return to thread mode with extended stackframe, force CONTROL.FPCA to 1 */
+			"	bx lr							\n"
+			"									\n"
+			"	.align 2						\n"
+			"pxCurrentTCBConst2: .word pxCurrentTCB	\n"
+	);
 }
 /*-----------------------------------------------------------*/
 
 void vPortStartFirstTask( void )
 {
 	__asm volatile(
-					" ldr r0, =0xE000ED08 	\n" /* Use the NVIC offset register to locate the stack. */
-					" ldr r0, [r0] 			\n"
-					" ldr r0, [r0] 			\n"
-					" msr msp, r0			\n" /* Set the msp back to the start of the stack. */
-					" cpsie i				\n" /* Globally enable interrupts. */
-#if 0
-					" svc 0					\n" /* System call to start first task. */
-#else
-					".hword 0xDF00			\n"	/* svc 0 - workaround binutils bug */
-#endif
-					" nop					\n"
-				);
+			" ldr r0, =0xE000ED08 	\n" /* Use the NVIC offset register to locate the stack. */
+			" ldr r0, [r0] 			\n"
+			" ldr r0, [r0] 			\n"
+			" msr msp, r0			\n" /* Set the msp back to the start of the stack. */
+			" cpsie i				\n" /* Globally enable interrupts. */
+			" svc 0					\n" /* System call to start first task. */
+			" nop					\n"
+	);
 }
 /*-----------------------------------------------------------*/
 
@@ -234,31 +272,33 @@ void xPortPendSVHandler( void )
 
 	__asm volatile
 	(
-	"	mrs r0, psp							\n"
-	"										\n"
-	"	ldr	r3, pxCurrentTCBConst			\n" /* Get the location of the current TCB. */
-	"	ldr	r2, [r3]						\n"
-	"										\n"
-	"	stmdb r0!, {r4-r11}					\n" /* Save the remaining registers. */
-	"	str r0, [r2]						\n" /* Save the new top of stack into the first member of the TCB. */
-	"										\n"
-	"	stmdb sp!, {r3, r14}				\n"
-	"	mov r0, %0							\n"
-	"	msr basepri, r0						\n"
-	"	bl vTaskSwitchContext				\n"
-	"	mov r0, #0							\n"
-	"	msr basepri, r0						\n"
-	"	ldmia sp!, {r3, r14}				\n"
-	"										\n"	/* Restore the context, including the critical nesting count. */
-	"	ldr r1, [r3]						\n"
-	"	ldr r0, [r1]						\n" /* The first item in pxCurrentTCB is the task top of stack. */
-	"	ldmia r0!, {r4-r11}					\n" /* Pop the registers. */
-	"	msr psp, r0							\n"
-	"	bx r14								\n"
-	"										\n"
-	"	.align 2							\n"
-	"pxCurrentTCBConst: .word pxCurrentTCB	\n"
-	::"i"(configMAX_SYSCALL_INTERRUPT_PRIORITY)
+			"	mrs r0, psp							\n"	/* get the program stack pointer (base of automatic frame) in r0 */
+			"										\n"
+			"	ldr	r3, pxCurrentTCBConst			\n" /* Get the location of the current TCB. */
+			"	ldr	r2, [r3]						\n"
+			"										\n"
+			"	stmdb r0!, {r4-r11}					\n" /* stack the remaining GP registers */
+			"	vstmdb r0!, {s16-s31}				\n" /* stack the remaining FP registers */
+			"	str r0, [r2]						\n" /* Save the new top of stack into the first member of the TCB. */
+			"										\n"
+			"	stmdb sp!, {r3, lr}					\n"	/* save r3 (pointer to pointer to the current TCB) and lr (exception return code) */
+			"	mov r0, %0							\n"
+			"	msr basepri, r0						\n"
+			"	bl vTaskSwitchContext				\n"
+			"	mov r0, #0							\n"
+			"	msr basepri, r0						\n"
+			"	ldmia sp!, {r3, lr}					\n"
+			"										\n"	/* Restore the context, including the critical nesting count. */
+			"	ldr r1, [r3]						\n"
+			"	ldr r0, [r1]						\n" /* The first item in pxCurrentTCB is the task top of stack. */
+			"	vldmia r0!, {s16-s31}				\n" /* pop the manually-stacked FP registers */
+			"	ldmia r0!, {r4-r11}					\n" /* pop the manually-stacked GP registers */
+			"	msr psp, r0							\n"	/* reload the program stack pointer */
+			"	bx lr								\n"	/* perform an exception return as per the encoding in r14 */
+			"										\n"
+			"	.align 2							\n"
+			"pxCurrentTCBConst: .word pxCurrentTCB	\n"
+			::"i"(configMAX_SYSCALL_INTERRUPT_PRIORITY)
 	);
 }
 /*-----------------------------------------------------------*/
