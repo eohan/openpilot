@@ -80,7 +80,7 @@ FreeRTOS.org versions prior to V4.4.0 did not include this definition. */
 
 /* Constants required to set up the initial stack. */
 #define portINITIAL_XPSR			( 0x01000000 )
-#define portINITIAL_FPSCR			( (1<<25) )			/* select Default NaN mode XXX this is arguably not appropriate here */
+#define portINITIAL_EXC_RETURN		( 0xfffffffd )	/* return to thread mode, basic stack frame, FPU not used */
 
 /* The priority used by the kernel is assigned to a variable to make access
 from inline assembler easier. */
@@ -115,29 +115,15 @@ void vPortStartFirstTask( void ) __attribute__ (( naked )) __attribute__((no_ins
 portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_TYPE *pxStartOfStack, pdTASK_CODE pxCode, void *pvParameters )
 {
 	/*
-	 * Create an extended stack frame plus manual save area as would be
-	 * saved by xPortPendSVHandler on entry.
+	 * Create a basic stack frame plus manual save area as would be
+	 * saved by xPortPendSVHandler on entry, for a task that has not
+	 * used the FPU.
+	 *
+	 * XXX if pxTopOfStack is not 8-byte aligned and the CPU is configured
+	 * to adjust the stack to 8-byte boundaries, is this code safe?
 	 */
 
 	/* automatically stacked state */
-	*--pxTopOfStack = 0;								/* reserved */
-	*--pxTopOfStack = portINITIAL_FPSCR;				/* FPSCR */
-	*--pxTopOfStack = 0;								/* s15 */
-	*--pxTopOfStack = 0;								/* s14 */
-	*--pxTopOfStack = 0;								/* s13 */
-	*--pxTopOfStack = 0;								/* s12 */
-	*--pxTopOfStack = 0;								/* s11 */
-	*--pxTopOfStack = 0;								/* s10 */
-	*--pxTopOfStack = 0;								/* s9 */
-	*--pxTopOfStack = 0;								/* s8 */
-	*--pxTopOfStack = 0;								/* s7 */
-	*--pxTopOfStack = 0;								/* s6 */
-	*--pxTopOfStack = 0;								/* s5 */
-	*--pxTopOfStack = 0;								/* s4 */
-	*--pxTopOfStack = 0;								/* s3 */
-	*--pxTopOfStack = 0;								/* s2 */
-	*--pxTopOfStack = 0;								/* s1 */
-	*--pxTopOfStack = 0;								/* s0 */
 	*--pxTopOfStack = portINITIAL_XPSR;					/* xPSR */
 	*--pxTopOfStack = ( portSTACK_TYPE ) pxCode;		/* pc */
 	*--pxTopOfStack = 0;								/* lr */
@@ -148,22 +134,6 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_T
 	*--pxTopOfStack = ( portSTACK_TYPE ) pvParameters;	/* r0 */
 
 	/* manually stacked state */
-	*--pxTopOfStack = 0;								/* s31 */
-	*--pxTopOfStack = 0;								/* s30 */
-	*--pxTopOfStack = 0;								/* s29 */
-	*--pxTopOfStack = 0;								/* s28 */
-	*--pxTopOfStack = 0;								/* s27 */
-	*--pxTopOfStack = 0;								/* s26 */
-	*--pxTopOfStack = 0;								/* s25 */
-	*--pxTopOfStack = 0;								/* s24 */
-	*--pxTopOfStack = 0;								/* s23 */
-	*--pxTopOfStack = 0;								/* s22 */
-	*--pxTopOfStack = 0;								/* s21 */
-	*--pxTopOfStack = 0;								/* s20 */
-	*--pxTopOfStack = 0;								/* s19 */
-	*--pxTopOfStack = 0;								/* s18 */
-	*--pxTopOfStack = 0;								/* s17 */
-	*--pxTopOfStack = 0;								/* s16 */
 	*--pxTopOfStack = 0;								/* r11 */
 	*--pxTopOfStack = ( portSTACK_TYPE ) pxStartOfStack + 200; /* r10 (base of stack) reserve room for a full context save */
 	*--pxTopOfStack = 0;								/* r9 */
@@ -173,26 +143,20 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_T
 	*--pxTopOfStack = 0;								/* r5 */
 	*--pxTopOfStack = 0;								/* r4 */
 
+	/* exception return code */
+	*--pxTopOfStack = portINITIAL_EXC_RETURN;
+
 	return pxTopOfStack;
 }
 /*-----------------------------------------------------------*/
 
 void vPortSVCHandler( void )
 {
+	/*
+	 * Start the first task.
+	 */
 	__asm volatile (
-			"	ldr	r3, pxCurrentTCBConst2		\n" /* pointer to pxCurrentTCB */
-			"	ldr r1, [r3]					\n" /* pointer to current TCB */
-			"	ldr r0, [r1]					\n" /* first member of pxCurrentTCB is the current task stack pointer */
-			"	vldmia r0!, {s16-s31}			\n"	/* pop the manually-stacked FP registers */
-			"	ldmia r0!, {r4-r11}				\n" /* pop the manually-stacked GP registers */
-			"	msr psp, r0						\n" /* reload the program stack pointer */
-			"	mov r0, #0 						\n" /* reset to priority 0 */
-			"	msr	basepri, r0					\n"
-			"	orr lr, #0xed					\n"	/* return to thread mode with extended stackframe, force CONTROL.FPCA to 1 */
-			"	bx lr							\n"
-			"									\n"
-			"	.align 2						\n"
-			"pxCurrentTCBConst2: .word pxCurrentTCB	\n"
+			"	b context_restore		\n"	/* jump directly to the context restore path in xPortPendSVHandler */
 	);
 }
 /*-----------------------------------------------------------*/
@@ -200,13 +164,13 @@ void vPortSVCHandler( void )
 void vPortStartFirstTask( void )
 {
 	__asm volatile(
-			" ldr r0, =0xE000ED08 	\n" /* Use the NVIC offset register to locate the stack. */
-			" ldr r0, [r0] 			\n"
-			" ldr r0, [r0] 			\n"
-			" msr msp, r0			\n" /* Set the msp back to the start of the stack. */
-			" cpsie i				\n" /* Globally enable interrupts. */
-			" svc 0					\n" /* System call to start first task. */
-			" nop					\n"
+			"	ldr r0, =0xE000ED08 	\n" /* Use the NVIC offset register to locate the stack. */
+			"	ldr r0, [r0] 			\n"
+			"	ldr r0, [r0] 			\n"
+			"	msr msp, r0				\n" /* Set the msp back to the start of the stack. */
+			"	cpsie i					\n" /* Globally enable interrupts. */
+			"	svc 0					\n" /* System call to start first task. */
+			"	nop						\n"
 	);
 }
 /*-----------------------------------------------------------*/
@@ -269,35 +233,61 @@ void vPortExitCritical( void )
 void xPortPendSVHandler( void )
 {
 	/* This is a naked function. */
+	/*
+	 * XXX todo - check r0 against r10 for stack overflow detection?
+	 */
 
+	/*
+	 * Handle a PendSV exception, triggered by vPortYieldFromISR (etc).
+	 *
+	 * FP state saving is conditional on bit 4 of the EXC_RETURN value (lr).
+	 * If the bit is 1, the frame saved by entry is a basic frame and FP
+	 * state should not be saved.  If the bit is 0, the frame saved is
+	 * an extended frame and the high FP registers also need to be saved.
+	 *
+	 * Since the EXC_RETURN value is specific to the task, it is the last
+	 * item stacked and the first to be popped when restoring a task's
+	 * context.
+	 */
 	__asm volatile
 	(
 			"	mrs r0, psp							\n"	/* get the program stack pointer (base of automatic frame) in r0 */
 			"										\n"
-			"	ldr	r3, pxCurrentTCBConst			\n" /* Get the location of the current TCB. */
-			"	ldr	r2, [r3]						\n"
-			"										\n"
-			"	stmdb r0!, {r4-r11}					\n" /* stack the remaining GP registers */
+			"	tst lr, 0x10						\n"	/* check for extended stack frame */
+			"	beq 1f								\n"	/* skip FP register save if only a basic frame */
 			"	vstmdb r0!, {s16-s31}				\n" /* stack the remaining FP registers */
-			"	str r0, [r2]						\n" /* Save the new top of stack into the first member of the TCB. */
+			"1:										\n"
+			"	stmdb r0!, {r4-r11}					\n" /* stack the remaining GP registers */
+			"	stmdb r0!, {lr}						\n"	/* stack the exception return code for use when resuming */
 			"										\n"
-			"	stmdb sp!, {r3, lr}					\n"	/* save r3 (pointer to pointer to the current TCB) and lr (exception return code) */
-			"	mov r0, %0							\n"
+			"	ldr	r3, 3f							\n" /* pointer to pointer to current TCB in r3 */
+			"	ldr	r2, [r3]						\n"	/* pointer to current TCB in r2 */
+			"	str r0, [r2]						\n" /* save stack (context) pointer in the first member of the TCB */
+			"										\n"
+			"	mov r0, %0							\n"	/* switch to syscall interrupt priority */
 			"	msr basepri, r0						\n"
-			"	bl vTaskSwitchContext				\n"
-			"	mov r0, #0							\n"
+			"										\n"
+			"	bl vTaskSwitchContext				\n"	/* handle the context switch call */
+			"										\n"
+			"context_restore:						\n"	/* branch target for vPortSVCHandler */
+			"	mov r0, #0							\n"	/* reset to priority 0 */
 			"	msr basepri, r0						\n"
-			"	ldmia sp!, {r3, lr}					\n"
-			"										\n"	/* Restore the context, including the critical nesting count. */
-			"	ldr r1, [r3]						\n"
-			"	ldr r0, [r1]						\n" /* The first item in pxCurrentTCB is the task top of stack. */
-			"	vldmia r0!, {s16-s31}				\n" /* pop the manually-stacked FP registers */
+			"										\n"
+			"	ldr	r3, 3f							\n" /* pointer to pointer to current TCB in r3 */
+			"	ldr r2, [r3]						\n"	/* pointer to current TCB in r2 */
+			"	ldr r0, [r2]						\n" /* restore stack (context) pointer from the first member of the TCB */
+			"										\n"
+			"	ldmia r0!, {lr}						\n"	/* pop the exception return code */
 			"	ldmia r0!, {r4-r11}					\n" /* pop the manually-stacked GP registers */
+			"	tst lr, 0x10						\n"	/* check for extended stack frame */
+			"	beq 2f								\n"	/* skip FP register pop if only a basic frame */
+			"	vldmia r0!, {s16-s31}				\n" /* pop the manually-stacked FP registers */
+			"2:										\n"
 			"	msr psp, r0							\n"	/* reload the program stack pointer */
-			"	bx lr								\n"	/* perform an exception return as per the encoding in r14 */
+			"	bx lr								\n"	/* perform an exception return as per the encoding in lr */
 			"										\n"
 			"	.align 2							\n"
-			"pxCurrentTCBConst: .word pxCurrentTCB	\n"
+			"3: .word pxCurrentTCB					\n"
 			::"i"(configMAX_SYSCALL_INTERRUPT_PRIORITY)
 	);
 }

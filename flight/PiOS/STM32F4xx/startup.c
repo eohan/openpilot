@@ -50,6 +50,9 @@ _main(void)
 	/* configure FP state save behaviour - automatic, lazy save */
 	FPU->FPCCR |= FPU_FPCCR_ASPEN_Msk | FPU_FPCCR_LSPEN_Msk;
 
+	/* configure default FPU state */
+	FPU->FPDSCR |= FPU_FPDSCR_DN_Msk;	/* enable Default NaN */
+
 	/* enable the FPU */
 	SCB->CPACR |= (0xf << 20);	// turn on CP10/11 for FP support on cores that implement it
 
