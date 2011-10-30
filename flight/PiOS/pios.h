@@ -49,7 +49,12 @@
 /* STM32 Std Perf Lib */
 #if defined(STM32F4XX)
 # include <stm32f4xx.h>
-#else
+#endif
+#if defined(STM32F2XX)
+# include <stm32f2xx.h>
+#endif
+
+#if !defined(STM32F2XX) && !defined(STM32F4XX)
 # include <stm32f10x.h>
 # include <stm32f10x_conf.h>
 #endif
