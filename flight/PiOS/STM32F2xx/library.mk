@@ -30,17 +30,7 @@ LINKER_SCRIPTS_BL	 =	$(PIOS_DEVLIB)/link_STM32F2xx_OP_memory.ld \
 CDEFS				+= -DSTM32F2XX
 CDEFS				+= -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS 				+= -DUSE_STDPERIPH_DRIVER
-
-#
-# PIOS common library
-#
-# XXX need to fix the PIOS common code to build correctly when it's not
-# actually going to be used/configured.
-#
-# XXX this should eventually be in $(PIOS)/Common/library.inc
-#
-#EXTRAINCDIRS		+=	$(PIOS) $(PIOS)/inc
-#SRC				+=	$(wildcard $(PIOS)/Common/*.c)
+CFLAGS				+= -mcpu=cortex-m3
 
 #
 # PIOS device library source and includes

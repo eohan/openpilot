@@ -4,6 +4,7 @@
  */
 
 #include <string.h>
+#include <stm32f4xx.h>
 
 /* prototype for main() that tells us not to worry about it possibly returning */
 extern int main(void) __attribute__((noreturn));
@@ -39,11 +40,13 @@ struct cm3_vectors {
 void
 _main(void)
 {
+	// load the stack base for the current stack before we attempt to branch to any function
+	// that might bounds-check the stack
 	asm volatile ("mov r10, %0" : : "r" (&irq_stack[0]) : );
 
 	//*(volatile unsigned long*)0xe000ed24 = 3 << 17;	// extra fault handlers
 
-	*(volatile unsigned long *)0xE000ED88 |= (0xf << 20);	// turn on CP10/11 for FP support on cores that implement it
+	SCB->CPACR |= (0xf << 20);	// turn on CP10/11 for FP support on cores that implement it
 
 	/* copy initialised data from flash to RAM */
 	memcpy(&_sdata, &_sidata, &_edata - &_sdata);
