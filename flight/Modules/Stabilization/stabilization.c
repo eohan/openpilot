@@ -38,7 +38,7 @@
 #include "ratedesired.h"
 #include "stabilizationdesired.h"
 #include "attitudeactual.h"
-#ifndef STM32F2XX
+#ifdef PX2MODE
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
 		// speed estimates
@@ -130,7 +130,7 @@ int32_t StabilizationInitialize()
 	queue = xQueueCreate(MAX_QUEUE_SIZE, sizeof(UAVObjEvent));
 
 	// Listen for updates.
-#ifdef STM32F2XX
+#ifdef PX2MODE
 	//	 Attitude should not be filtered by a controller
 	//	 instead, the attitude filter should provide
 	//	 speed estimates
@@ -162,7 +162,7 @@ static void stabilizationTask(void* parameters)
 	StabilizationDesiredData stabDesired;
 	RateDesiredData rateDesired;
 	AttitudeActualData attitudeActual;
-#ifndef STM32F2XX
+#ifdef PX2MODE
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
 		// speed estimates
@@ -195,7 +195,7 @@ static void stabilizationTask(void* parameters)
 		StabilizationDesiredGet(&stabDesired);
 		AttitudeActualGet(&attitudeActual);
 
-#ifndef STM32F2XX
+#ifdef PX2MODE
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
 		// speed estimates
@@ -243,7 +243,7 @@ static void stabilizationTask(void* parameters)
 		local_error[2] = fmod(local_error[2] + 180, 360) - 180;
 #endif
 
-#ifdef STM32F2XX
+#ifdef PX2MODE
 		gyro_filtered[0] = attitudeActual.RollRate;
 		gyro_filtered[1] = attitudeActual.PitchRate;
 		gyro_filtered[2] = attitudeActual.YawRate;

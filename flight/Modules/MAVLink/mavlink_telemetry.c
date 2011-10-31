@@ -503,14 +503,14 @@ static void processObjEvent(UAVObjEvent * ev)
 
 			mavlink_msg_heartbeat_send(MAVLINK_COMM_0, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
 
-			uint8_t ucCpuLoad;
-			SystemStatsCPULoadGet(&ucCpuLoad);
+			SystemStatsData stats;
+			SystemStatsGet(&stats);
 			FlightBatteryStateData flightBatteryData;
 			FlightBatteryStateGet(&flightBatteryData);
 			FlightBatterySettingsData flightBatterySettings;
 			FlightBatterySettingsGet(&flightBatterySettings);
 
-//			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "telem batt voltage %d\r\n", (int)(flightBatteryData.Voltage*1000));
+			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "telem load %d, temp: %d\r\n", (int)(stats.CPULoad*10), (int)stats.CPUTemp);
 
 			uint16_t batteryVoltage = (uint16_t)(flightBatteryData.Voltage*1000.0f);
 			int16_t batteryCurrent = -1; // -1: Not present / not estimated
@@ -528,7 +528,7 @@ static void processObjEvent(UAVObjEvent * ev)
 			//				batteryCurrent = flightBatteryData.Current*100;
 			//			}
 
-				mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0xFF, 0xFF, 0xFF, (uint16_t)(ucCpuLoad*3.9215686f*1000), batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
+				mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0xFF, 0xFF, 0xFF, ((uint16_t)stats.CPULoad*10), batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
 //				// Copy the message to the send buffer
 //				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 //				// Send buffer
