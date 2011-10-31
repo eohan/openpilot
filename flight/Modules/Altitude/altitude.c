@@ -44,7 +44,7 @@
 #endif
 
 // Private constants
-#define STACK_SIZE_BYTES 500
+#define STACK_SIZE_BYTES 1600
 #define TASK_PRIORITY (tskIDLE_PRIORITY+1)
 //#define UPDATE_PERIOD 100
 #define UPDATE_PERIOD 25

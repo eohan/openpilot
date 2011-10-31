@@ -8,6 +8,8 @@
 #ifndef PROTOCOL_H_
 #define PROTOCOL_H_
 
+#define PX2IO_I2C_ADDR	0x10
+
 /*
  * Trivial I2C protocol for IO.
  */

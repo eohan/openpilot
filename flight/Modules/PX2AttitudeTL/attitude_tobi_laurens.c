@@ -316,7 +316,7 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	// save outputs
 	float_vect3 kal_acc;
 	float_vect3 kal_mag;
-	float_vect3 kal_w0, kal_w;
+//	float_vect3 kal_w0, kal_w;
 
 	kal_acc.x = kalman_get_state(&attitude_tobi_laurens_kal, 0);
 	kal_acc.y = kalman_get_state(&attitude_tobi_laurens_kal, 1);
@@ -326,13 +326,13 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	kal_mag.y = kalman_get_state(&attitude_tobi_laurens_kal, 4);
 	kal_mag.z = kalman_get_state(&attitude_tobi_laurens_kal, 5);
 
-	kal_w0.x = kalman_get_state(&attitude_tobi_laurens_kal, 6);
-	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
-	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
-
-	kal_w.x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
-	kal_w.y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
-	kal_w.z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
+//	kal_w0.x = kalman_get_state(&attitude_tobi_laurens_kal, 6);
+//	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
+//	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
+//
+//	kal_w.x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
+//	kal_w.y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
+//	kal_w.z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
 
 	rates->x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
 	rates->y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
