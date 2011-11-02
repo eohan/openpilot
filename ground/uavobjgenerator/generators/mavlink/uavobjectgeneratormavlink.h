@@ -38,6 +38,9 @@ public:
     QDir flightCodePath;
     QDir flightOutputPath;
 
+protected:
+    unsigned int globalParamIndex;
+
 private:
     bool process_object(ObjectInfo* info);
 

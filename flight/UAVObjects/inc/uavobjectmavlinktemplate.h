@@ -37,15 +37,15 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef $(NAMEUC)_H
-#define $(NAMEUC)_H
+#ifndef $(NAMEUC)MAVLINKADAPTER_H
+#define $(NAMEUC)MAVLINKADAPTER_H
 
 int16_t get$(NAME)ParamIndexByName(const char* name);
 const char* get$(NAME)ParamNameByIndex(uint16_t index);
 uint8_t get$(NAME)ParamByIndex(uint16_t index, mavlink_param_union_t* param);
 uint8_t set$(NAME)ParamByIndex(uint16_t index, const mavlink_param_union_t* param);
 
-#endif // $(NAMEUC)_H
+#endif // $(NAMEUC)MAVLINKADAPTER_H
 
 /**
  * @}

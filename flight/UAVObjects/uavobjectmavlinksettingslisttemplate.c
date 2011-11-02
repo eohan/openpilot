@@ -59,7 +59,7 @@ int16_t getParamIndexByName(const char* name)
 	int16_t ret = -1;
 //	ret = getActuatorSettingsParamIndexByName(name);
 //	if (ret != -1) return ret;
-	$(GETPARAMINDEXBYNAMELINES)
+$(GETPARAMINDEXBYNAMELINES)
 	// If none applies, return value
 	return ret; // Return last state (== -1)
 }
@@ -67,35 +67,35 @@ int16_t getParamIndexByName(const char* name)
 uint8_t getParamByIndex(uint16_t index, mavlink_param_union_t* param)
 {
 	uint8_t ret = MAVLINK_RET_VAL_PARAM_INDEX_DOES_NOT_EXIST;
-	ret = getActuatorSettingsParamByIndex(index, param);
-	if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;
-	$(GETPARAMBYINDEXLINES)
+//	ret = getActuatorSettingsParamByIndex(index, param);
+//	if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;
+$(GETPARAMBYINDEXLINES)
 	return ret; // Return last state
 }
 
 uint8_t setParamByIndex(uint16_t index, const mavlink_param_union_t* param)
 {
 	uint8_t ret = MAVLINK_RET_VAL_PARAM_INDEX_DOES_NOT_EXIST;
-	ret = setActuatorSettingsParamByIndex(index, param);
-	if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;
-	$(SETPARAMBYINDEXLINES)
+//	ret = setActuatorSettingsParamByIndex(index, param);
+//	if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;
+$(SETPARAMBYINDEXLINES)
 	return ret; // Return last state
 }
 
 const char* getParamNameByIndex(uint16_t index)
 {
 	char* ret = '\0';
-	ret = getActuatorSettingsParamNameByIndex(index);
-	if (ret != '\0') return ret;
-	$(GETPARAMNAMEBYINDEXLINES)
+//	ret = getActuatorSettingsParamNameByIndex(index);
+//	if (ret != '\0') return ret;
+$(GETPARAMNAMEBYINDEXLINES)
 	return ret;
 }
 
 uint16_t getParamCount()
 {
 	uint16_t count = 0;
-	count += getActuatorSettingsParamCount();
-	$(GETPARAMCOUNTLINES)
+//	count += getActuatorSettingsParamCount();
+//	$(GETPARAMCOUNTLINES)
 	return count;
 }
 
@@ -113,9 +113,9 @@ uint8_t getParamByName(const char* name, mavlink_param_union_t* param)
 		// Break on first match
 
 		// START VALUE FOUND SECTION
-		ret = getActuatorSettingsParamByIndex(index, param);
-		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
-		$(GETPARAMBYNAMELINES)
+//		ret = getActuatorSettingsParamByIndex(index, param);
+//		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
+	$(GETPARAMBYNAMELINES)
 		// END VALUE FOUND SECTION
 	}
 
@@ -136,9 +136,9 @@ uint8_t setParamByName(const char* name, mavlink_param_union_t* param)
 		// Break on first match
 
 		// START VALUE FOUND SECTION
-		ret = setActuatorSettingsParamByIndex(index, param);
-		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
-		$(SETPARAMBYNAMELINES)
+//		ret = setActuatorSettingsParamByIndex(index, param);
+//		if (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections
+	$(SETPARAMBYNAMELINES)
 		// END VALUE FOUND SECTION
 	}
 
@@ -149,20 +149,24 @@ uint8_t setParamByName(const char* name, mavlink_param_union_t* param)
 int32_t writeParametersToStorage()
 {
 	int32_t success = MAVLINK_RET_VAL_PARAM_SUCCESS;
-	UAVObjHandle handle = ActuatorSettingsHandle();
-	int32_t res = UAVObjSave(handle, 0);
-	if (res != 0) success = MAVLINK_RET_VAL_PARAM_WRITE_ERROR;
-	$(WRITEPARAMETERSTOSTORAGELINES)
+	int32_t res;
+	UAVObjHandle handle;
+//	handle = ActuatorSettingsHandle();
+//	res = UAVObjSave(handle, 0);
+//	if (res != 0) success = MAVLINK_RET_VAL_PARAM_WRITE_ERROR;
+$(WRITEPARAMETERSTOSTORAGELINES)
 	return success;
 }
 
 int32_t readParametersFromStorage()
 {
 	int32_t success = MAVLINK_RET_VAL_PARAM_SUCCESS;
-	UAVObjHandle handle = ActuatorSettingsHandle();
-	int32_t res = UAVObjLoad(handle, 0);
-	if (res != 0) success = MAVLINK_RET_VAL_PARAM_READ_ERROR;
-	$(READPARAMETERSFROMSTORAGELINES)
+	UAVObjHandle handle;
+	int32_t res;
+//	handle = ActuatorSettingsHandle();
+//	res = UAVObjLoad(handle, 0);
+//	if (res != 0) success = MAVLINK_RET_VAL_PARAM_READ_ERROR;
+$(READPARAMETERSFROMSTORAGELINES)
 	return success;
 }
 
