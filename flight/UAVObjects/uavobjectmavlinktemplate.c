@@ -38,7 +38,7 @@
 
 #include "openpilot.h"
 #include "$(NAMELC).h"
-#include "$(NAMELC)MAVLinkAdapter.h"
+#include "$(NAMELC)mavlinkadapter.h"
 
 int16_t get$(NAME)ParamIndexByName(const char* name)
 {

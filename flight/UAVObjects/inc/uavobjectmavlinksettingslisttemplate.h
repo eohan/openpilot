@@ -42,15 +42,6 @@
 
 #include "mavlink_types.h"
 
-// START INCLUSION OF SETTINGS HEADERS
-$(SETTINGSHEADERS)
-// END INCLUSION OF SETTINGS HEADERS
-
-// START INCLUSION OF INDIVIDUAL ADAPTER HEADERS
-$(ADAPTERHEADERS)
-// END INCLUSION OF INDIVIDUAL ADAPTER HEADERS
-
-
 int16_t getParamIndexByName(const char* name);
 
 uint8_t getParamByIndex(uint16_t index, mavlink_param_union_t* param);

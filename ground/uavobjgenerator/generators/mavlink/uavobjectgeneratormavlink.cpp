@@ -29,12 +29,20 @@
 
 using namespace std;
 
+#define MAVLINK_FILE_NAME "mavlinkdapter"
+
 bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templatepath,QString outputpath) {
 
     fieldTypeStrC << "int8_t" << "int16_t" << "int32_t" <<"uint8_t"
             <<"uint16_t" << "uint32_t" << "float" << "uint8_t";
 
     QString flightObjHeaders, flightObjAdapterHeaders;
+
+    // Index function calls
+    QString getParamIndexByNameLines, getParamByIndexLines, setParamByIndexLines, getParamNameByIndexLines,
+            getParamCountLines, getParamByNameLines, setParamByNameLines, writeParametersToStorageLines,
+            readParametersFromStorage;
+
     flightCodePath = QDir( templatepath + QString("flight/UAVObjects"));
     flightOutputPath = QDir( outputpath + QString("flight") );
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
@@ -52,34 +60,40 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     for (int objidx = 0; objidx < parser->getNumObjects(); ++objidx) {
         ObjectInfo* info=parser->getObjectByIndex(objidx);
         process_object(info);
-        flightObjHeaders.append(QString("#include %1.h").arg());
-//        flightObjInit.append("#ifdef UAVOBJ_INIT_" + info->namelc +"\r\n");
-//        flightObjInit.append("    " + info->name + "Initialize();\r\n");
-//        flightObjInit.append("#endif\r\n");
-//        objInc.append("#include \"" + info->namelc + ".h\"\r\n");
-//	objFileNames.append(" " + info->namelc);
-//	objNames.append(" " + info->name);
+        flightObjHeaders.append(QString("#include \"%1.h\"").arg(info->namelc));
+        flightObjAdapterHeaders.append(QString("#include \"%1.h\"").arg(info->namelc + MAVLINK_FILE_NAME + ".h"));
+        getParamIndexByNameLines.append(QString("\tret = get%1ParamIndexByName(name); \nif (ret != -1) return ret;\n").arg(info->name));
+        getParamByIndexLines.append(QString("\tret = get%1ParamByIndex(index, param);\nif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n").arg(info->name));
+        // .append(QString("").arg(info->name));
     }
 
-//    // Write the flight object inialization files
-//    flightInitTemplate.replace( QString("$(OBJINC)"), objInc);
-//    flightInitTemplate.replace( QString("$(OBJINIT)"), flightObjInit);
-//    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectsinit.c",
-//                     flightInitTemplate );
-//    if (!res) {
-//        cout << "Error: Could not write flight object init files" << endl;
-//        return false;
-//    }
+    // Write main adapter code file
+    flightListCodeTemplate.replace( QString("$(SETTINGSHEADERS)"), flightObjHeaders);
+    flightListCodeTemplate.replace( QString("$(ADAPTERHEADERS)"), flightObjAdapterHeaders);
 
-//    // Write the settings adapter main file
-//    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
-//    flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
-//    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/Makefile.inc",
-//                     flightMakeTemplate );
-//    if (!res) {
-//        cout << "Error: Could not write flight Makefile" << endl;
-//        return false;
-//    }
+    flightListCodeTemplate.replace( QString("$(GETPARAMINDEXBYNAMELINES)"), getParamIndexByNameLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMBYINDEXLINES)"), getParamByIndexLines);
+    flightListCodeTemplate.replace( QString("$(SETPARAMBYINDEXLINES)"), setParamByIndexLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMNAMEBYINDEXLINES)"), getParamNameByIndexLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMCOUNTLINES)"), getParamCountLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMBYNAMELINES)"), getParamByNameLines);
+    flightListCodeTemplate.replace( QString("$(SETPARAMBYNAMELINES)"), setParamByNameLines);
+    flightListCodeTemplate.replace( QString("$(WRITEPARAMETERSTOSTORAGELINES)"), writeParametersToStorageLines);
+    flightListCodeTemplate.replace( QString("$(READPARAMETERSFROMSTORAGELINES)"), readParametersFromStorage);
+
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectmavlinksettings.c",
+                                    flightListCodeTemplate );
+    if (!res) {
+        cout << "Error: Could not write flight adapter code file" << endl;
+        return false;
+    }
+
+    writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectmavlinksettings.h",
+                         flightListIncludeTemplate );
+    if (!res) {
+        cout << "Error: Could not write flight adapter header file" << endl;
+        return false;
+    }
 
     return true; // if we come here everything should be fine
 }
@@ -337,14 +351,14 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     outInclude.replace(QString("$(SETGETFIELDSEXTERN)"), setgetfieldsextern);
 
     // Write the flight code
-    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + "_adapter_mavlink.c", outSettingsCode );
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".c", outSettingsCode );
     if (!res) {
         cout << "Error: Could not write flight code files" << endl;
         return false;
     }
 
-    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + "_adapter_mavlink.h", outInclude );
-    qDebug() << "Attempting to write file" << flightOutputPath.absolutePath() + "/" + info->namelc + "_adapter_mavlink.h";
+    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".h", outInclude );
+    qDebug() << "Attempting to write file" << flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".h";
     if (!res) {
         cout << "Error: Could not write flight include files" << endl;
         return false;
