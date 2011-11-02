@@ -61,15 +61,20 @@ int main()
 	return 0;
 }
 
-static float multiply(float a, float b)
+static float multiply_float(float a, float b)
+{
+	return a*b;
+}
+
+static double multiply_double(double a, double b)
 {
 	return a*b;
 }
 
 static void testTask(void *pvParameters)
 {
-	float a = 0.002f;
-	float b = 0.001f;
+//	float a = 0.002f;
+//	float b = 0.001f;
 	float c = 0.011f;
 
 	while (1)
@@ -78,8 +83,15 @@ static void testTask(void *pvParameters)
 		vTaskDelay( BENCHMARK_DURATION_MS / portTICK_RATE_MS );
 
 		// Calculate counts per second, set breakpoint here
-		c += multiply(a, b);
+		float f_res = multiply_float(0.1f, 0.5f);
 
+
+		double d_res = multiply_double(0.1, 0.5);
+
+
+
+		c = f_res + d_res;
+		c = c;
 		// Reset and start again - do not clear idleCounter directly!
 		// SET BREAKPOINT HERE and read the countsPerSecond variable
 		// this should be used to update IDLE_COUNTS_PER_SEC_AT_NO_LOAD in systemmod.c
