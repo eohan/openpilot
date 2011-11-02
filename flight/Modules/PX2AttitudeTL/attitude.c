@@ -66,9 +66,9 @@
 #define GYRO_RANGE_500DPS
 
 // Private constants
-#define STACK_SIZE_BYTES			4096						// XXX re-evaluate
-#define STACK_SIZE_SENSOR_BYTES		1024
-#define STACK_SIZE_MAG_BYTES		512
+#define STACK_SIZE_BYTES			5096						// XXX re-evaluate
+#define STACK_SIZE_SENSOR_BYTES		2048
+#define STACK_SIZE_MAG_BYTES		2048
 #define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 2)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
 #define MAG_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	    // must be higher than attitude_task
@@ -150,16 +150,23 @@ int32_t PX2AttitudeTLInitialize(void)
 	// Initialize quaternion
 	AttitudeActualData attitude;
 	AttitudeActualGet(&attitude);
-	attitude.q1 = 1;
-	attitude.q2 = 0;
-	attitude.q3 = 0;
-	attitude.q4 = 0;
+	attitude.q1 = 1.0f;
+	attitude.q2 = 0.0f;
+	attitude.q3 = 0.0f;
+	attitude.q4 = 0.0f;
 	AttitudeActualSet(&attitude);
 
 	AttitudeMatrixData attitudeMatrix;
 	AttitudeMatrixGet(&attitudeMatrix);
-//FIXME TODO make identity matrix
-
+	attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_X] = 0.0f;
+	attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Y] = 0.0f;
+	attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Z] = 0.0f;
+	attitudeMatrix.Roll = 0.0f;
+	attitudeMatrix.Pitch = 0.0f;
+	attitudeMatrix.Yaw = 0.0f;
+	attitudeMatrix.RotationMatrix[1] = 0; attitudeMatrix.RotationMatrix[1] = 0; attitudeMatrix.RotationMatrix[2] = 0;
+	attitudeMatrix.RotationMatrix[3] = 0; attitudeMatrix.RotationMatrix[4] = 1; attitudeMatrix.RotationMatrix[5] = 0;
+	attitudeMatrix.RotationMatrix[6] = 0; attitudeMatrix.RotationMatrix[7] = 0; attitudeMatrix.RotationMatrix[8] = 1;
 	AttitudeMatrixSet(&attitudeMatrix);
 	return 0;
 }
@@ -491,9 +498,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	//z negative; x and y exchanged.
 	float_vect3 gyro; //rad/s
 #ifdef GYRO_RANGE_500DPS
-	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00026631611 /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
-	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00026631611 /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
-	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00026631611 /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
 #else
 	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
