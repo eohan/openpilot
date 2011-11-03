@@ -236,6 +236,12 @@ extern uint32_t pios_com_aux_id;
 #define PIOS_PPM_TIM_IRQ				TIM1_CC_IRQn
 #define PIOS_PPM_NUM_INPUTS				8  //Could be more if needed
 
+//-------------------------
+// Servo outputs
+//-------------------------
+#define PIOS_SERVO_UPDATE_HZ            50
+#define PIOS_SERVOS_INITIAL_POSITION    0		// default to sending no signal
+
 
 //-------------------------
 // ADC

@@ -49,7 +49,7 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Battery PX2Buzzer
+MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Battery
 # Enable Guidance only once REALLY in use: Guidance
 # Telemetry must be last to grab the optional modules  # Altitude
 #MODULES += MAVLink
@@ -171,6 +171,7 @@ SRC += $(PIOSSTM32F2XX)/pios_gpio.c
 SRC += $(PIOSSTM32F2XX)/pios_exti.c
 SRC += $(PIOSSTM32F2XX)/pios_wdg.c
 SRC += $(PIOSSTM32F2XX)/pios_buzzer.c
+SRC += $(PIOSSTM32F2XX)/pios_servo.c
 
 ## PIOS Hardware (Common)
 SRC += $(PIOSCOMMON)/pios_bmp085.c
