@@ -388,9 +388,9 @@ struct pios_adc_dev pios_adc_devs[] = {
 uint8_t pios_adc_num_devices = NELEMENTS(pios_adc_devs);
 
 /*
- * Telemetry USART
+ * TELEMETRY1 USART
  */
-const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_BAUDRATE);
+const struct pios_usart_cfg pios_usart_telem_cfg = USART1_CONFIG(PIOS_COM_TELEM_BAUDRATE);
 
 /*
  * GPS USART
@@ -398,12 +398,12 @@ const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_
 const struct pios_usart_cfg pios_usart_gps_cfg = USART6_CONFIG(PIOS_COM_GPS_BAUDRATE);
 
 /*
- * AUX USART
+ * TELEMETRY2 / AUX USART
  */
-const struct pios_usart_cfg pios_usart_aux_cfg = USART1_CONFIG(PIOS_COM_AUX_BAUDRATE);
+const struct pios_usart_cfg pios_usart_aux_cfg = USART2_CONFIG(PIOS_COM_AUX_BAUDRATE);
 
 /*
- * Control USART
+ * TELEMETRY3 / CONTROL USART
  */
 const struct pios_usart_cfg pios_usart_control_cfg = UART5_CONFIG(PIOS_COM_CONTROL_BAUDRATE);
 
@@ -638,8 +638,12 @@ void PIOS_Board_Init(void)
 	/* Initialise USARTs */
 	usart_init(&pios_com_telem_rf_id, &pios_usart_telem_cfg,   PIOS_COM_TELEM_RF_RX_BUF_LEN, PIOS_COM_TELEM_RF_TX_BUF_LEN);
 	usart_init(&pios_com_gps_id,      &pios_usart_gps_cfg,     PIOS_COM_GPS_RX_BUF_LEN,      PIOS_COM_GPS_TX_BUF_LEN);
+#ifndef PIOS_INCLUDE_SERVO
+	// USART2 and SERVO outputs are on the same four pins
 	usart_init(&pios_com_aux_id,      &pios_usart_aux_cfg,     PIOS_COM_AUX_RX_BUF_LEN,      PIOS_COM_AUX_TX_BUF_LEN);
+#endif
 	usart_init(&pios_com_control_id,  &pios_usart_control_cfg, PIOS_COM_CONTROL_RX_BUF_LEN,  PIOS_COM_CONTROL_TX_BUF_LEN);
+
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "\r\n\r\nFMU starting: USART ");
 
