@@ -38,11 +38,11 @@
 
 #include "openpilot.h"
 #include "$(NAMELC).h"
-#include "$(NAMELC)MAVLinkAdapter.h"
+#include "$(NAMELC)mavlinkadapter.h"
 
 int16_t get$(NAME)ParamIndexByName(const char* name)
 {
-	for (int i = 0; i < $(TOTALFIELDCOUNTNAME); ++i)
+	for (int i = 0; i < $(LOCALFIELDCOUNT); ++i)
 	{
 		bool match = true;
 		const char* storage_name = get$(NAME)ParamNameByIndex(i);
@@ -69,10 +69,11 @@ const char* get$(NAME)ParamNameByIndex(uint16_t index)
 {
 	switch (index)
 	{
-		case 0:
-			return "fixedwing_roll1";
-		case 1:
-			return "fixedwing_roll2";
+//		case 0:
+//			return "fixedwing_roll1";
+//		case 1:
+//			return "fixedwing_roll2";
+$(GETPARAMNAMEBYINDEXLINES)
 	}
 	return '\0';
 }
@@ -81,20 +82,21 @@ uint8_t get$(NAME)ParamByIndex(uint16_t index, mavlink_param_union_t* param)
 {
 	$(NAME)Data settings;
 	$(NAME)Get(&settings);
-	switch (index)
+	switch ($(GLOBALTOTALFIELDOFFSET) + index)
 	{
-		case 0:
-		{
-			param->param_uint32 = settings.FixedWingRoll1;
-			param->type = MAVLINK_TYPE_UINT32_T;
-		}
-			break;
-		case 1:
-		{
-			param->param_uint32 = settings.FixedWingRoll2;
-			param->type = MAVLINK_TYPE_UINT32_T;
-		}
-			break;
+$(GETPARAMBYINDEXLINES)
+//		case 0:
+//		{
+//			param->param_uint32 = settings.FixedWingRoll1;
+//			param->type = MAVLINK_TYPE_UINT32_T;
+//		}
+//			break;
+//		case 1:
+//		{
+//			param->param_uint32 = settings.FixedWingRoll2;
+//			param->type = MAVLINK_TYPE_UINT32_T;
+//		}
+//			break;
 		default:
 		{
 			return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
@@ -111,30 +113,31 @@ uint8_t set$(NAME)ParamByIndex(uint16_t index, const mavlink_param_union_t* para
 	$(NAME)Get(&settings);
 	switch (index)
 	{
-		case 0:
-		{
-			if (param->type == MAVLINK_TYPE_UINT32_T)
-			{
-				settings.FixedWingRoll1 = param->param_uint32;
-			}
-			else
-			{
-				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
-			}
-		}
-			break;
-		case 1:
-		{
-			if (param->type == MAVLINK_TYPE_UINT32_T)
-			{
-				settings.FixedWingRoll2 = param->param_uint32;
-			}
-			else
-			{
-				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
-			}
-		}
-			break;
+$(SETPARAMBYINDEXLINES)
+//		case 0:
+//		{
+//			if (param->type == MAVLINK_TYPE_UINT32_T)
+//			{
+//				settings.FixedWingRoll1 = param->param_uint32;
+//			}
+//			else
+//			{
+//				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
+//			}
+//		}
+//			break;
+//		case 1:
+//		{
+//			if (param->type == MAVLINK_TYPE_UINT32_T)
+//			{
+//				settings.FixedWingRoll2 = param->param_uint32;
+//			}
+//			else
+//			{
+//				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
+//			}
+//		}
+//			break;
 		default:
 		{
 			return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;

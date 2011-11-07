@@ -558,7 +558,7 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 }
 #else
 static bool set_channel(uint8_t mixer_channel, uint16_t value) {
-
+	return true;
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 

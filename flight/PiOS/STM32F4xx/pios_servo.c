@@ -34,70 +34,88 @@
 
 /* Private Function Prototypes */
 
+#ifdef PIOS_INCLUDE_SERVO
 uint16_t servo_positions[8];
+#endif
 /**
 * Initialise Servos
 */
 void PIOS_Servo_Init(void)
 {
-#ifndef PIOS_ENABLE_DEBUG_PINS
-#if defined(PIOS_INCLUDE_SERVO)
-	RCC_ClocksTypeDef	clocks;
-	
-	RCC_GetClocksFreq(&clocks);
-	
+//#ifndef PIOS_ENABLE_DEBUG_PINS
+//#ifdef PIOS_INCLUDE_SERVO
 	for (uint8_t i = 0; i < pios_servo_cfg.num_channels; i++) {
 		GPIO_InitTypeDef GPIO_InitStructure = pios_servo_cfg.gpio_init;
 		TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = pios_servo_cfg.tim_base_init;
 		TIM_OCInitTypeDef TIM_OCInitStructure = pios_servo_cfg.tim_oc_init;
 
-		struct pios_servo_channel channel = pios_servo_cfg.channels[i];
-		
 		/* Enable GPIO */
-		GPIO_InitStructure.GPIO_Pin = channel.pin;
-		GPIO_Init(channel.port, &GPIO_InitStructure);
-		
+		GPIO_InitStructure.GPIO_Pin = pios_servo_cfg.channels[i].pin;
+		GPIO_Init(pios_servo_cfg.channels[i].port, &GPIO_InitStructure);
+		GPIO_PinAFConfig(pios_servo_cfg.channels[i].port, pios_servo_cfg.channels[i].pin_source, pios_servo_cfg.remap);
+
+
+
+
+
+
+		RCC_ClocksTypeDef	clocks;
+		TIM_TimeBaseInitTypeDef TIMInit;
+
+		/* get clock info */
+		RCC_GetClocksFreq(&clocks);
+
+		/* reset/disable the timer */
+		TIM_DeInit(pios_servo_cfg.channels[i].timer);
+
+		// PCLK1 is for APB1, to which TIM2-7 are connected
+		// XXX FIXME ASSUME APB1 here
+		uint32_t freq = clocks.PCLK1_Frequency;
+
+		/* configure for 1kHz auto-reload cycle */
+		TIM_TimeBaseStructInit(&TIMInit);
+		TIMInit.TIM_Prescaler							= freq / 1000000 - 1;
+		TIMInit.TIM_CounterMode							= TIM_TimeBaseStructure.TIM_CounterMode;
+		TIMInit.TIM_Period								= ((1000000 / PIOS_SERVO_UPDATE_HZ) - 1);							/* */
+		TIMInit.TIM_ClockDivision						= TIM_CKD_DIV1;					/*  */
+		TIM_TimeBaseInit(pios_servo_cfg.channels[i].timer, &TIMInit);
+
+		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "TIM_SERVO_Prescaler %d\r\n",TIMInit.TIM_Prescaler);
+
+
+
+
+
+
+
 		/* Enable time base */
-		TIM_TimeBaseInit(channel.timer,  &TIM_TimeBaseStructure);
-		
+		//TIM_TimeBaseInit(pios_servo_cfg.channels[i].timer,  &TIM_TimeBaseStructure);
+
 		/* Set up for output compare function */
-		switch(channel.channel) {
+		switch(pios_servo_cfg.channels[i].channel) {
 			case TIM_Channel_1:
-				channel.timer->PSC = ((clocks.PCLK2_Frequency * 2) / 1000000) - 1;
-				TIM_OC1Init(channel.timer, &TIM_OCInitStructure);
-				TIM_OC1PreloadConfig(channel.timer, TIM_OCPreload_Enable);
+				TIM_OC1Init(pios_servo_cfg.channels[i].timer, &TIM_OCInitStructure);
+				TIM_OC1PreloadConfig(pios_servo_cfg.channels[i].timer, TIM_OCPreload_Enable);
 				break;
 			case TIM_Channel_2:
-				channel.timer->PSC = ((clocks.PCLK1_Frequency * 2) / 1000000) - 1;
-				TIM_OC2Init(channel.timer, &TIM_OCInitStructure);
-				TIM_OC2PreloadConfig(channel.timer, TIM_OCPreload_Enable);
+				TIM_OC2Init(pios_servo_cfg.channels[i].timer, &TIM_OCInitStructure);
+				TIM_OC2PreloadConfig(pios_servo_cfg.channels[i].timer, TIM_OCPreload_Enable);
 				break;
 			case TIM_Channel_3:
-				channel.timer->PSC = ((clocks.PCLK1_Frequency * 2) / 1000000) - 1;
-				TIM_OC3Init(channel.timer, &TIM_OCInitStructure);
-				TIM_OC3PreloadConfig(channel.timer, TIM_OCPreload_Enable);
+				TIM_OC3Init(pios_servo_cfg.channels[i].timer, &TIM_OCInitStructure);
+				TIM_OC3PreloadConfig(pios_servo_cfg.channels[i].timer, TIM_OCPreload_Enable);
 				break;
 			case TIM_Channel_4:
-				channel.timer->PSC = ((clocks.PCLK1_Frequency * 2) / 1000000) - 1;
-				TIM_OC4Init(channel.timer, &TIM_OCInitStructure);
-				TIM_OC4PreloadConfig(channel.timer, TIM_OCPreload_Enable);
+				TIM_OC4Init(pios_servo_cfg.channels[i].timer, &TIM_OCInitStructure);
+				TIM_OC4PreloadConfig(pios_servo_cfg.channels[i].timer, TIM_OCPreload_Enable);
 				break;
 		}
-		
-		TIM_ARRPreloadConfig(channel.timer, ENABLE);
-		TIM_CtrlPWMOutputs(channel.timer, ENABLE);
-		TIM_Cmd(channel.timer, ENABLE);		
-		
-	}	
-	
-	if(pios_servo_cfg.remap) {
-		/* Warning, I don't think this will work for multiple remaps at once */
-		GPIO_PinRemapConfig(pios_servo_cfg.remap, ENABLE);
-	}
-	
 
-#endif // PIOS_INCLUDE_SERVO
-#endif // PIOS_ENABLE_DEBUG_PINS
+		TIM_ARRPreloadConfig(pios_servo_cfg.channels[i].timer, ENABLE);
+		TIM_Cmd(pios_servo_cfg.channels[i].timer, ENABLE);
+	}
+//#endif // PIOS_INCLUDE_SERVO
+//#endif // PIOS_ENABLE_DEBUG_PINS
 }
 
 /**
@@ -109,27 +127,28 @@ void PIOS_Servo_SetHz(uint16_t * speeds, uint8_t banks)
 {
 #ifndef PIOS_ENABLE_DEBUG_PINS
 #if defined(PIOS_INCLUDE_SERVO)
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = pios_servo_cfg.tim_base_init;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Prescaler = (PIOS_MASTER_CLOCK / 1000000) - 1;
-	
-	uint8_t set = 0;
-	
-	for(uint8_t i = 0; (i < pios_servo_cfg.num_channels) && (set < banks); i++) {		
-		bool new = true;
-		struct pios_servo_channel channel = pios_servo_cfg.channels[i];
-		
-		/* See if any previous channels use that same timer */
-		for(uint8_t j = 0; (j < i) && new; j++) 
-			new &= channel.timer != pios_servo_cfg.channels[j].timer;
-		
-		if(new) {
-			TIM_TimeBaseStructure.TIM_Period = ((1000000 / speeds[set]) - 1);		
-			TIM_TimeBaseInit(channel.timer,  &TIM_TimeBaseStructure);
-			set++;
-		}
-	}
+//	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = pios_servo_cfg.tim_base_init;
+//	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+//	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+//	TIM_TimeBaseStructure.TIM_Prescaler = (PIOS_MASTER_CLOCK / 1000000) - 1;
+//
+//	uint8_t set = 0;
+//
+//	for(uint8_t i = 0; (i < pios_servo_cfg.num_channels) && (set < banks); i++) {
+//		bool new = true;
+//		struct pios_servo_channel channel = pios_servo_cfg.channels[i];
+//
+//		/* See if any previous channels use that same timer */
+//		for(uint8_t j = 0; (j < i) && new; j++)
+//			new &= channel.timer != pios_servo_cfg.channels[j].timer;
+//
+//		if(new) {
+//			TIM_TimeBaseStructure.TIM_Period = ((1000000 / speeds[set]) - 1);
+//			TIM_TimeBaseInit(channel.timer,  &TIM_TimeBaseStructure);
+//			TIM_Cmd(channel.timer, ENABLE);
+//			set++;
+//		}
+//	}
 #endif // PIOS_INCLUDE_SERVO
 #endif // PIOS_ENABLE_DEBUG_PINS
 }
