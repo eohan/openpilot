@@ -52,11 +52,11 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Battery PX2Buzzer
+MODULES = PX2AttitudeTL Actuator Stabilization ManualControl GPS Battery
 # Enable Guidance only once REALLY in use: Guidance
-# Telemetry must be last to grab the optional modules  # Altitude
-#MODULES += MAVLink
-MODULES += Telemetry
+# Telemetry must be last to grab the optional modules  # Altitude  #PX2Buzzer
+MODULES += MAVLink
+#MODULES += Telemetry
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
@@ -275,6 +275,8 @@ DEBUGF = dwarf-2
 # -U options for C here.
 #CDEFS += -DMAVLINK_SEPARATE_HELPERS
 CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
+CDEFS += -DPX2MODE
+CDEFS += -DPX2FMU
 CDEFS += -DSYSCLK_FREQ=$(SYSCLK_FREQ)
 CDEFS += -DUSE_$(BOARD)
 

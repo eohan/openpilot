@@ -101,48 +101,48 @@ void attitude_tobi_laurens_init(void)
 	//initalize matrices
 
 	static m_elem kal_a[12 * 12] =
-	{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	{ 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 1.0f, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1.0f, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 1.0f, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 1.0f, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 1.0f, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0f, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0f, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0f };
 
 	static m_elem kal_c[9 * 12] =
-	{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	{ 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 1.0f, 0, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1.0f, 0, 0, 0, 0, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0,
+			0, 0, 0, 0, 0, 0, 1.0f, 0, 0, 1.0f, 0, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0,
+			0, 0, 0, 0, 0, 0, 0, 1.0f, 0, 0, 1.0f, 0,
 
-			0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 };
+			0, 0, 0, 0, 0, 0, 0, 0, 1.0f, 0, 0, 1.0f };
 
 
 
@@ -166,18 +166,18 @@ void attitude_tobi_laurens_init(void)
 //	};
 
 	static m_elem kal_gain[12 * 9] =
-	{ 		0.0006 , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
-			0   ,    0.0006 , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
-			0   ,    0    ,   0.0006 , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
-			0   ,    0    ,   0   ,    0.015, 	0   ,    0   ,    0   ,    0   ,    0,
-			0   ,    0   ,    0   ,    0    ,   0.015, 	 0   ,    0   ,    0   ,    0,
-			0   ,    0    ,   0   ,    0    ,   0   ,    0.015, 	  0   ,    0   ,    0,
-			0.0000 , +0.00002,0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
-			-0.00002,0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
+	{ 		0.0006f , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
+			0   ,    0.0006f , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
+			0   ,    0    ,   0.0006f , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
+			0   ,    0    ,   0   ,    0.015f, 	0   ,    0   ,    0   ,    0   ,    0,
+			0   ,    0   ,    0   ,    0    ,   0.015f, 	 0   ,    0   ,    0   ,    0,
+			0   ,    0    ,   0   ,    0    ,   0   ,    0.015f, 	  0   ,    0   ,    0,
+			0.0000f , +0.00002f,0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
+			-0.00002f,0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
 			0,    	 0 ,	  0   ,    0,  	    0,		 0,  	  0,  	   0, 	    0,
-			0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.6 ,   0   ,    0,
-			0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.6 ,   0,
-			0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.6
+			0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.6f ,   0   ,    0,
+			0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.6f ,   0,
+			0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.6f
 	};
 	//offset update only correct if not upside down.
 
@@ -216,7 +216,7 @@ void attitude_tobi_laurens_init(void)
 
 	//---> initial states sind aposteriori!? ---> fehler
 	static m_elem kal_x_aposteriori[12 * 1] =
-	{ 0, 0, -1.0f, 0.6f, 0.0f, 0.8f, 0, 0, 0, 0, 0, 0 };
+	{ 0.0f, 0.0f, -1.0f, 0.6f, 0.0f, 0.8f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
 	kalman_init(&attitude_tobi_laurens_kal, 12, 9, kal_a, kal_c,
 			kal_gain_start, kal_gain, kal_x_apriori, kal_x_aposteriori, 1000);
@@ -316,7 +316,7 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	// save outputs
 	float_vect3 kal_acc;
 	float_vect3 kal_mag;
-	float_vect3 kal_w0, kal_w;
+//	float_vect3 kal_w0, kal_w;
 
 	kal_acc.x = kalman_get_state(&attitude_tobi_laurens_kal, 0);
 	kal_acc.y = kalman_get_state(&attitude_tobi_laurens_kal, 1);
@@ -326,13 +326,13 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 	kal_mag.y = kalman_get_state(&attitude_tobi_laurens_kal, 4);
 	kal_mag.z = kalman_get_state(&attitude_tobi_laurens_kal, 5);
 
-	kal_w0.x = kalman_get_state(&attitude_tobi_laurens_kal, 6);
-	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
-	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
-
-	kal_w.x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
-	kal_w.y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
-	kal_w.z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
+//	kal_w0.x = kalman_get_state(&attitude_tobi_laurens_kal, 6);
+//	kal_w0.y = kalman_get_state(&attitude_tobi_laurens_kal, 7);
+//	kal_w0.z = kalman_get_state(&attitude_tobi_laurens_kal, 8);
+//
+//	kal_w.x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
+//	kal_w.y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
+//	kal_w.z = kalman_get_state(&attitude_tobi_laurens_kal, 11);
 
 	rates->x = kalman_get_state(&attitude_tobi_laurens_kal, 9);
 	rates->y = kalman_get_state(&attitude_tobi_laurens_kal, 10);
@@ -340,8 +340,8 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 
 
 
-	kal_w = kal_w;		// XXX hack to silence compiler warning
-	kal_w0 = kal_w0;	// XXX hack to silence compiler warning
+//	kal_w = kal_w;		// XXX hack to silence compiler warning
+//	kal_w0 = kal_w0;	// XXX hack to silence compiler warning
 
 
 
@@ -360,9 +360,9 @@ void attitude_tobi_laurens_get_all(float_vect3 * euler, float_vect3 * rates, flo
 
 
 	//save euler angles
-	euler->x = atan2(z_n_b->y, z_n_b->z);
-	euler->y = -asin(z_n_b->x);
-	euler->z = atan2(y_n_b->x, x_n_b->x);
+	euler->x = atan2f(z_n_b->y, z_n_b->z);
+	euler->y = -asinf(z_n_b->x);
+	euler->z = atan2f(y_n_b->x, x_n_b->x);
 
 //	static int i = 10;
 //	if (i++ >= 10)

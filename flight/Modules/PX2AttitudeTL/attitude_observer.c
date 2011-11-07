@@ -54,15 +54,15 @@ void attitude_observer_init(float_vect3 init_state_accel,
 {
 	state_accel = init_state_accel;
 	state_magnet = init_state_magnet;
-	state_gyro.x = 0;
-	state_gyro.y = 0;
-	state_gyro.z = 0;
-	state_gyro_offset.x = 0;
-	state_gyro_offset.y = 0;
-	state_gyro_offset.z = 0;
-	state_body_accel.x = 0;
-	state_body_accel.y = 0;
-	state_body_accel.z = 0;
+	state_gyro.x = 0.0f;
+	state_gyro.y = 0.0f;
+	state_gyro.z = 0.0f;
+	state_gyro_offset.x = 0.0f;
+	state_gyro_offset.y = 0.0f;
+	state_gyro_offset.z = 0.0f;
+	state_body_accel.x = 0.0f;
+	state_body_accel.y = 0.0f;
+	state_body_accel.z = 0.0f;
 }
 
 void attitude_observer_predict(float fTime)
@@ -102,7 +102,7 @@ void attitude_observer_correct_accel(float_vect3 accel, float fDeltaTime)
 	static float_vect3 state_accel_old;
 	float_vect3 gyro_offset_calc;
 
-	if(fDeltaTime > 0)
+	if(fDeltaTime > 0.0f)
 	{
 		state_accel_old.x = state_accel.x;
 		state_accel_old.y = state_accel.y;
@@ -113,7 +113,7 @@ void attitude_observer_correct_accel(float_vect3 accel, float fDeltaTime)
 	state_accel.y = state_accel.y * (1.0f - K_ACCEL) + K_ACCEL * accel.y;
 	state_accel.z = state_accel.z * (1.0f - K_ACCEL) + K_ACCEL * accel.z;
 
-	if(fDeltaTime > 0)
+	if(fDeltaTime > 0.0f)
 	{
 		gyro_offset_calc.x = ( state_accel_old.y * state_accel.z - state_accel_old.z * state_accel.y )/fDeltaTime;
 		gyro_offset_calc.y = ( state_accel_old.z * state_accel.x - state_accel_old.x * state_accel.z )/fDeltaTime;
@@ -130,7 +130,7 @@ void attitude_observer_correct_magnet(float_vect3 magnet, float fDeltaTime)
 	static float_vect3 state_magnet_old;
 	float_vect3 gyro_offset_calc;
 
-	if(fDeltaTime > 0)
+	if(fDeltaTime > 0.0f)
 	{
 		state_magnet_old.x = state_magnet.x;
 		state_magnet_old.y = state_magnet.y;
@@ -141,7 +141,7 @@ void attitude_observer_correct_magnet(float_vect3 magnet, float fDeltaTime)
 	state_magnet.y = state_magnet.y * (1.0f-K_MAGNET) + K_MAGNET * magnet.y;
 	state_magnet.z = state_magnet.z * (1.0f-K_MAGNET) + K_MAGNET * magnet.z;
 
-	if(fDeltaTime > 0)
+	if(fDeltaTime > 0.0f)
 	{
 		gyro_offset_calc.x = ( state_magnet_old.y * state_magnet.z - state_magnet_old.z * state_magnet.y )/fDeltaTime;
 		gyro_offset_calc.y = ( state_magnet_old.z * state_magnet.x - state_magnet_old.x * state_magnet.z )/fDeltaTime;
@@ -157,14 +157,14 @@ void attitude_observer_get_angles(float_vect3* angles, float_vect3* angular_rate
 	// rotated the states to the correct coordinate system
 	float_vect3 accel_rot = { state_accel.y, state_accel.x, -state_accel.z };
 
-	angles->x = atan2(-accel_rot.y, -accel_rot.z);
+	angles->x = atan2f(-accel_rot.y, -accel_rot.z);
 	//angles->y = asin(accel_rot.x / 9.81f);
-	angles->y = asin(accel_rot.x);
+	angles->y = asinf(accel_rot.x);
 
-	float x = cos(angles->y) * state_magnet.x + sin(angles->x) * sin(angles->y)
-			* state_magnet.y + cos(angles->x) * sin(angles->y) * state_magnet.z;
-	float y = cos(angles->x) * state_magnet.y - sin(angles->x) * state_magnet.z;
-	angles->z = atan2(y, x);
+	float x = cosf(angles->y) * state_magnet.x + sinf(angles->x) * sinf(angles->y)
+			* state_magnet.y + cosf(angles->x) * sinf(angles->y) * state_magnet.z;
+	float y = cosf(angles->x) * state_magnet.y - sinf(angles->x) * state_magnet.z;
+	angles->z = atan2f(y, x);
 	//angles->z=angles->y;
 
 	// write out the offset corrected body angular rates. Also change the coordinate system.
