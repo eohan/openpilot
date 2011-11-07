@@ -498,10 +498,10 @@ static const struct pios_servo_channel pios_servo_channels[] = {
 
 const struct pios_servo_cfg pios_servo_cfg = {
 	.tim_base_init = {
-		.TIM_Prescaler = ((PIOS_MASTER_CLOCK /2) / 20000000) - 1, //(PIOS_MASTER_CLOCK / 1000000) - 1
+		/* Prescaler will be set in pios_servo.c */
 		.TIM_ClockDivision = TIM_CKD_DIV1,
 		.TIM_CounterMode = TIM_CounterMode_Up,
-		.TIM_Period = ((20000000 / PIOS_SERVO_UPDATE_HZ) - 1),
+		.TIM_Period = ((1000000 / PIOS_SERVO_UPDATE_HZ) - 1),
 		.TIM_RepetitionCounter = 0x0000,
 	},
 	.tim_oc_init = {

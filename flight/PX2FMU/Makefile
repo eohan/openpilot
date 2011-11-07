@@ -52,7 +52,7 @@ endif
 FLASH_TOOL = OPENOCD
 
 # List of modules to include
-MODULES = PX2AttitudeTL Actuator Stabilization ManualControl GPS Battery
+MODULES = PX2AttitudeTL ManualControl GPS Battery
 # Enable Guidance only once REALLY in use: Guidance
 # Telemetry must be last to grab the optional modules  # Altitude  #PX2Buzzer
 MODULES += MAVLink
