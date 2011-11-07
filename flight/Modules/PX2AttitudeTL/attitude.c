@@ -56,7 +56,6 @@
 #include "attitudesettings.h"
 #include "flightstatus.h"
 #include "CoordinateConversions.h"
-//#include "attitude_observer.h"
 #include "attitude_tobi_laurens.h"
 
 #include "pios_i2c_esc.h"
@@ -222,42 +221,6 @@ static void attitudeTask(void *parameters)
 		updateSensors(&attitudeRaw);
 		updateAttitude(&attitudeRaw);
 		AttitudeRawSet(&attitudeRaw);
-
-		static int fifty = 0;
-
-		if (fifty == 100)
-		{
-		static int servoBase = 1000;
-		static int servoUp = 0;
-		static bool upcounting = true;
-		PIOS_Servo_Set(0, servoBase+servoUp);
-		//PIOS_Servo_Set(1, servoBase+servoUp); // BUZZER channel
-		//PIOS_Servo_Set(2, servoBase+servoUp);
-		PIOS_Servo_Set(3, servoBase+servoUp);
-		if (upcounting)
-		{
-			servoUp +=50;
-		}
-		else
-		{
-			servoUp -=50;
-		}
-
-		if (servoUp > 1000)
-		{
-			upcounting = false;
-		}
-		else if (servoUp < 0)
-		{
-			upcounting = true;
-		}
-
-		fifty = 0;
-		}
-		else
-		{
-			fifty++;
-		}
 
 		// Delay until it is time to read the next sample
 		vTaskDelayUntil(&lastSysTime, UPDATE_INTERVAL_TICKS);

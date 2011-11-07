@@ -159,7 +159,7 @@ void PIOS_Servo_Set(uint8_t Servo, uint16_t Position)
 			case TIM_Channel_1:
 				servo_positions[Servo] = Position;
 				TIM_SetCompare1(pios_servo_cfg.channels[Servo].timer, Position*4-3000);  // XXX HACK, x4-3000 factor should not be here
-				PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "S:%d\n", Position);
+				//PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "S:%d\n", Position);
 				break;
 			case TIM_Channel_2:
 				servo_positions[Servo] = Position; // XXX HACK, x4 factor should not be here
