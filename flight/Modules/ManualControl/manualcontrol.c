@@ -173,7 +173,7 @@ static void manualControlTask(void *parameters)
 
 		if (!ManualControlCommandReadOnly(&cmd)) {
 
-#ifdef STM32F2XX
+#ifdef PX2FMU
 			bool valid_input_detected = false;
 #else
 			bool valid_input_detected = true;
@@ -184,7 +184,7 @@ static void manualControlTask(void *parameters)
 				if (pios_rcvr_channel_to_id_map[n].id) {
 					cmd.Channel[n] = PIOS_RCVR_Read(pios_rcvr_channel_to_id_map[n].id,
 							pios_rcvr_channel_to_id_map[n].channel);
-#ifdef STM32F2XX
+#ifdef PX2FMU
 					// Check if RSSI is greater than zero
 					valid_input_detected |= (PIOS_RCVR_GetRSSI(pios_rcvr_channel_to_id_map[n].id) > 0);
 #endif
@@ -428,7 +428,7 @@ static bool okToArm(void)
 	{
 		if (alarms.Alarm[i] >= SYSTEMALARMS_ALARM_ERROR)
 		{	// found an alarm thats set
-#ifdef STM32F2XX
+#ifdef PX2FMU
 			if (i == SYSTEMALARMS_ALARM_SDCARD)
 				continue;
 #endif
