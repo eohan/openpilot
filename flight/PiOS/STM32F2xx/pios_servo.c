@@ -37,24 +37,54 @@
 #ifdef PIOS_INCLUDE_SERVO
 uint16_t servo_positions[8];
 #endif
+
+/* keep a private copy because we don't have a global copy yet */
+static RCC_ClocksTypeDef	bus_clocks;
+
+
 /**
 * Initialise Servos
 */
 void PIOS_Servo_Init(void)
 {
-#ifdef PIOS_INCLUDE_SERVO
 #ifndef PIOS_ENABLE_DEBUG_PINS
+#ifdef PIOS_INCLUDE_SERVO
+	uint32_t freq;
+
+	/* get clock info */
+	RCC_GetClocksFreq(&bus_clocks);
+
 	for (uint8_t i = 0; i < pios_servo_cfg.num_channels; i++) {
 		GPIO_InitTypeDef GPIO_InitStructure = pios_servo_cfg.gpio_init;
 		TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = pios_servo_cfg.tim_base_init;
 		TIM_OCInitTypeDef TIM_OCInitStructure = pios_servo_cfg.tim_oc_init;
 
 		/* Enable GPIO */
+		GPIO_InitStructure.GPIO_Pin = pios_servo_cfg.channels[i].pin;
 		GPIO_Init(pios_servo_cfg.channels[i].port, &GPIO_InitStructure);
 		GPIO_PinAFConfig(pios_servo_cfg.channels[i].port, pios_servo_cfg.channels[i].pin_source, pios_servo_cfg.remap);
 
+		/* pick the right APB clock and scale to actual clock input */
+		switch ((uintptr_t)pios_servo_cfg.channels[i].timer) {
+		case (uintptr_t)TIM1:
+		case (uintptr_t)TIM8:
+		case (uintptr_t)TIM9:
+		case (uintptr_t)TIM10:
+		case (uintptr_t)TIM11:
+			freq = bus_clocks.PCLK2_Frequency * 2;
+			break;
+		default:
+			freq = bus_clocks.PCLK1_Frequency * 2;
+			break;
+		}
+
+		/* configure for 1kHz auto-reload cycle */
+		//TIM_TimeBaseStructInit(&TIMInit);
+		TIM_TimeBaseStructure.TIM_Prescaler	     = (freq / 1000000 - 1);
+		TIM_TimeBaseInit(pios_servo_cfg.channels[i].timer, &TIM_TimeBaseStructure);
+
 		/* Enable time base */
-		TIM_TimeBaseInit(pios_servo_cfg.channels[i].timer,  &TIM_TimeBaseStructure);
+		//TIM_TimeBaseInit(pios_servo_cfg.channels[i].timer,  &TIM_TimeBaseStructure);
 
 		/* Set up for output compare function */
 		switch(pios_servo_cfg.channels[i].channel) {
@@ -77,6 +107,9 @@ void PIOS_Servo_Init(void)
 		}
 
 		TIM_ARRPreloadConfig(pios_servo_cfg.channels[i].timer, ENABLE);
+		TIM_CtrlPWMOutputs(pios_servo_cfg.channels[i].timer, ENABLE);
+		TIM_Cmd(pios_servo_cfg.channels[i].timer, ENABLE);
+
 	}
 #endif // PIOS_INCLUDE_SERVO
 #endif // PIOS_ENABLE_DEBUG_PINS
@@ -91,24 +124,43 @@ void PIOS_Servo_SetHz(uint16_t * speeds, uint8_t banks)
 {
 #ifndef PIOS_ENABLE_DEBUG_PINS
 #if defined(PIOS_INCLUDE_SERVO)
+
+	uint32_t freq;
+
+	/* get clock info */
+	RCC_GetClocksFreq(&bus_clocks);
+
+	/* pick the right APB clock and scale to actual clock input */
+	switch ((uintptr_t)pios_servo_cfg.channels[i].timer) {
+	case (uintptr_t)TIM1:
+	case (uintptr_t)TIM8:
+	case (uintptr_t)TIM9:
+	case (uintptr_t)TIM10:
+	case (uintptr_t)TIM11:
+		freq = bus_clocks.PCLK2_Frequency * 2;
+		break;
+	default:
+		freq = bus_clocks.PCLK1_Frequency * 2;
+		break;
+	}
+
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = pios_servo_cfg.tim_base_init;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Prescaler = (PIOS_MASTER_CLOCK / 1000000) - 1;
-	
+	TIM_TimeBaseStructure.TIM_Prescaler	= (freq / 1000000 - 1);
+
 	uint8_t set = 0;
-	
-	for(uint8_t i = 0; (i < pios_servo_cfg.num_channels) && (set < banks); i++) {		
+
+	for(uint8_t i = 0; (i < pios_servo_cfg.num_channels) && (set < banks); i++) {
 		bool new = true;
 		struct pios_servo_channel channel = pios_servo_cfg.channels[i];
-		
+
 		/* See if any previous channels use that same timer */
-		for(uint8_t j = 0; (j < i) && new; j++) 
+		for(uint8_t j = 0; (j < i) && new; j++)
 			new &= channel.timer != pios_servo_cfg.channels[j].timer;
-		
+
 		if(new) {
-			TIM_TimeBaseStructure.TIM_Period = ((1000000 / speeds[set]) - 1);		
+			TIM_TimeBaseStructure.TIM_Period = ((1000000 / speeds[set]) - 1);
 			TIM_TimeBaseInit(channel.timer,  &TIM_TimeBaseStructure);
+			TIM_Cmd(channel.timer, ENABLE);
 			set++;
 		}
 	}
@@ -146,8 +198,10 @@ void PIOS_Servo_Set(uint8_t Servo, uint16_t Position)
 				servo_positions[Servo] = Position;
 				TIM_SetCompare4(pios_servo_cfg.channels[Servo].timer, Position);
 				break;
-		}	 	
+		}
 	}
 #endif // PIOS_INCLUDE_SERVO
 #endif // PIOS_ENABLE_DEBUG_PINS
 }
+
+
