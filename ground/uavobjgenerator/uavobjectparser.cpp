@@ -25,6 +25,7 @@
  */
 
 #include "uavobjectparser.h"
+#include <QVector>
 
 /**
  * Constructor
@@ -109,6 +110,15 @@ int UAVObjectParser::getNumBytes(int objIndex)
         }
         return numBytes;
     }
+}
+
+bool fieldTypeLessThan(const FieldInfo* f1, const FieldInfo* f2)
+{
+//    qDebug() << "\n";
+//    qDebug() << f1->name << f1->type << f1->numBytes;
+//    qDebug() << f2->name << f2->type << f2->numBytes;
+//    qDebug() << "F1 smaller than F2:" << f1->numBytes < f2->numBytes;
+    return f1->numBytes > f2->numBytes;
 }
 
 /**
@@ -221,6 +231,14 @@ QString UAVObjectParser::parseXML(QString& xml, QString& filename)
         // Calculate ID
         calculateID(info);
 
+        // Sort all fields according to size
+        QList<FieldInfo*> sortList = info->fields;
+
+        qStableSort(sortList.begin(), sortList.end(), fieldTypeLessThan);
+
+        // Set field list
+        info->fields = sortList;
+
         // Add object
         objInfo.append(info);
 
@@ -229,6 +247,7 @@ QString UAVObjectParser::parseXML(QString& xml, QString& filename)
     }
 
     all_units.removeDuplicates();
+
     // Done, return null string
     return QString();
 }

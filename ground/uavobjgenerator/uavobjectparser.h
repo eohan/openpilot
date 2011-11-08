@@ -130,6 +130,7 @@ private:
     void calculateID(ObjectInfo* info);
     quint32 updateHash(quint32 value, quint32 hash);
     quint32 updateHash(QString& value, quint32 hash);
+    //static bool fieldTypeLessThan(const FieldInfo* f1, const FieldInfo* f2);
 };
 
 #endif // UAVOBJECTPARSER_H
