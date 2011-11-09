@@ -31,6 +31,7 @@
  */
 
 #include "openpilot.h"
+#include <stdbool.h>
 #include "mavlink_telemetry.h"
 #include "flighttelemetrystats.h"
 #include "gcstelemetrystats.h"
@@ -509,8 +510,6 @@ static void processObjEvent(UAVObjEvent * ev)
 			FlightBatteryStateGet(&flightBatteryData);
 			FlightBatterySettingsData flightBatterySettings;
 			FlightBatterySettingsGet(&flightBatterySettings);
-
-			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "telem load %d, temp: %d\r\n", (int)(stats.CPULoad*10), (int)stats.CPUTemp);
 
 			uint16_t batteryVoltage = (uint16_t)(flightBatteryData.Voltage*1000.0f);
 			int16_t batteryCurrent = -1; // -1: Not present / not estimated
