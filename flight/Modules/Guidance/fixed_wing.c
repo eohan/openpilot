@@ -18,6 +18,7 @@ static float bound(float val, float min, float max);
 
 void updateFixedWingDesiredVelocity()
 {
+#ifdef PX2MODE
 	GuidanceSettingsData guidanceSettings;
 	GlobalPositionDesiredData globalPositionDesired;
 	GlobalPositionActualData globalPosition;
@@ -54,10 +55,12 @@ void updateFixedWingDesiredVelocity()
 
 
 	StabilizationDesiredSet(&stabDesired);
+#endif
 }
 
 void updateFixedWingDesiredAttitude()
 {
+#ifdef PX2MODE
 	GlobalPositionDesiredData globalPositionDesired;
 	GlobalPositionActualData globalPosition;
 	StabilizationDesiredData stabDesired;
@@ -94,6 +97,10 @@ void updateFixedWingDesiredAttitude()
 
 	// ENABLE ONCE FIXED WING IS REALLY ACTIVES
 	//StabilizationDesiredSet(&stabDesired);
+#else
+	float a = bound(0.1f, 0.2f, 0.5f);
+	a = a;
+#endif
 }
 
 

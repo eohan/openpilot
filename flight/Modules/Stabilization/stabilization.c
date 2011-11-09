@@ -38,13 +38,12 @@
 #include "ratedesired.h"
 #include "stabilizationdesired.h"
 #include "attitudeactual.h"
-#ifdef PX2MODE
+#ifndef PX2MODE
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
 		// speed estimates
 #include "attituderaw.h"
 #endif
-//#include "attituderaw.h"
 #include "flightstatus.h"
 #include "manualcontrol.h" // Just to get a macro
 #include "CoordinateConversions.h"
@@ -162,7 +161,7 @@ static void stabilizationTask(void* parameters)
 	StabilizationDesiredData stabDesired;
 	RateDesiredData rateDesired;
 	AttitudeActualData attitudeActual;
-#ifdef PX2MODE
+#ifndef PX2MODE
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
 		// speed estimates
@@ -195,7 +194,7 @@ static void stabilizationTask(void* parameters)
 		StabilizationDesiredGet(&stabDesired);
 		AttitudeActualGet(&attitudeActual);
 
-#ifdef PX2MODE
+#ifndef PX2MODE
 		// Attitude should not be filtered by a controller
 		// instead, the attitude filter should provide
 		// speed estimates

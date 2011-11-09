@@ -60,7 +60,9 @@
 #include "velocitydesired.h"
 #include "velocityactual.h"
 #include "CoordinateConversions.h"
+#ifdef PX2MODE
 #include "fixed_wing.h"
+#endif
 
 // Private constants
 #define MAX_QUEUE_SIZE 1
@@ -234,7 +236,7 @@ static void guidanceTask(void *parameters)
 				updateVtolDesiredAttitude();
 
 			} else {
-
+#ifdef PX2MODE
 				// FIXED WING CONTROL
 
 				updateFixedWingDesiredVelocity();
@@ -250,6 +252,7 @@ static void guidanceTask(void *parameters)
 				eastPosIntegral = 0;
 				downPosIntegral = 0;
 				positionHoldLast = 0;
+#endif
 			}
 		}
 
