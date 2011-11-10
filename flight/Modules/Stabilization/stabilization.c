@@ -479,8 +479,8 @@ static void SettingsUpdatedCb(UAVObjEvent * ev)
 	// based on a time (in ms) rather than a fixed multiplier.  The error between
 	// update rates on OP (~300 Hz) and CC (~475 Hz) is negligible for this
 	// calculation
-	const float fakeDt = 0.0025;
-	if(settings.GyroTau < 0.0001)
+	const float fakeDt = 0.0025f;
+	if(settings.GyroTau < 0.0001f)
 		gyro_alpha = 0;   // not trusting this to resolve to 0
 	else
 		gyro_alpha = exp(-fakeDt  / settings.GyroTau);

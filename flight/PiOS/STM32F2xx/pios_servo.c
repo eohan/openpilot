@@ -131,7 +131,7 @@ void PIOS_Servo_SetHz(uint16_t * speeds, uint8_t banks)
 	RCC_GetClocksFreq(&bus_clocks);
 
 	/* pick the right APB clock and scale to actual clock input */
-	switch ((uintptr_t)pios_servo_cfg.channels[i].timer) {
+	switch ((uintptr_t)pios_servo_cfg.channels[0].timer) {
 	case (uintptr_t)TIM1:
 	case (uintptr_t)TIM8:
 	case (uintptr_t)TIM9:
