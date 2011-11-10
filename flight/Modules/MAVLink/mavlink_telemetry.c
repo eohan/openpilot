@@ -107,12 +107,13 @@ static void updateSettings();
 /** \brief Enable hardware in the loop simulation */
 static bool enableHil(bool enable);
 
-#include "mavlink_types.h"
-mavlink_system_t mavlink_system;
+//#include "mavlink_types.h"
+//mavlink_system_t mavlink_system;
 uint16_t next_param = 0;
 
-#include "mavlink_send_bridge.h"
+//#include "mavlink_send_bridge.h"
 #include "mavlink_debug.h"
+#include "mavlink_parameters_openpilot.h"
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -124,20 +125,19 @@ uint16_t next_param = 0;
 
    Lines also in your main.c, e.g. by reading these parameter from EEPROM.
  */
-#include "mavlink_types.h"
-mavlink_system_t mavlink_system;
-
-#include "mavlink_send_bridge.h"
-#include "mavlink_debug.h"
+//#include "mavlink_types.h"
+//mavlink_system_t mavlink_system;
+//
+//#include "mavlink_send_bridge.h"
+//#include "mavlink_debug.h"
 
 static mavlink_message_t rx_msg;
 //static mavlink_message_t tx_msg;
 static mavlink_status_t rx_status;
 static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 
-#include "common/mavlink.h"
-#include "mavlink_settings_adapter.h"
-#include "mavlink_parameters_openpilot.h"
+//#include "common/mavlink.h"
+#include "uavobjectmavlinksettings.h"
 
 /* 3: Define waypoint helper functions */
 void mavlink_missionlib_send_message(mavlink_message_t* msg);

@@ -29,7 +29,7 @@
 
 using namespace std;
 
-#define MAVLINK_FILE_NAME "mavlinkdapter"
+#define MAVLINK_FILE_NAME "mavlinkadapter"
 
 bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templatepath,QString outputpath) {
 
@@ -38,7 +38,7 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
 
     globalParamIndex = 0;
 
-    QString flightObjHeaders, flightObjAdapterHeaders;
+    QString flightObjHeaders, flightObjAdapterHeaders, objFileNames;//, objNames;
 
     // Index function calls
     QString getParamIndexByNameLines, getParamByIndexLines, setParamByIndexLines, getParamNameByIndexLines,
@@ -53,6 +53,7 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
     flightListCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinksettingslisttemplate.c") );
     flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinktemplate.h") );
     flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
+    flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("MAVLinkMakefiletemplate.inc") );
 
     if ( flightListCodeTemplate.isNull() || flightListIncludeTemplate.isNull() || flightIncludeTemplate.isNull()) {
             cerr << "Error: Could not open flight template files." << endl;
@@ -63,20 +64,22 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
         ObjectInfo* info=parser->getObjectByIndex(objidx);
         if (info->isSettings)
         {
-            process_object(info);
+            bool result = process_object(info);
+            if (!result) return false;
 
             flightObjHeaders.append(QString("#include \"%1.h\"\n").arg(info->namelc));
             flightObjAdapterHeaders.append(QString("#include \"%1.h\"\n").arg(info->namelc + MAVLINK_FILE_NAME));
-            getParamIndexByNameLines.append(QString("\tret = get%1ParamIndexByName(name); \n\tif (ret != -1) return ret;\n").arg(info->name));
-            getParamByIndexLines.append(QString("\tret = get%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n").arg(info->name));
+            getParamIndexByNameLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = get%1ParamIndexByName(name); \n\tif (ret != -1) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            getParamByIndexLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = get%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
             // .append(QString("").arg(info->name));
-            setParamByIndexLines.append(QString("\tret = set%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n").arg(info->name));
-            getParamNameByIndexLines.append(QString("\tret = get%1ParamNameByIndex(index);\n\tif (ret != 0) return ret;\n").arg(info->name));
-            getParamCountLines.append(QString("\tcount += get%1ParamCount();\n").arg(info->name));
-            getParamByNameLines.append(QString("\tret = get%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections\n").arg(info->name));
-            setParamByNameLines.append(QString("\tret = set%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections\n").arg(info->name));
-            writeParametersToStorageLines.append(QString("\thandle = %1Handle();\n\tres = UAVObjSave(handle, 0);\n\tif (res != 0) success = MAVLINK_RET_VAL_PARAM_WRITE_ERROR;\n").arg(info->name));
-            readParametersFromStorage.append(QString("\thandle = %1Handle();\n\tres = UAVObjLoad(handle, 0);\n\tif (res != 0) success = MAVLINK_RET_VAL_PARAM_READ_ERROR;\n").arg(info->name));
+            setParamByIndexLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = set%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            getParamNameByIndexLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = (char*)get%1ParamNameByIndex(index);\n\tif (ret != 0) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            getParamCountLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tcount += get%1ParamCount();\n#endif\n").arg(info->name).arg(info->namelc));
+            getParamByNameLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = get%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections\n\t#endif\n").arg(info->name).arg(info->namelc));
+            setParamByNameLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = set%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections\n\t#endif\n").arg(info->name).arg(info->namelc));
+            writeParametersToStorageLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\thandle = %1Handle();\n\tres = UAVObjSave(handle, 0);\n\tif (res != 0) success = MAVLINK_RET_VAL_PARAM_WRITE_ERROR;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            readParametersFromStorage.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\thandle = %1Handle();\n\tres = UAVObjLoad(handle, 0);\n\tif (res != 0) success = MAVLINK_RET_VAL_PARAM_READ_ERROR;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            objFileNames.append(" " + info->namelc + MAVLINK_FILE_NAME);
         }
 
     }
@@ -106,6 +109,16 @@ bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templat
                          flightListIncludeTemplate );
     if (!res) {
         cout << "Error: Could not write flight adapter header file" << endl;
+        return false;
+    }
+
+    // Write the flight object Makefile
+    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
+    //flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
+    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/MAVLinkMakefile.inc",
+                     flightMakeTemplate );
+    if (!res) {
+        cout << "Error: Could not write flight Makefile" << endl;
         return false;
     }
 
@@ -195,6 +208,9 @@ QString compactName(const QString& input)
         name.replace("alarm", "alrm");
         name.replace("factor", "fact");
         name.replace("corrected", "corr");
+        name.replace("current", "curr");
+        name.replace("config", "cfg");
+        name.replace("system", "sys");
 
         // Catch a few particular inputs
         name.replace("mix_mix", "mix_m");
@@ -234,8 +250,6 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     QString outInclude = flightIncludeTemplate;
     QString outCode = flightCodeTemplate;
 
-    qDebug() << "Processing" << info->namelc;
-
     // Replace common tags
     replaceCommonTags(outInclude, info);
     replaceCommonTags(outCode, info);
@@ -244,10 +258,17 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     QString type;
     QString fields;
 
-    QString fieldBaseName = info->name.toLower()+ "_";
+    QString fieldBaseName;
+
+    if (info->compactname.length() != 0) {
+        fieldBaseName = info->compactname+ "_";
+    } else {
+        fieldBaseName = info->name.toLower()+ "_";
+    }
 
     unsigned int localParamIndex = 0;
     unsigned int localParamOffset = globalParamIndex;
+    unsigned int localParamCount = 0;
 
     QString getParamNameByIndexLines, getParamByIndexLines, setParamByIndexLines;
 
@@ -265,12 +286,12 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
         }
         else if (type == "uint8_t" || type == "uint16_t" || type == "uint32_t")
         {
-            mavlinkType = "MAVLINK_TYPE_UINT32";
+            mavlinkType = "MAVLINK_TYPE_UINT32_T";
             structAccess = "param->param_uint32";
         }
         else if (type == "int8_t" || type == "int16_t" || type == "int32_t")
         {
-            mavlinkType = "MAVLINK_TYPE_INT32";
+            mavlinkType = "MAVLINK_TYPE_INT32_T";
             structAccess = "param->param_int32";
         }
         else
@@ -281,30 +302,56 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
 
         QString mavlinkFieldName = QString(info->fields[n]->name);
 
+        if (info->fields[n]->compactname.length() != 0) {
+            // Take the user-supplied input if any
+            mavlinkFieldName = info->fields[n]->compactname;
+        }
+
         for (int i = 0; i < info->fields[n]->numElements; ++i)
         {
+            localParamCount++;
             QString fieldName = fieldBaseName;
             QString objAccess;
             if (info->fields[n]->numElements > 1)
             {
                 objAccess = QString("%1[%2]").arg(info->fields[n]->name).arg(i);
+                fieldName = fieldName.toUpper();
                 fieldName += QString("%1_%2").arg(mavlinkFieldName).arg(QString(info->fields[n]->elementNames[i]));
             }
             else
             {
+                fieldName = fieldName.toUpper();
                 fieldName += mavlinkFieldName;
                 objAccess = info->fields[n]->name;
             }
 
-            fieldName = compactName(fieldName);
+            // Compress only if not user-supplied
+            if (info->fields[n]->compactname.length() == 0) {
+                fieldName = compactName(fieldName);
+            }
 
-            if (fieldName.length() < 18)
+            int fieldNameLengthMaximum = 18;
+
+
+            // Check if the elementnames part should be compressed
+            if (fieldName.length() > fieldNameLengthMaximum && info->fields[n]->compactname.length() != 0 && info->fields[n]->numElements > 1)
             {
-                qDebug() << "\t" << fieldName << type;
+                QStringList parts = fieldName.split("_");
+                parts.replace(2, compactName(parts.at(2)));
+                fieldName = parts.join("_");
+            }
+
+
+            if (fieldName.length() <= fieldNameLengthMaximum)
+            {
+                //qDebug() << "\t" << fieldName << type;
             }
             else
             {
-                qDebug() << "ERR\t" << fieldName << fieldName.length() << type;
+                cout << endl << "ERROR:\t\tThe field <" << fieldName.toStdString() << "> is " << fieldName.length() << " chars long, but the name limit is " << fieldNameLengthMaximum << " characters." << endl;
+                cout << "\t\tPlease edit in the XML file " << info->filename.toStdString() << " the main <object> tag AND the field <" << info->fields[n]->name.toStdString() << ">" << endl;
+                cout << "\t\tand add to both tags the attribute: compactname=\"<name>\", where <name> is not more than " << fieldNameLengthMaximum << " characters long." << endl << endl;
+                return false;
             }
 
             getParamNameByIndexLines += QString("\tcase %1:\n\t\treturn \"%2\";\n\tbreak;\n").arg(globalParamIndex).arg(fieldName);
@@ -324,6 +371,8 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     outCode.replace(QString("$(GETPARAMBYINDEXLINES)"), getParamByIndexLines);
     outCode.replace(QString("$(SETPARAMBYINDEXLINES)"), setParamByIndexLines);
 
+    outCode.replace(QString("$(PARAMCOUNT)"), QString("%1").arg(localParamCount));
+
     // Write the flight code
     bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".c", outCode );
     if (!res) {
@@ -332,10 +381,12 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     }
 
     res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".h", outInclude );
-    qDebug() << "Attempting to write file" << flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".h";
+
     if (!res) {
         cout << "Error: Could not write flight include files" << endl;
         return false;
+    } else {
+        //cout << "SUCCESS:\tWrote file: " << flightOutputPath.absolutePath().toStdString() + "/" + info->namelc.toStdString() + MAVLINK_FILE_NAME + ".h" << endl;
     }
 
     return true;

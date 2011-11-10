@@ -157,6 +157,11 @@ $(SETPARAMBYINDEXLINES)
 	}
 }
 
+inline uint16_t get$(NAME)ParamCount()
+{
+	return $(PARAMCOUNT);
+}
+
 /**
  * @}
  */

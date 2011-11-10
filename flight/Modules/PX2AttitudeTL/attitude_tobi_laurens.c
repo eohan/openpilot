@@ -14,18 +14,22 @@
 #include "attitude_tobi_laurens.h"
 #include "kalman.h"
 
-#include "mavlink_debug.h"
+//#include "mavlink_debug.h"
 //#include "sensors.h"
 #include "math.h"
 //#include "altitude_speed.h"
 //#include "transformation.h"
 //#include "gps_transformations.h"
-#include "mavlink.h"
 
-void debug_vect3(const char* string, const float_vect3 vect)
-{
-	debug_vect(string, vect.x, vect.y, vect.z);
-}
+//#include "mavlink_types.h"
+//extern mavlink_system_t mavlink_system;
+//
+//#include "mavlink.h"
+
+//void debug_vect3(const char* string, const float_vect3 vect)
+//{
+//	debug_vect(string, vect.x, vect.y, vect.z);
+//}
 
 //#define VELOCITY_HOLD 0.999f
 //#define ACCELERATION_HOLD 0.99f

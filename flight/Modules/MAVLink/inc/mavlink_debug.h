@@ -9,7 +9,7 @@
 #define MAVLINK_DEBUG_H_
 
 #include <inttypes.h>
-#include <mavlink.h>
+#include "mavlink_telemetry.h"
 
 #define DEBUG_COUNT 16
 #define DEBUG_MAX_LEN MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN

@@ -59,7 +59,6 @@
 #include "attitude_tobi_laurens.h"
 
 #include "pios_i2c_esc.h"
-#include "mavlink_debug.h"
 
 // Measurement range setup
 #define GYRO_RANGE_500DPS
