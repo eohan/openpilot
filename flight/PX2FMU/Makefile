@@ -21,6 +21,35 @@
  # with this program; if not, write to the Free Software Foundation, Inc.,
  # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  #####
+ 
+ 
+ 
+ 
+ 
+########################## BEGIN OF USER CONFIGURATION
+ 
+ # Use UAVTALK or MAVLINK
+TELEMETRY_PROTOCOL	?= UAVTALK
+
+# Debugging (YES/NO) ?
+DEBUG ?= YES
+
+# Set to YES when using Code Sourcery toolchain on Windows
+CODE_SOURCERY ?= NO
+ 
+# List of modules to include
+# NOTE: The telemetry module and system module are included automatically
+MODULES	= PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Battery
+ 
+# Deactivated modules: PX2Buzzer
+ 
+########################## END OF USER CONFIGURATION
+ 
+ 
+ 
+ 
+ 
+ 
 
 WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
 TOP      := $(realpath $(WHEREAMI)/../../)
@@ -36,12 +65,6 @@ TARGET := fw_$(BOARD_NAME)
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
 OUTDIR := $(TOP)/build/$(TARGET)
 
-# Debugging (YES/NO) ?
-DEBUG ?= YES
-
-# Set to YES when using Code Sourcery toolchain on Windows
-CODE_SOURCERY ?= NO
-
 # Remove command is different for Code Sourcery on Windows
 ifeq ($(CODE_SOURCERY), YES)
 REMOVE_CMD = cs-rm
@@ -51,12 +74,13 @@ endif
 
 FLASH_TOOL = OPENOCD
 
-# List of modules to include
-MODULES	= PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Battery
 # Enable Guidance only once REALLY in use: Guidance
-# Telemetry must be last to grab the optional modules  # Altitude  #PX2Buzzer
-#MODULES += MAVLink
+# Telemetry must be last to grab the optional modules
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+MODULES += MAVLink
+else
 MODULES += Telemetry
+endif
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
@@ -66,12 +90,14 @@ FLIGHT = $(TOP)/flight
 OPSYSTEM = $(WHEREAMI)/System
 OPSYSTEMINC = $(OPSYSTEM)/inc
 
-OPUAVTALK = $(FLIGHT)/UAVTalk
-OPUAVTALKINC = $(OPUAVTALK)/inc
-
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
 MAVLINK = $(FLIGHT)/Libraries/mavlink/include
 MAVLINKCOMMON = $(MAVLINK)/common
 MAVLINKMISSIONLIB = $(MAVLINK)/../missionlib
+else
+OPUAVTALK = $(FLIGHT)/UAVTalk
+OPUAVTALKINC = $(OPUAVTALK)/inc
+endif
 
 OPUAVOBJ = $(FLIGHT)/UAVObjects
 OPUAVOBJINC = $(OPUAVOBJ)/inc
@@ -162,7 +188,9 @@ SRC += $(OPSYSTEM)/openpilot.c
 SRC += $(OPSYSTEM)/pios_board.c
 SRC += $(OPSYSTEM)/alarms.c
 SRC += $(OPSYSTEM)/taskmonitor.c
+ifeq ($(TELEMETRY_PROTOCOL), UAVTALK)
 SRC += $(OPUAVTALK)/uavtalk.c
+endif
 SRC += $(OPUAVOBJ)/uavobjectmanager.c
 SRC += $(OPUAVOBJ)/eventdispatcher.c
 
@@ -182,11 +210,17 @@ SRC += $(OPSYSTEM)/cm3_fault_handlers.c
 ifndef TESTAPP
 #include $(UAVOBJSYNTHDIR)/Makefile.inc
 include $(WHEREAMI)/UAVObjects.inc
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+include $(WHEREAMI)/UAVObjectsMAVLink.inc
+SRC += $(UAVOBJMAVLINKSRC)
+endif
 SRC += $(UAVOBJSRC)
 endif
 
 ## MAVLINK MISSION LIB
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
 SRC += $(MAVLINKMISSIONLIB)/waypoints.c
+endif
 
 ## Libraries for flight calculations
 SRC += $(FLIGHTLIB)/fifo_buffer.c
@@ -222,11 +256,14 @@ ASRCARM =
 #    Each directory must be seperated by a space.
 EXTRAINCDIRS  += $(OPSYSTEM)
 EXTRAINCDIRS  += $(OPSYSTEMINC)
-EXTRAINCDIRS  += $(OPUAVTALK)
-EXTRAINCDIRS  += $(OPUAVTALKINC)
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
 EXTRAINCDIRS  += $(MAVLINK)
 EXTRAINCDIRS  += $(MAVLINKCOMMON)
 EXTRAINCDIRS  += $(MAVLINKMISSIONLIB)
+else
+EXTRAINCDIRS  += $(OPUAVTALK)
+EXTRAINCDIRS  += $(OPUAVTALKINC)
+endif
 EXTRAINCDIRS  += $(OPUAVOBJ)
 EXTRAINCDIRS  += $(OPUAVOBJINC)
 EXTRAINCDIRS  += $(UAVOBJSYNTHDIR)
@@ -271,10 +308,18 @@ LOADFORMAT = both
 # Debugging format.
 DEBUGF = dwarf-2
 
-# Place project-specific -D (define) and/or
+# Place project-specific 
+# (define) and/or
 # -U options for C here.
 #CDEFS += -DMAVLINK_SEPARATE_HELPERS
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+CDEFS += -DMAVLINK_ENABLED
 CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
+CDEFS += -DMAVLINK_CRC_EXTRA
+CDEFS += $(UAVOBJMAVLINKDEFINE)
+else
+CDEFS += -DUAVTALK_ENABLED
+endif
 CDEFS += -DPX2MODE
 CDEFS += -DPX2FMU
 CDEFS += -DSYSCLK_FREQ=$(SYSCLK_FREQ)

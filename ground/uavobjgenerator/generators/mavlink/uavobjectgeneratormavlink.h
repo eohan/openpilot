@@ -34,7 +34,7 @@ class UAVObjectGeneratorMAVLink
 public:
     bool generate(UAVObjectParser* gen,QString templatepath,QString outputpath);
     QStringList fieldTypeStrC;
-    QString flightIncludeTemplate, flightCodeTemplate, flightListCodeTemplate, flightListIncludeTemplate;//, flightMakeTemplate;flightCodeTemplate,
+    QString flightIncludeTemplate, flightCodeTemplate, flightListCodeTemplate, flightListIncludeTemplate, flightMakeTemplate;
     QDir flightCodePath;
     QDir flightOutputPath;
 

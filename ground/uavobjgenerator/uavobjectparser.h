@@ -49,6 +49,7 @@ typedef enum {
 
 typedef struct {
     QString name;
+    QString compactname;
     QString units;
     FieldType type;
     int numElements;
@@ -79,6 +80,7 @@ typedef enum {
 typedef struct  {
     QString name;
     QString namelc; /** name in lowercase */
+    QString compactname;
     QString filename;
     quint32 id;
     bool isSingleInst;

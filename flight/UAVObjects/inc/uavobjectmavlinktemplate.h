@@ -40,10 +40,14 @@
 #ifndef $(NAMEUC)MAVLINKADAPTER_H
 #define $(NAMEUC)MAVLINKADAPTER_H
 
+#include "mavlink_types.h"
+#include "uavobjectmavlinksettings.h"
+
 int16_t get$(NAME)ParamIndexByName(const char* name);
 const char* get$(NAME)ParamNameByIndex(uint16_t index);
 uint8_t get$(NAME)ParamByIndex(uint16_t index, mavlink_param_union_t* param);
 uint8_t set$(NAME)ParamByIndex(uint16_t index, const mavlink_param_union_t* param);
+uint16_t get$(NAME)ParamCount();
 
 #endif // $(NAMEUC)MAVLINKADAPTER_H
 

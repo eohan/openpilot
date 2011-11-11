@@ -385,6 +385,11 @@ QString UAVObjectParser::processObjectFields(QDomNode& childNode, ObjectInfo* in
 
     field->name = elemAttr.nodeValue();
 
+    // Get compact name attribute if present
+    elemAttr = elemAttributes.namedItem("compactname");
+    if ( !elemAttr.isNull() )
+        field->compactname = elemAttr.nodeValue();
+
 
     // Get units attribute
     elemAttr = elemAttributes.namedItem("units");
@@ -490,6 +495,11 @@ QString UAVObjectParser::processObjectAttributes(QDomNode& node, ObjectInfo* inf
 
     info->name = attr.nodeValue();
     info->namelc = attr.nodeValue().toLower();
+
+    // Get compact name attribute if present
+    attr = attributes.namedItem("compactname");
+    if ( !attr.isNull() )
+        info->compactname = attr.nodeValue();
 
     // Get singleinstance attribute
     attr = attributes.namedItem("singleinstance");
