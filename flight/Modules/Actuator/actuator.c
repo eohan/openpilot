@@ -160,7 +160,7 @@ static void actuatorTask(void* parameters)
 	uint16_t ChannelUpdateFreq[ACTUATORSETTINGS_CHANNELUPDATEFREQ_NUMELEM];
 	ActuatorSettingsChannelUpdateFreqGet(ChannelUpdateFreq);
 	// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#ifndef STM32F2XX
+#ifndef PX2FMU
 	PIOS_Servo_SetHz(&ChannelUpdateFreq[0], ACTUATORSETTINGS_CHANNELUPDATEFREQ_NUMELEM);
 #endif
 
@@ -215,8 +215,6 @@ static void actuatorTask(void* parameters)
 			setFailsafe(); // So that channels like PWM buzzer keep working
 			continue;
 		}
-
-		AlarmsClear(SYSTEMALARMS_ALARM_ACTUATOR);
 
 		bool armed = flightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED;
 		bool positiveThrottle = desired.Throttle >= 0.00;
@@ -353,6 +351,10 @@ static void actuatorTask(void* parameters)
 			command.NumFailedUpdates++;
 			ActuatorCommandSet(&command);
 			AlarmsSet(SYSTEMALARMS_ALARM_ACTUATOR, SYSTEMALARMS_ALARM_CRITICAL);
+		} else {
+			// SUCESS, EVERYTHING IS ALRIGHT
+			// Only clear the alarm if we actually changed something (check is done inside alarms clear)
+			AlarmsClear(SYSTEMALARMS_ALARM_ACTUATOR);
 		}
 
 	}
@@ -544,7 +546,7 @@ static void actuator_update_rate(UAVObjEvent * ev)
 	if ( ev->obj == ActuatorSettingsHandle() ) {
 		ActuatorSettingsChannelUpdateFreqGet(ChannelUpdateFreq);
 // TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#ifndef STM32F2XX
+#ifndef PX2FMU
 		PIOS_Servo_SetHz(&ChannelUpdateFreq[0], ACTUATORSETTINGS_CHANNELUPDATEFREQ_NUMELEM);
 #endif
 	}
@@ -556,17 +558,13 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 }
 #else
 static bool set_channel(uint8_t mixer_channel, uint16_t value) {
-
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
-	
-	// XXX WTF PX2
-	settings.ChannelType[mixer_channel] = ACTUATORSETTINGS_CHANNELTYPE_MK;
 
 	switch(settings.ChannelType[mixer_channel]) {
+#if defined(PIOS_INCLUDE_SERVO)
 		case ACTUATORSETTINGS_CHANNELTYPE_PWMALARMBUZZER: {
 			// This is for buzzers that take a PWM input
-#if defined(PIOS_INCLUDE_SERVO)
 
 			static uint32_t currBuzzTune = 0;
 			static uint32_t currBuzzTuneState;
@@ -610,9 +608,9 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 			// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
 			PIOS_Servo_Set(	settings.ChannelAddr[mixer_channel],
 							buzzOn?settings.ChannelMax[mixer_channel]:settings.ChannelMin[mixer_channel]);
-#endif
 			return true;
 		}
+#endif
 		// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
 #if defined(PIOS_INCLUDE_SERVO)
 		case ACTUATORSETTINGS_CHANNELTYPE_PWM:
@@ -625,7 +623,10 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 		case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
 			return PIOS_SetAstec4Speed(settings.ChannelAddr[mixer_channel],value);
 #endif
+		case ACTUATORSETTINGS_CHANNELTYPE_DISABLED:
+			return true;
 		default:
+			// No supported channel type selected, return error
 			return false;
 	}
 

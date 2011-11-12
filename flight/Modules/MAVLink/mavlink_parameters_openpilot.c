@@ -18,15 +18,13 @@
  ****************************************************************************/
 
 #include "mavlink_parameters_openpilot.h"
-#include "mavlink_settings_adapter.h"
+#include "uavobjectmavlinksettings.h"
 #include "math.h" /* isinf / isnan checks */
 
 #include "openpilot.h"
 #include "objectpersistence.h"
 
 #include "flightstatus.h"
-
-#include "actuatorsettings.h"
 
 extern mavlink_system_t mavlink_system;
 extern uint16_t next_param;
@@ -50,10 +48,10 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 {
 	switch (msg->msgid)
 	{
-	case MAVLINK_MSG_ID_COMMAND_SHORT:
+	case MAVLINK_MSG_ID_COMMAND_LONG:
 	{
-		mavlink_command_short_t cmd;
-		mavlink_msg_command_short_decode(msg, &cmd);
+		mavlink_command_long_t cmd;
+		mavlink_msg_command_long_decode(msg, &cmd);
 		if (cmd.command == MAV_CMD_PREFLIGHT_STORAGE)
 		{
 			FlightStatusData status;
@@ -216,32 +214,19 @@ void mavlink_pm_queued_send(void)
 	{
 		mavlink_param_union_t param;
 		//for (int i.. all active comm links)
-#ifndef MAVLINK_USE_CONVENIENCE_FUNCTIONS
-		mavlink_message_t tx_msg;
 		uint8_t ret = getParamByIndex(next_param, &param);
 		if (ret != MAVLINK_RET_VAL_PARAM_SUCCESS)
 		{
-			mavlink_missionlib_send_gcs_string("PM# ERR: Param not sent");
+			mavlink_missionlib_send_gcs_string("PM# ERR: Param index not found");
 			return;
 		}
-		mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
-				mavlink_system.compid,
-				MAVLINK_COMM_0,
-				&tx_msg,
-				getParamNameByIndex(next_param),
-				param.param_float,
-				param.type,
-				getParamCount(),
-				next_param);
-		mavlink_missionlib_send_message(&tx_msg);
-#else
+
 		mavlink_msg_param_value_send(MAVLINK_COMM_0,
 				getParamNameByIndex(next_param),
 				param.param_float,
 				param.type,
 				getParamCount(),
 				next_param);
-#endif
 		next_param++;
 	}
 }

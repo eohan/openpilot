@@ -79,6 +79,7 @@ int main()
 	/* bring up the rest of the board as required for the updater */
 	PIOS_Board_Init();
 	PIOS_LED_On(LED1);
+	PIOS_LED_Off(LED2);
 	i2c_fsm();
 	return 0;
 }

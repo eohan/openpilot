@@ -49,6 +49,7 @@
 #include "attituderaw.h"
 #include "attitudeactual.h"
 #include "positiondesired.h"	// object that will be updated by the module
+#include "globalpositiondesired.h"
 #include "positionactual.h"
 #include "manualcontrol.h"
 #include "flightstatus.h"
@@ -59,6 +60,9 @@
 #include "velocitydesired.h"
 #include "velocityactual.h"
 #include "CoordinateConversions.h"
+#ifdef PX2MODE
+#include "fixed_wing.h"
+#endif
 
 // Private constants
 #define MAX_QUEUE_SIZE 1
@@ -197,46 +201,61 @@ static void guidanceTask(void *parameters)
 		accelData.Down = accel_ned[2] * 100;
 		NedAccelSet(&accelData);
 		
-		
+
 		FlightStatusGet(&flightStatus);
 		SystemSettingsGet(&systemSettings);
 		GuidanceSettingsGet(&guidanceSettings);
-		
-		if ((PARSE_FLIGHT_MODE(flightStatus.FlightMode) == FLIGHTMODE_GUIDANCE) &&
-		    ((systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_VTOL) ||
-		     (systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_QUADP) ||
-		     (systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_QUADX) ||
-		     (systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_HEXA) ))
+
+		if ((PARSE_FLIGHT_MODE(flightStatus.FlightMode) == FLIGHTMODE_GUIDANCE))
 		{
-			if(positionHoldLast == 0) {
-				/* When enter position hold mode save current position */
-				PositionDesiredData positionDesired;
-				PositionActualData positionActual;
-				PositionDesiredGet(&positionDesired);
-				PositionActualGet(&positionActual);
-				positionDesired.North = positionActual.North;
-				positionDesired.East = positionActual.East;
-				PositionDesiredSet(&positionDesired);
-				positionHoldLast = 1;
+			if ((systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_VTOL) ||
+					(systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_QUADP) ||
+					(systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_QUADX) ||
+					(systemSettings.AirframeType == SYSTEMSETTINGS_AIRFRAMETYPE_HEXA) )
+			{
+				if(positionHoldLast == 0) {
+					/* When enter position hold mode save current position */
+					PositionDesiredData positionDesired;
+					PositionActualData positionActual;
+					PositionDesiredGet(&positionDesired);
+					PositionActualGet(&positionActual);
+					positionDesired.North = positionActual.North;
+					positionDesired.East = positionActual.East;
+					PositionDesiredSet(&positionDesired);
+					positionHoldLast = 1;
+				}
+
+				if( flightStatus.FlightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD )
+				{
+					updateVtolDesiredVelocity();
+				}
+				else
+				{
+					manualSetDesiredVelocity();
+				}
+				updateVtolDesiredAttitude();
+
+			} else {
+#ifdef PX2MODE
+				// FIXED WING CONTROL
+
+				updateFixedWingDesiredVelocity();
+				updateFixedWingDesiredAttitude();
+
+
+				// Be cleaner and get rid of global variables
+				// FIXME might be used by fixed wing control?
+				northVelIntegral = 0;
+				eastVelIntegral = 0;
+				downVelIntegral = 0;
+				northPosIntegral = 0;
+				eastPosIntegral = 0;
+				downPosIntegral = 0;
+				positionHoldLast = 0;
+#endif
 			}
-			
-			if( flightStatus.FlightMode == FLIGHTSTATUS_FLIGHTMODE_POSITIONHOLD ) 
-				updateVtolDesiredVelocity();
-			else
-				manualSetDesiredVelocity();			
-			updateVtolDesiredAttitude();
-			
-		} else {
-			// Be cleaner and get rid of global variables
-			northVelIntegral = 0;
-			eastVelIntegral = 0;
-			downVelIntegral = 0;
-			northPosIntegral = 0;
-			eastPosIntegral = 0;
-			downPosIntegral = 0;
-			positionHoldLast = 0;
 		}
-		
+
 		accel[0] = accel[1] = accel[2] = 0;
 		accel_accum = 0;
 	}
@@ -446,3 +465,5 @@ static float bound(float val, float min, float max)
 	}
 	return val;
 }
+
+

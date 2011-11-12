@@ -36,21 +36,39 @@
 #include <stdbool.h>
 
 #ifdef ENABLE_GPS_BINARY_GTOP
-	#include "GTOP_BIN.h"
+#include "GTOP_BIN.h"
 #endif
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-	#include "GTOP_BIN_CUSTOM.h"
-	#ifdef FULL_COLD_RESTART
+#include "GTOP_BIN_CUSTOM.h"
+#ifdef FULL_COLD_RESTART
 #undef FULL_COLD_RESTART
 #endif
-
-//#define FULL_COLD_RESTART
 
 #ifdef DISABLE_GPS_TRESHOLD
 #undef DISABLE_GPS_TRESHOLD
 #endif
+
+#define SBAS_INTEGRITY_ON "$PMTK319,1*24\r\n"
+#define SBAS_TEST_ON "$PMTK319,0*25\r\n"
+#define WAAS_ENABLE  "$PMTK313,1*2E\r\n"
+#define WAAS_DISABLE "$PMTK313,0*2F\r\n"
+#define DGPS_SBAS_ON "$PMTK301,2*2E\r\n"                  // default is SBAS on
+
+#define MEDIATEK_BAUD_RATE_38400 "$PMTK251,38400*27\r\n"
+#define MEDIATEK_BAUD_RATE_57600 "$PMTK251,57600*2C\r\n"
+#define MEDIATEK_BAUD_RATE_115200 "$PMTK251,115200*1F\r\n"
+#define MEDIATEK_REFRESH_RATE_4HZ "$PMTK220,250*29\r\n"                      //refresh rate - 4Hz - 250 milliseconds
+#define MEDIATEK_REFRESH_RATE_5HZ "$PMTK220,200*2C\r\n"
+#define MEDIATEK_REFRESH_RATE_10HZ "$PMTK220,100*2F\r\n"                      //refresh rate - 10Hz - 100 milliseconds
+#define MEDIATEK_FACTORY_RESET "$PMTK104*37\r\n"                             //clear current settings
+#define MEDIATEK_CUSTOM_BINARY_MODE "$PGCMD,16,0,0,0,0,0*6A\r\n"
+#define MEDIATEK_FULL_COLD_RESTART "$PMTK104*37\r\n"
+#define NMEA_GGA_ENABLE "$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0*27\r\n" //Set GGA messages
+
 #endif
+
+//#define FULL_COLD_RESTART
 
 #if defined(ENABLE_GPS_ONESENTENCE_GTOP) || defined(ENABLE_GPS_NMEA)
 	#include "NMEA.h"
@@ -79,8 +97,8 @@ static float GravityAccel(float latitude, float longitude, float altitude);
 //#define FULL_COLD_RESTART             // uncomment this to tell the GPS to do a FULL COLD restart
 //#define DISABLE_GPS_THRESHOLD          //
 
-#define GPS_TIMEOUT_MS                  500
-#define GPS_COMMAND_RESEND_TIMEOUT_MS   2000
+#define GPS_TIMEOUT_MS                  800
+#define GPS_COMMAND_RESEND_TIMEOUT_MS   3000
 
 #ifdef PIOS_GPS_SETS_HOMELOCATION
 // Unfortunately need a good size stack for the WMM calculation
@@ -91,7 +109,7 @@ static float GravityAccel(float latitude, float longitude, float altitude);
 	#endif
 #else
 	#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-		#define STACK_SIZE_BYTES 600
+		#define STACK_SIZE_BYTES 1024
 	#else
 	#if ENABLE_GPS_BINARY_GTOP
 		#define STACK_SIZE_BYTES            440
@@ -182,7 +200,14 @@ static void gpsTask(void *parameters)
 	
 #ifdef FULL_COLD_RESTART
 	// tell the GPS to do a FULL COLD restart
-	PIOS_COM_SendStringNonBlocking(gpsPort, "$PMTK104*37\r\n");
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_FACTORY_RESET);
+	timeOfLastCommandMs = timeNowMs;
+	while (timeNowMs - timeOfLastCommandMs < 300)	// delay for 300ms to let the GPS sort itself out
+	{
+		vTaskDelay(xDelay);	// Block task until next update
+		timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;;
+	}
+	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_FULL_COLD_RESTART);
 	timeOfLastCommandMs = timeNowMs;
 	while (timeNowMs - timeOfLastCommandMs < 300)	// delay for 300ms to let the GPS sort itself out
 	{
@@ -197,7 +222,7 @@ static void gpsTask(void *parameters)
 
 #ifdef ENABLE_GPS_BINARY_GTOP
 	// switch to GTOP binary mode
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,21,1*6F\r\n");
+	PIOS_COM_SendStringNonBlocking(gpsPort, MEDIATEK_CUSTOM_BINARY_MODE);
 #endif
 
 #ifdef ENABLE_GPS_ONESENTENCE_GTOP
@@ -211,14 +236,9 @@ static void gpsTask(void *parameters)
 #endif
 
 #ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-	// Set 10 Hz
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-//	// set 38400 baud
-//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-//	// Enable 4 Hz
-//	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
-	// Enable binary mode
-	PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
+	// Do not re-initialize module, if it has lock we happily keep it
+//	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
+//	PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
 #endif
 
 	numUpdates = 0;
@@ -244,6 +264,7 @@ static void gpsTask(void *parameters)
 
 					timeNowMs = xTaskGetTickCount() * portTICK_RATE_MS;
 					timeOfLastUpdateMs = timeNowMs;
+					timeOfLastCommandMs = timeNowMs;
 				}
 			}
 		#endif
@@ -363,14 +384,8 @@ static void gpsTask(void *parameters)
 
 				#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 					GTOP_BIN_CUSTOM_init();
-					// Set 10 Hz
-					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,100*2F\r\n");
-//					// set 38400 baud
-//					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK251,38400*27\r\n");
-//				    // Set 4 Hz
-//				    PIOS_COM_SendStringNonBlocking(gpsPort ,"$PMTK220,250*29\r\n");
-					// Enable custom binary mode
-					PIOS_COM_SendStringNonBlocking(gpsPort ,"$PGCMD,16,0,0,0,0,0*6A\r\n");
+					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_REFRESH_RATE_10HZ);
+					PIOS_COM_SendStringNonBlocking(gpsPort,MEDIATEK_CUSTOM_BINARY_MODE);
 				#endif
 				#ifdef ENABLE_GPS_BINARY_GTOP
 					GTOP_BIN_init();
@@ -388,7 +403,7 @@ static void gpsTask(void *parameters)
 					PIOS_COM_SendStringNonBlocking(gpsPort,"$PGCMD,21,3*6D\r\n");
 				#endif
 
-				#ifdef DISABLE_GPS_TRESHOLD
+				#if (defined DISABLE_GPS_TRESHOLD) && !(defined ENABLE_GPS_BINARY_CUSTOM_GTOP)
 					PIOS_COM_SendStringNonBlocking(gpsPort,"$PMTK397,0*23\r\n");
 				#endif
 			}
@@ -408,7 +423,7 @@ static void gpsTask(void *parameters)
 
 			//criteria for GPS-OK taken from this post...
 			//http://forums.openpilot.org/topic/1523-professors-insgps-in-svn/page__view__findpost__p__5220
-			if ((GpsData.PDOP < 3.5) && (GpsData.Satellites >= 7))
+			if ((GpsData.PDOP < 3.5) && (GpsData.Satellites >= 5))
 				AlarmsClear(SYSTEMALARMS_ALARM_GPS);
 			else
 			if (GpsData.Status == GPSPOSITION_STATUS_FIX3D)

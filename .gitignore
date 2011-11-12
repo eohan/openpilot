@@ -17,6 +17,7 @@ eclipse-launch-custom
 .project
 *.settings
 build
+.DS_Store
 
 # /flight/AHRS/
 /flight/AHRS/Build

@@ -260,19 +260,18 @@ void I2C1_ER_IRQHandler() __attribute__((alias ("I2C_SLAVE_ER_IRQ_Handler")));
 static const struct pios_i2c_adapter_cfg i2c_slave_cfg = {
 		.regs	= I2C1,
 		.init = {
+				.I2C_ClockSpeed				= 400000,
 				.I2C_Mode					= I2C_Mode_I2C,
-				.I2C_OwnAddress1			= 0x11,
+				.I2C_DutyCycle				= I2C_DutyCycle_2,
+				.I2C_OwnAddress1			= 0x10,
 				.I2C_Ack					= I2C_Ack_Enable,
 				.I2C_AcknowledgedAddress	= I2C_AcknowledgedAddress_7bit,
-				.I2C_DutyCycle				= I2C_DutyCycle_2,
-				.I2C_ClockSpeed				= 400000,
+
 		},
-		.transfer_timeout_ms = 50,
-		.transfer_timeout_ms = 50,
 		.scl = {
 				.gpio = GPIOB,
 				.init = {
-						.GPIO_Pin   = GPIO_Pin_10,
+						.GPIO_Pin   = GPIO_Pin_6,
 						.GPIO_Speed = GPIO_Speed_10MHz,
 						.GPIO_Mode  = GPIO_Mode_AF_OD,
 				},
@@ -280,24 +279,22 @@ static const struct pios_i2c_adapter_cfg i2c_slave_cfg = {
 		.sda = {
 				.gpio = GPIOB,
 				.init = {
-						.GPIO_Pin   = GPIO_Pin_11,
+						.GPIO_Pin   = GPIO_Pin_7,
 						.GPIO_Speed = GPIO_Speed_10MHz,
 						.GPIO_Mode  = GPIO_Mode_AF_OD,
 				},
 		},
 		.event = {
-				.flags   = 0,		/* FIXME: check this */
 				.init = {
-						.NVIC_IRQChannel                   = I2C2_EV_IRQn,
+						.NVIC_IRQChannel                   = I2C1_EV_IRQn,
 						.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
 						.NVIC_IRQChannelSubPriority        = 0,
 						.NVIC_IRQChannelCmd                = ENABLE,
 				},
 		},
 		.error = {
-				.flags   = 0,		/* FIXME: check this */
 				.init = {
-						.NVIC_IRQChannel                   = I2C2_ER_IRQn,
+						.NVIC_IRQChannel                   = I2C1_ER_IRQn,
 						.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
 						.NVIC_IRQChannelSubPriority        = 0,
 						.NVIC_IRQChannelCmd                = ENABLE,
@@ -338,9 +335,6 @@ void PIOS_Board_Init(void)
 
 	/* Initialize the task monitor library */
 //	TaskMonitorInitialize();
-
-	/* Bring up the I2C slave interface */
-	PIOS_I2C_Slave_Init(pios_i2c_slave_id, &i2c_slave_cfg);
 
 #if 0 // XXX this is all very wrong now
 #if defined(PIOS_INCLUDE_SBUS)
@@ -386,6 +380,9 @@ void PIOS_Board_Init(void)
 	}
 #endif
 	PIOS_COM_SendFormattedString(PIOS_COM_AUX, "PX2IO starting...\r\n");
+
+	/* Bring up the I2C slave interface */
+	PIOS_I2C_Slave_Init(pios_i2c_slave_id, &i2c_slave_cfg);
 
 	PIOS_Servo_Init();
 //	PIOS_ADC_INIT();

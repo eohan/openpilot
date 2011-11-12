@@ -5,7 +5,40 @@
  *      Author: msmith
  */
 
+#include <pios.h>
 #include <pios_i2c_slave.h>
+
+#if 1
+struct fsm_logentry {
+	char		kind;
+	uint32_t	code;
+};
+
+#define LOG_ENTRIES	64
+static struct fsm_logentry fsm_log[LOG_ENTRIES];
+int	fsm_logptr;
+#define LOG_NEXT(_x)	(((_x) + 1) % LOG_ENTRIES)
+#define LOG(_kind, _code)		\
+		do {					\
+			fsm_log[fsm_logptr].kind = _kind; \
+			fsm_log[fsm_logptr].code = _code; \
+			fsm_logptr = LOG_NEXT(fsm_logptr); \
+			fsm_log[fsm_logptr].kind = 0; \
+		} while(0)
+
+#define LOGx(_kind, _code) \
+		do {\
+			if (fsm_logptr < LOG_ENTRIES) { \
+				fsm_log[fsm_logptr].kind = _kind; \
+				fsm_log[fsm_logptr].code = _code; \
+				fsm_logptr++;\
+			}\
+		}while(0)
+
+#else
+#define LOG(_kind, _code)
+#endif
+
 
 /**
  * States implemented by the I2C slave FSM.
@@ -62,6 +95,7 @@ struct fsm_context {
 	uint32_t		txn_remaining;
 	uint32_t		txn_data_offset;
 
+	uint32_t		transferred;
 };
 
 /**
@@ -183,6 +217,11 @@ PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg)
 	GPIO_Init(cfg->sda.gpio, &(cfg->sda.init));
 	GPIO_Init(cfg->scl.gpio, &(cfg->scl.init));
 
+	// interrupt init
+	NVIC_Init(&cfg->event.init);
+	NVIC_Init(&cfg->error.init);
+
+
 	// do i2c init but start disabled
 	I2C_DeInit(ctx->regs);
 	I2C_Init(ctx->regs, &cfg->init);
@@ -195,7 +234,7 @@ PIOS_I2C_Slave_Open(uint32_t i2c_id, pios_i2c_slave_callback callback)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
 
-	// hook up the callback
+		// hook up the callback
 	ctx->callback = callback;
 
 	// and open for business
@@ -214,14 +253,13 @@ PIOS_I2C_SLAVE_Enable(uint32_t i2c_id, bool enabled)
 		fsm_event(ctx, AUTO);
 
 		// enable the controller
-		I2C_Cmd(ctx->regs, ENABLE);
 		I2C_ClearITPendingBit(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR);
 		I2C_ITConfig(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR, ENABLE);
+		I2C_Cmd(ctx->regs, ENABLE);
 	} else {
-
 		// disable the controller
-		I2C_ITConfig(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR, DISABLE);
 		I2C_Cmd(ctx->regs, DISABLE);
+		I2C_ITConfig(ctx->regs, I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR, DISABLE);
 	}
 }
 
@@ -234,10 +272,14 @@ PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, struct pios_i2c_slave_txn txn_list[], u
 	PIOS_Assert(txn_list != NULL);
 	PIOS_Assert(num_txns > 0);
 
+	LOG('t', (uintptr_t)txn_list);
+
 	// update the current transfer details
 	ctx->txn_list = txn_list;
 	ctx->txn_remaining = num_txns;
 	ctx->txn_data_offset = 0;
+
+	ctx->transferred = 0;
 }
 
 void
@@ -248,6 +290,9 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 
 	// fetch the most recent event
 	event = I2C_GetLastEvent(I2C1);
+
+	if ((event) && (event != 0x00020000))
+		LOG('e', event);
 
 	// generate FSM events based on I2C events
 	switch (event) {
@@ -260,6 +305,7 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 		break;
 
 	case I2C_EVENT_SLAVE_BYTE_RECEIVED:
+	case I2C_EVENT_SLAVE_BYTE_RECEIVED | I2C_SR1_BTF:
 		fsm_event(ctx, BYTE_RECEIVED);
 		break;
 
@@ -268,7 +314,7 @@ PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id)
 		break;
 
 	case I2C_EVENT_SLAVE_BYTE_TRANSMITTING:
-	//case I2C_EVENT_SLAVE_BYTE_TRANSMITTED:
+	case I2C_EVENT_SLAVE_BYTE_TRANSMITTED:
 		fsm_event(ctx, BYTE_SENDABLE);
 		break;
 
@@ -285,6 +331,8 @@ void
 PIOS_I2C_SLAVE_ER_IRQ_Handler(uint32_t i2c_id)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
+
+	LOG('e', 0);
 
 	// clear the flag in the hardware
 	I2C_ClearFlag(ctx->regs, I2C_FLAG_BERR);
@@ -306,7 +354,12 @@ PIOS_I2C_SLAVE_ER_IRQ_Handler(uint32_t i2c_id)
 static void
 fsm_event(struct fsm_context *ctx, enum fsm_event event)
 {
+	LOG('s', (ctx->state << 16) | fsm[ctx->state].next_state[event]);
+
 	// move to the next state
+	//
+	// Note that uninitialised states land
+	// us in the BAD_PHASE state due to it being state zero.
 	ctx->state = fsm[ctx->state].next_state[event];
 
 	// call the state entry handler
@@ -332,7 +385,6 @@ go_wait_master(struct fsm_context *ctx)
 	// clear transaction state
 	ctx->txn_list = NULL;
 	ctx->txn_remaining = 0;
-
 
 	// (re)enable the peripheral, clear the stop event flag in
 	// case we just finished receiving data
@@ -372,14 +424,17 @@ go_receive_data(struct fsm_context *ctx)
 
 	// if we don't have a txn_list, nobody wants the data
 	if (ctx->txn_list == NULL) {
+		LOG('D', d);
 		return;
 	}
 
 	// capture the byte
 	ctx->txn_list->buf[ctx->txn_data_offset] = d;
+	ctx->transferred++;
+	LOG('r', d);
 
 	// increment the buffer pointer and check for overflow into the next buffer
-	if (++ctx->txn_data_offset > ctx->txn_list->len) {
+	if (++ctx->txn_data_offset >= ctx->txn_list->len) {
 
 		// check for another buffer
 		if (--ctx->txn_remaining > 0) {
@@ -409,7 +464,7 @@ static void
 go_receive_done(struct fsm_context *ctx)
 {
 	// Tell the client that the transmitter has stopped
-	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_RECEIVE_DONE, 0);
+	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_RECEIVE_DONE, ctx->transferred);
 
 	// kick along to the next state
 	fsm_event(ctx, AUTO);
@@ -439,9 +494,10 @@ go_send_data(struct fsm_context *ctx)
 
 	if (ctx->txn_list) {
 		d = ctx->txn_list->buf[ctx->txn_data_offset];
+		ctx->transferred++;
 
 		// increment the buffer pointer and check for wrap into the next buffer
-		if (++ctx->txn_data_offset > ctx->txn_list->len) {
+		if (++ctx->txn_data_offset >= ctx->txn_list->len) {
 
 			// check for another buffer
 			if (--ctx->txn_remaining > 0) {
@@ -453,9 +509,13 @@ go_send_data(struct fsm_context *ctx)
 
 				// there are no more buffers
 				ctx->txn_list = NULL;
+
+				// tell the slave in case they want to set up another transfer
+				ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_BUFFER_EMPTY, 0);
 			}
 		}
 	}
+	LOG('w', d);
 	I2C_SendData(ctx->regs, d);
 }
 
@@ -468,7 +528,7 @@ static void
 go_send_done(struct fsm_context *ctx)
 {
 	// Tell the client that transmission has stopped
-	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_TRANSMIT_DONE, 0);
+	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_TRANSMIT_DONE, ctx->transferred);
 
 	// kick along to the next state
 	fsm_event(ctx, AUTO);
